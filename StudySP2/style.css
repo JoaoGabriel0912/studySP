@@ -1,0 +1,265 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at 20% 20%, rgba(0, 123, 255, 0.15) 0%, transparent 45%),
+                radial-gradient(circle at 80% 80%, rgba(0, 86, 179, 0.18) 0%, transparent 50%),
+                #080d16;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: #333333;
+}
+
+/* Container Principal */
+.login-wrapper, .container {
+    width: 100%;
+    max-width: 880px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Card Principal em 2 Colunas */
+.login-card {
+    display: flex;
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    min-height: 520px;
+}
+
+/* Coluna Visual (Banner com a Imagem) */
+.login-banner {
+    flex: 1.1;
+    background: linear-gradient(160deg, #090f1a 0%, #0d1726 60%, #060a12 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 30px;
+    position: relative;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.login-banner::before {
+    content: '';
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.25) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.banner-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    z-index: 1;
+    gap: 18px;
+}
+
+.banner-logo {
+    width: 100%;
+    max-width: 290px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 14px;
+    filter: drop-shadow(0 12px 28px rgba(0, 123, 255, 0.28));
+    transition: transform 0.3s ease;
+}
+
+.banner-logo:hover {
+    transform: scale(1.02);
+}
+
+.banner-text h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+
+.banner-text p {
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 280px;
+}
+
+/* Coluna do Formulário */
+.login-form-section {
+    flex: 1;
+    padding: 45px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: #ffffff;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.form-header h2 {
+    color: #1e293b;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.form-header .subtitle {
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* Campos de Entrada */
+.input-group {
+    text-align: left;
+    margin-bottom: 18px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #334155;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.input-group input, .input-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1e293b;
+    background-color: #f8fafc;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.input-group input:focus, .input-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+/* Botão */
+.btn {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0, 123, 255, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+    margin-top: 8px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.45);
+    background: linear-gradient(135deg, #006fe6, #004ba0);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Links do Rodapé */
+.footer-links {
+    margin-top: 22px;
+    text-align: center;
+}
+
+.footer-links a {
+    text-decoration: none;
+    color: #007bff;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+
+.link-escola {
+    color: #dc3545 !important;
+}
+
+.link-escola:hover {
+    color: #bd2130 !important;
+}
+
+/* Compatibilidade com .card clássico */
+.card {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    text-align: center;
+    width: 100%;
+    max-width: 420px;
+}
+
+.card h2 {
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.card p {
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 25px;
+}
+
+.study {
+    max-height: 50px;
+    width: auto;
+    object-fit: contain;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 768px) {
+    .login-card {
+        flex-direction: column;
+        max-width: 440px;
+        min-height: auto;
+    }
+
+    .login-banner {
+        padding: 28px 20px 20px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .banner-logo {
+        max-width: 190px;
+    }
+
+    .banner-text {
+        display: none;
+    }
+
+    .login-form-section {
+        padding: 30px 24px;
+    }
+}

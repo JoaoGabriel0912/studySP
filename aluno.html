@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área do Aluno - Provão Paulista+TCC</title>
+    <link rel="stylesheet" href="aluno.css">
+</head>
+
+<body class="dark-theme">
+
+    <!-- Barra Lateral -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-brand-icon">
+                <span class="logo-emoji">🎓</span>
+            </div>
+            <div class="logo-text-wrapper">
+                <span class="logo-text">Study<span class="logo-accent">SP</span></span>
+                <span class="logo-sub"><span class="logo-live-dot"></span>PLATAFORMA DE ESTUDOS</span>
+            </div>
+        </div>
+        <nav>
+            <a href="#" class="active" id="menu-inicio">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Início</span>
+            </a>
+            <a href="#" id="menu-estudar">
+                <span class="nav-icon">📚</span>
+                <span class="nav-label">Estudar</span>
+            </a>
+            <a href="#" id="menu-pomodoro">
+                <span class="nav-icon">🍅</span>
+                <span class="nav-label">Pomodoro</span>
+            </a>
+            <a href="#" id="menu-simulados">
+                <span class="nav-icon">📝</span>
+                <span class="nav-label">Simulados</span>
+                <span class="nav-badge">Provão</span>
+            </a>
+            <a href="#" id="menu-tcc">
+                <span class="nav-icon">🎓</span>
+                <span class="nav-label">TCC</span>
+                <span class="nav-badge ia-badge">IA</span>
+            </a>
+        </nav>
+
+        <!-- Rodapé do Menu Lateral -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user-card" onclick="toggleMenuConfig()" title="Abrir configurações de perfil">
+                <div class="sidebar-user-avatar" id="sidebarAvatar">👤</div>
+                <div class="sidebar-user-info">
+                    <span class="sidebar-user-name" id="sidebarUserName">Aluno</span>
+                    <span class="sidebar-user-role" id="sidebarUserRole">Painel Ativo</span>
+                </div>
+                <span class="sidebar-gear">⚙️</span>
+            </div>
+            <div class="sidebar-badge-study">
+                <span class="badge-study-icon">⚡</span>
+                <span class="badge-study-text">Provão Paulista 2026</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- Cabeçalho -->
+        <header class="topbar">
+            <div class="streak-container">
+                <span class="fire-icon">🔥</span>
+                <span class="streak-text" id="userStreak">0 Dias de Ofensiva</span>
+            </div>
+
+            <!-- CENTRO: O Letreiro StudySP -->
+            <div class="topbar-logo">
+                <img src="./img/logo.png" alt="Logo StudySP" class="study">
+            </div>
+
+        <div class="user-menu-container" style="display: flex; gap: 15px; align-items: center;">
+            <!-- Botão de Conquistas -->
+            <button class="btn-conquistas" onclick="toggleConquistas()">🏆 Conquistas</button>
+
+            <div class="user-info" onclick="toggleMenuConfig()">
+                <span id="userNameDisplay">Nome do Aluno</span>
+                <div class="avatar-circle" id="userAvatarDisplay">👤</div>
+            </div>
+
+            <!-- Dropdown de Conquistas -->
+            <div id="conquistasDropdown" class="dropdown-menu hidden" style="right: 180px; width: 350px;">
+                <h3 style="color: var(--primary-color);">🏆 Minhas Conquistas</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Interaja com a IA do TCC
+                    para desbloquear medalhas e pontos.</p>
+                <div id="lista-conquistas-ui" class="conquistas-lista">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <!-- Modal de Configurações será movido para o final do body -->
+        </div>
+        </header>
+
+        <section id="secao-inicio" class="dashboard-grid">
+            <div class="card card-desempenho">
+                <h2>Meu Desempenho</h2>
+                <div class="medidor-container">
+                    <!-- Instrumento de Ponteiro (Gauge de Desempenho) -->
+                    <div class="gauge-instrument">
+                        <svg class="gauge-svg" viewBox="0 0 240 145">
+                            <defs>
+                                <linearGradient id="gradRuim" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ff5252"/>
+                                    <stop offset="100%" stop-color="#d32f2f"/>
+                                </linearGradient>
+                                <linearGradient id="gradMedio" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffd54f"/>
+                                    <stop offset="100%" stop-color="#f57f17"/>
+                                </linearGradient>
+                                <linearGradient id="gradBom" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#81c784"/>
+                                    <stop offset="100%" stop-color="#2e7d32"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Arco Base Cinza Sutil -->
+                            <path class="gauge-bg-arc" d="M 25 125 A 95 95 0 0 1 215 125" fill="none" stroke-width="20" stroke-linecap="round"/>
+
+                            <!-- Arco Ruim: 0 a 40% (Vermelho) -->
+                            <path class="gauge-arc arc-ruim" d="M 25 125 A 95 95 0 0 1 90.6 34.6" fill="none" stroke="url(#gradRuim)" stroke-width="18" stroke-linecap="round"/>
+
+                            <!-- Arco Médio: 41 a 70% (Amarelo) -->
+                            <path class="gauge-arc arc-medio" d="M 90.6 34.6 A 95 95 0 0 1 175.8 48.1" fill="none" stroke="url(#gradMedio)" stroke-width="18"/>
+
+                            <!-- Arco Bom: 71 a 100% (Verde) -->
+                            <path class="gauge-arc arc-bom" d="M 175.8 48.1 A 95 95 0 0 1 215 125" fill="none" stroke="url(#gradBom)" stroke-width="18" stroke-linecap="round"/>
+
+                            <!-- Marcas Numéricas -->
+                            <text x="20" y="142" class="gauge-tick-text" text-anchor="middle">0</text>
+                            <text x="86" y="22" class="gauge-tick-text" text-anchor="middle">40</text>
+                            <text x="180" y="32" class="gauge-tick-text" text-anchor="middle">70</text>
+                            <text x="220" y="142" class="gauge-tick-text" text-anchor="middle">100</text>
+                        </svg>
+
+                        <!-- Ponteiro Móvel com Pivô -->
+                        <div class="gauge-needle" id="gaugeNeedle">
+                            <div class="needle-body" id="needleBody"></div>
+                        </div>
+                        <div class="gauge-hub"></div>
+                    </div>
+
+                    <!-- Leitura Digital e Classificação -->
+                    <div class="gauge-readout">
+                        <span class="progress-value">0%</span>
+                        <div class="gauge-status-badge status-ruim" id="gaugeStatus">Ruim</div>
+                    </div>
+                </div>
+                
+                <div class="gauge-legend-pills">
+                    <span class="legend-pill pill-ruim">0-40% (Ruim)</span>
+                    <span class="legend-pill pill-medio">41-70% (Médio)</span>
+                    <span class="legend-pill pill-bom">71-100% (Bom)</span>
+                </div>
+
+                <!-- PÓDIO DO TOP 3 -->
+                <div class="podio-section" style="margin-top: 15px; padding-bottom: 5px;">
+                    <h3 style="text-align: center; color: var(--primary-color); font-size: 20px; font-weight: 700; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🏆 Pódio dos Melhores</h3>
+                    <div id="podio-container" class="podio-container">
+                        <!-- O JavaScript vai injetar os 3 retângulos do pódio aqui dentro -->
+                    </div>
+                </div>
+                <div class="pontuacao-total">
+                    <h3>Pontuação Total</h3><span class="pontos" id="pontosDisplay">0 pts</span>
+                    <p id="rankPositionDisplay" style="text-align:center; color: var(--text-muted); font-size:14px; margin-top:5px;">Você está no Top -</p>
+                </div>
+            </div>
+            <div class="card card-rank">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <h2 style="margin-bottom: 0;">🏆 PP Rank (Top 99)</h2>
+                    <span id="btnRankHelp" style="cursor: pointer; background: var(--primary-color); color: white; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; font-size: 14px;" title="Como funciona o rank?">?</span>
+                </div>
+                <div id="rankCountdown" style="text-align: center; color: #fff; font-weight: 600; font-size: 13px; margin-bottom: 15px; padding: 8px 12px; background: linear-gradient(90deg, var(--primary-color), var(--primary-dark)); border-radius: 20px; box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3); display: inline-block; width: 100%;">⏳ Reset em: Calculando...</div>
+                <div class="rank-list" id="rankList"></div>
+            </div>
+        </section>
+
+        <section id="secao-estudar" class="secao-conteudo hidden">
+
+            <div class="secao-header-title">
+                <h2 id="titulo-secao-estudar">📚 Material de Estudos</h2>
+                <p class="secao-subtitle" id="subtitulo-secao-estudar">Acesse as aulas e conteúdos organizados por disciplina</p>
+            </div>
+
+            <!-- PAINEL SECRETO DO PROFESSOR: ADICIONAR CONTEÚDO -->
+            <div id="painelProfessorConteudo"
+                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">👨‍🏫 Publicar Nova Aula</h3>
+                <form onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="text" id="profTitulo" placeholder="Título do Conteúdo" required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    <textarea id="profTexto" rows="3" placeholder="Texto explicativo ou resumo da matéria..." required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);"></textarea>
+
+                    <div style="display: flex; gap: 10px;">
+                        <input type="url" id="profLink" placeholder="Link externo (opcional)"
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profVideo" placeholder="ID do Vídeo YouTube (ex: dQw4w9WgXcQ)"
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    </div>
+
+                    <label style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">Anexar Arquivo (PDF ou
+                        Imagem):</label>
+                    <input type="file" id="profArquivo" style="color: white;">
+
+                    <button type="submit"
+                        style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Salvar
+                        Conteúdo</button>
+                </form>
+            </div>
+            <nav class="barra-materias">
+                <button class="materia-btn active" onclick="carregarMateria('Português')">Português</button>
+                <button class="materia-btn" onclick="carregarMateria('Inglês')">Inglês</button>
+                <button class="materia-btn" onclick="carregarMateria('Matemática')">Matemática</button>
+                <button class="materia-btn" onclick="carregarMateria('Física')">Física</button>
+                <button class="materia-btn" onclick="carregarMateria('Química')">Química</button>
+                <button class="materia-btn" onclick="carregarMateria('Biologia')">Biologia</button>
+                <button class="materia-btn" onclick="carregarMateria('História')">História</button>
+                <button class="materia-btn" onclick="carregarMateria('Geografia')">Geografia</button>
+                <button class="materia-btn" onclick="carregarMateria('Filosofia')">Filosofia</button>
+                <button class="materia-btn" onclick="carregarMateria('Sociologia')">Sociologia</button>
+                <button class="materia-btn" onclick="carregarMateria('Redação')">Redação</button>
+            </nav>
+            <div id="conteudo-materia" class="materia-grid"></div>
+            <button class="btn-floating-chat" id="btnChatIA" onclick="toggleChatIA()">💬</button>
+            <div class="chat-ia-modal hidden" id="chatIAModal">
+                <div class="chat-header">
+                    <h4>Assistente de Estudos</h4><button onclick="toggleChatIA()">X</button>
+                </div>
+                <div class="chat-messages" id="chatMessagesIA">
+                    <div class="msg ia">Olá! Estou aqui para tirar dúvidas teóricas.</div>
+                </div>
+                <div class="chat-input"><input type="text" id="inputChatIA" placeholder="Digite sua dúvida..."><button
+                        onclick="enviarMensagemIA()">Enviar</button></div>
+            </div>
+        </section>
+
+        <section id="secao-pomodoro" class="secao-conteudo hidden">
+            <div class="pomodoro-container">
+                <h2>🍅 Método Pomodoro</h2>
+                <div class="pomodoro-config">
+                    <div><label>Estudo (min):</label><input type="number" id="tempoEstudo" value="25" min="1"></div>
+                    <div><label>Descanso (min):</label><input type="number" id="tempoDescanso" value="5" min="1"></div>
+                </div>
+                <div class="tomato-clock">
+                    <div class="tomato-leaf"></div>
+                    <div class="tomato-body">
+                        <div class="clock-center"></div>
+                        <div class="clock-hand" id="clockHand"></div>
+                        <div class="timer-display" id="timerDisplay">25:00</div>
+                    </div>
+                </div>
+                <div class="pomodoro-controls">
+                    <button class="btn" onclick="iniciarPomodoro()">Iniciar</button>
+                    <button class="btn" style="background:#ffc107; color:#000;"
+                        onclick="pausarPomodoro()">Pausar</button>
+                    <button class="btn btn-logout" onclick="resetarPomodoro()">Reiniciar</button>
+                    <button class="btn" style="background: rgba(0, 123, 255, 0.15); border: 1px solid var(--primary-color); color: var(--text-main);" onclick="reexibirMiniTimer()">📌 Mostrar Mini Cronômetro</button>
+                </div>
+                <div class="pomodoro-stats">
+                    <p>Estado: <strong id="estadoPomodoro">Aguardando</strong></p>
+                    <p>Tempo total estudado: <strong id="totalEstudadoDisplay">0h 0m</strong></p>
+                    <p>Multiplicador: <strong id="multiplicadorDisplay"
+                            style="color:var(--accent-color); font-size:18px;">1.0x</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="secao-simulados" class="secao-conteudo hidden">
+
+            <!-- PAINEL SECRETO DO PROFESSOR: CRIAR QUESTÃO -->
+            <div id="painelProfessorSimulado"
+                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">📝 Cadastrar Nova Questão no Simulado</h3>
+                <form onsubmit="salvarQuestao(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                    <textarea id="profPergunta" rows="2" placeholder="Enunciado da Questão cobrada no Provão..."
+                        required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);"></textarea>
+                    <input type="text" id="profTema" placeholder="Tema Específico (ex: Física: Ondulatória)" required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="profAlt0" placeholder="Alternativa A" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profAlt1" placeholder="Alternativa B" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="profAlt2" placeholder="Alternativa C" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profAlt3" placeholder="Alternativa D" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    </div>
+
+                    <select id="profCorreta" required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <option value="">Selecione a Alternativa Correta...</option>
+                        <option value="0">Alternativa A</option>
+                        <option value="1">Alternativa B</option>
+                        <option value="2">Alternativa C</option>
+                        <option value="3">Alternativa D</option>
+                    </select>
+
+                    <button type="submit"
+                        style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Adicionar
+                        ao Banco de Questões</button>
+                </form>
+            </div>
+
+            <div id="lista-provas" class="simulados-container">
+                <div class="secao-header-title">
+                    <h2>📝 Simulados Oficiais - Provão Paulista</h2>
+                    <p class="secao-subtitle">Pratique com questões reais e recentes das edições do Provão Paulista (VUNESP / SEDUC-SP)</p>
+                </div>
+                <div class="provas-grid">
+                    <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2024')">
+                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                        <div class="prova-card-ano">3º ANO</div>
+                        <h3>Provão Paulista 2024</h3>
+                        <p class="prova-card-desc">Linguagens, Matemática, Ciências Humanas e da Natureza</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2023')">
+                        <div class="prova-card-badge">Edição 2023</div>
+                        <div class="prova-card-ano">3º ANO</div>
+                        <h3>Provão Paulista 2023</h3>
+                        <p class="prova-card-desc">Primeira edição histórica do Provão Paulista</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2024')">
+                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                        <div class="prova-card-ano">2º ANO</div>
+                        <h3>Provão Paulista 2024</h3>
+                        <p class="prova-card-desc">Conteúdos curriculares da 2ª série do Ensino Médio</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2023')">
+                        <div class="prova-card-badge">Edição 2023</div>
+                        <div class="prova-card-ano">2º ANO</div>
+                        <h3>Provão Paulista 2023</h3>
+                        <p class="prova-card-desc">Questões elaboradas pela banca VUNESP</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2024')">
+                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                        <div class="prova-card-ano">1º ANO</div>
+                        <h3>Provão Paulista 2024</h3>
+                        <p class="prova-card-desc">Fundamentos essenciais da 1ª série do Ensino Médio</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2023')">
+                        <div class="prova-card-badge">Edição 2023</div>
+                        <div class="prova-card-ano">1º ANO</div>
+                        <h3>Provão Paulista 2023</h3>
+                        <p class="prova-card-desc">Revisão completa das disciplinas do 1º ano</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card card-destaque" onclick="iniciarSimulado('Simulado Geral')">
+                        <div class="prova-card-badge badge-geral">🎯 Simulado Geral</div>
+                        <div class="prova-card-ano">TODAS AS SÉRIES</div>
+                        <h3>Simulado Multi-Disciplinar</h3>
+                        <p class="prova-card-desc">Mix com questões recentes de todas as áreas do conhecimento</p>
+                        <span class="btn-iniciar-prova">Iniciar Desafio Geral →</span>
+                    </div>
+                </div>
+            </div>
+            <div id="area-resolucao" class="resolucao-container hidden" style="max-width: 800px; margin: 0 auto; background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 20px;">
+                    <h3 id="titulo-prova-atual" style="color: var(--primary-color); margin: 0; font-size: 24px;">Simulado</h3>
+                    <p id="progresso-simulado" style="margin: 0; font-weight: bold; color: var(--text-main); background: var(--bg-main); padding: 5px 15px; border-radius: 20px;"></p>
+                </div>
+                <div class="questao-card" style="font-size: 18px; line-height: 1.6;">
+                    <p id="texto-questao" class="texto-questao" style="margin-bottom: 25px; color: var(--text-main);">Carregando...</p>
+                    <div id="opcoes-questao" class="opcoes-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                </div>
+                <button class="btn btn-logout" style="margin-top: 30px; width: 100%; font-size: 16px; padding: 12px;" onclick="cancelarSimulado()">Encerrar Simulado</button>
+            </div>
+            <div id="area-resultados" class="resultados-container hidden">
+                <h2>📊 Resultados</h2>
+                <div class="resultados-stats">
+                    <p>✅ Acertos: <strong id="res-acertos" style="color: #4CAF50;">0</strong></p>
+                    <p>❌ Erros: <strong id="res-erros" style="color: #F44336;">0</strong></p>
+                    <p>⭐ Pontos: <strong id="res-pontos" style="color: var(--accent-color);">0</strong> <span
+                            id="res-multiplicador" style="font-size:12px;">(x1.0)</span></p>
+                </div>
+                <h3 style="margin-top: 25px; color: var(--primary-color);">📋 Gabarito Oficial</h3>
+                <div id="lista-gabarito" class="gabarito-lista"></div>
+                <h3 style="margin-top: 20px; color: var(--primary-color);">📚 Temas Sugeridos</h3>
+                <ul id="lista-temas-sugeridos" class="temas-lista"></ul>
+                <button class="btn btn-save" style="margin-top: 25px;" onclick="voltarParaListaProvas()">Voltar aos
+                    Simulados</button>
+            </div>
+        </section>
+
+        <!-- NOVA SEÇÃO: TCC -->
+        <section id="secao-tcc" class="secao-conteudo hidden">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                <div class="tcc-container" style="width: 100%; max-width: 100%;">
+                    <div class="tcc-header">
+                        <h2>🎓 IA Orientadora de TCC</h2>
+                        <p>Limite diário: <strong id="msgHojeTCC">0</strong>/10 mensagens.</p>
+                    </div>
+                    <div class="tcc-chat-box" id="chatBoxTCC" style="height: 350px; overflow-y: auto;">
+                        <!-- Mensagens do TCC aparecerão aqui -->
+                    </div>
+                    <div class="chat-input"
+                        style="border-radius: 8px; border: 1px solid var(--border-color); margin-top: 10px;">
+                        <input type="text" id="inputChatTCC" placeholder="Pergunte à IA orientadora...">
+                        <button onclick="enviarMensagemTCC()">Enviar</button>
+                    </div>
+                </div>
+
+                <div class="tcc-ideias" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: var(--primary-color); margin: 0;">💡 Inspirações: Ideias de Ex-Alunos</h3>
+                    </div>
+                    
+                    <div class="tcc-grid-ideias" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;">
+                        <!-- Cards compactos -->
+                        <div class="ideia-card" onclick="abrirDetalheTCC('ds_1')">💻 App de Mobilidade Escolar</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('ds_2')">💻 IA para Triagem de Currículos</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('jur_1')">⚖️ Cartilha do Consumidor Jovem</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('jur_2')">⚖️ Impactos da LGPD nas Escolas</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('log_1')">📦 Otimização de Rotas Escolares</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('agro_1')">🚜 Horta Hidropônica Automatizada</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('vet_1')">🐕 App para Adoção de Animais</div>
+                        <div class="ideia-card" onclick="abrirDetalheTCC('adm_1')">📊 Plano p/ Brechó Online</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Pop-up de Conquista (Toast) -->
+    <div id="toast-conquista" class="toast hidden">
+        <div class="toast-icone">🏆</div>
+        <div class="toast-texto">
+            <h4>Conquista Desbloqueada!</h4>
+            <p id="toast-nome">Caminho Inicial</p>
+            <span id="toast-pontos" style="color: #ff9800; font-weight: bold;">+10 pts</span>
+        </div>
+    </div>
+
+    <!-- Toast de Notificação no Canto (Mensagens Passageiras) -->
+    <div id="toast-canto-container" class="toast-canto-container" aria-live="polite"></div>
+
+    <!-- Pop-up de Perfil do Aluno (Modal) -->
+    <div id="modal-perfil" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" onclick="fecharModalPerfil()">&times;</button>
+            <div class="modal-header">
+                <div class="modal-avatar" id="modal-perfil-avatar">👤</div>
+                <h3 id="modal-perfil-nome">Nome do Aluno</h3>
+                <span class="modal-perfil-role" id="modal-perfil-role">Aluno</span>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info-item">
+                    <span class="info-icon">📍</span>
+                    <div class="info-text">
+                        <strong>Cidade</strong>
+                        <span id="modal-perfil-cidade">São Paulo</span>
+                    </div>
+                </div>
+                <div class="modal-info-item">
+                    <span class="info-icon">⭐</span>
+                    <div class="info-text">
+                        <strong>Pontuação</strong>
+                        <span id="modal-perfil-pontos">150 pts</span>
+                    </div>
+                </div>
+                <div class="modal-info-item">
+                    <span class="info-icon">🔥</span>
+                    <div class="info-text">
+                        <strong>Ofensiva</strong>
+                        <span id="modal-perfil-ofensiva">5 Dias</span>
+                    </div>
+                </div>
+                <div class="modal-bio">
+                    <strong>📝 Biografia:</strong>
+                    <p id="modal-perfil-bio">Lorem ipsum dolor sit amet...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajuda Rank -->
+    <div id="modal-rank-help" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 550px; padding: 25px;">
+            <button class="modal-close" onclick="fecharModalRankHelp()">&times;</button>
+            <h3 style="color: var(--primary-color); margin-bottom: 20px; font-size: 22px; display: flex; align-items: center; gap: 10px;">ℹ️ Como funciona o Rank?</h3>
+            <div style="background: rgba(0, 123, 255, 0.05); padding: 15px; border-radius: 10px; border-left: 4px solid var(--primary-color); margin-bottom: 15px;">
+                <p style="margin-bottom: 0; line-height: 1.6;"><strong>Como ganhar pontos:</strong> Faça simulados e mantenha sua ofensiva diária e estudos via Pomodoro. Seus pontos sobem baseados nos seus acertos e tempo estudado.</p>
+            </div>
+            <div style="background: rgba(255, 179, 0, 0.05); padding: 15px; border-radius: 10px; border-left: 4px solid #ffb300; margin-bottom: 15px;">
+                <p style="margin-bottom: 0; line-height: 1.6;"><strong>Multiplicadores:</strong> Usar o Pomodoro aumenta seus ganhos de XP nos simulados! Estudar mais horas diárias te dá até 1.5x mais pontos.</p>
+            </div>
+            <div style="background: rgba(76, 175, 80, 0.05); padding: 15px; border-radius: 10px; border-left: 4px solid #4CAF50; margin-bottom: 20px;">
+                <p style="margin-bottom: 0; line-height: 1.6;"><strong>Prêmios:</strong> Fique no Top 3 ao final dos 30 dias para ganhar medalhas exclusivas e prêmios da escola!</p>
+            </div>
+            <button class="btn btn-save" style="width: 100%; padding: 12px; font-size: 16px;" onclick="fecharModalRankHelp()">Entendi</button>
+        </div>
+    </div>
+
+    <!-- Modal Flutuante de Perfil & Configurações do Aluno (Centro da Tela) -->
+    <div id="modal-meu-perfil" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 580px; width: 92%; max-height: 90vh; overflow-y: auto; padding: 25px; border: 1px solid var(--primary-color); box-shadow: 0 15px 50px rgba(0,0,0,0.6);">
+            <button class="modal-close" onclick="fecharModalMeuPerfil()">&times;</button>
+            <div style="display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 18px; margin-bottom: 20px;">
+                <div class="modal-avatar" id="meuPerfilAvatarModal" style="width: 70px; height: 70px; font-size: 32px; flex-shrink: 0; border: 3px solid var(--primary-color);">👤</div>
+                <div style="flex: 1;">
+                    <h3 id="meuPerfilNomeModal" style="color: var(--text-main); font-size: 20px; font-weight: 800; margin-bottom: 4px;">Nome do Aluno</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0;"><strong>E-mail:</strong> <span id="userEmailDisplay">aluno@escola.sp.gov.br</span></p>
+                    <span id="meuPerfilRoleModal" style="display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700; padding: 2px 10px; background: rgba(0, 123, 255, 0.15); color: var(--accent-color); border-radius: 12px; border: 1px solid rgba(0, 200, 255, 0.3);">Estudante Ativo</span>
+                </div>
+            </div>
+
+            <!-- Botões de Ação Rápida: Tema e Foto -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <button class="btn" onclick="toggleTheme()" style="background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); font-size: 13px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    🌓 Alternar Tema
+                </button>
+                <label class="btn" style="cursor: pointer; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); font-size: 13px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0;">
+                    📷 Alterar Foto
+                    <input type="file" id="inputFoto" accept="image/*" style="display: none;">
+                </label>
+            </div>
+
+            <!-- Estatísticas de Desempenho (Acertos e Erros Totais em destaque) -->
+            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <h4 style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--primary-color); margin-bottom: 12px;">📊 Desempenho & Questões Resolvidas</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.35); border-radius: 8px; padding: 12px; text-align: center;">
+                        <span style="font-size: 11px; color: #4CAF50; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Total de Acertos</span>
+                        <strong id="acertosStats" style="font-size: 24px; color: #4CAF50;">0</strong>
+                    </div>
+                    <div style="background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.35); border-radius: 8px; padding: 12px; text-align: center;">
+                        <span style="font-size: 11px; color: #F44336; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Total de Erros</span>
+                        <strong id="errosStats" style="font-size: 24px; color: #F44336;">0</strong>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); padding-top: 8px; border-top: 1px solid var(--border-color);">
+                    <span id="horasEstudadasStats">⏱ Horas: <strong>0h 0m</strong></span>
+                    <span id="sequenciaStats">🔥 Sequência: <strong>0 Dias</strong></span>
+                </div>
+            </div>
+
+            <!-- Dados do Perfil Pessoal Editáveis -->
+            <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px;">👤 Dados Pessoais</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Endereço</label>
+                        <input type="text" id="perfilEndereco" placeholder="Rua, número, bairro" style="width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Cidade</label>
+                        <input type="text" id="perfilCidade" placeholder="Sua cidade" style="width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 13px;">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Telefone</label>
+                        <input type="tel" id="perfilTelefone" placeholder="(11) 99999-9999" style="width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Idade</label>
+                        <input type="number" id="perfilIdade" placeholder="Ex: 17" style="width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 13px;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Biografia / Interesses Pessoais</label>
+                    <textarea id="perfilBio" placeholder="Conte seus interesses de estudo, metas de carreira..." rows="3" style="width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 13px; resize: vertical;"></textarea>
+                </div>
+            </div>
+
+            <!-- Botões de Ação do Modal -->
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-save" onclick="salvarPerfil()" style="flex: 2; padding: 12px; font-size: 14px;">💾 Salvar Alterações</button>
+                <button class="btn btn-logout" onclick="sairDaConta()" style="flex: 1; padding: 12px; font-size: 14px; background: #dc3545;">🚪 Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhado de Ideia de TCC -->
+    <div id="modal-detalhe-tcc" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 650px; width: 92%; max-height: 90vh; overflow-y: auto; padding: 25px; border: 1px solid var(--primary-color); box-shadow: 0 15px 50px rgba(0,0,0,0.6);">
+            <button class="modal-close" onclick="fecharModalDetalheTCC()">&times;</button>
+            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                <span id="tccModalCursoBadge" style="font-size: 11px; font-weight: 700; text-transform: uppercase; background: rgba(0, 123, 255, 0.15); color: var(--accent-color); padding: 3px 10px; border-radius: 12px; display: inline-block; margin-bottom: 8px;">Curso</span>
+                <h3 id="tccModalTitulo" style="color: var(--primary-color); font-size: 22px; margin-bottom: 5px;">Título do Projeto</h3>
+                <p id="tccModalAutor" style="font-size: 13px; color: var(--text-muted); margin: 0;">Autor: Nome do Aluno</p>
+            </div>
+
+            <div class="tcc-estrutura-box">
+                <h5>🎯 Tema do Projeto</h5>
+                <p id="tccModalTema">Texto do tema...</p>
+            </div>
+
+            <div class="tcc-estrutura-box">
+                <h5>⚠️ Problema de Pesquisa</h5>
+                <p id="tccModalProblema">Texto do problema...</p>
+            </div>
+
+            <div class="tcc-estrutura-box">
+                <h5>🚀 Objetivos do Trabalho</h5>
+                <p id="tccModalObjetivo">Texto do objetivo...</p>
+            </div>
+
+            <div class="tcc-estrutura-box">
+                <h5>🛠️ Metodologia & Ferramentas</h5>
+                <p id="tccModalMetodologia">Texto da metodologia...</p>
+            </div>
+
+            <div class="tcc-estrutura-box">
+                <h5>🏆 Resultados Obtidos & Impacto Social</h5>
+                <p id="tccModalResultados">Texto dos resultados...</p>
+            </div>
+
+            <button class="btn btn-save" style="width: 100%; margin-top: 10px; padding: 12px;" onclick="fecharModalDetalheTCC()">Fechar Detalhes</button>
+        </div>
+    </div>
+
+    <!-- Floating Mini Timer -->
+    <div id="miniTimerWidget" class="hidden" style="position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, var(--bg-card), var(--bg-main)); border: 1px solid var(--primary-color); border-radius: 12px; padding: 12px 20px; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--primary-glow); z-index: 1000; transition: all 0.3s; display: none;">
+        <div style="display:flex; flex-direction: column; align-items: center;">
+            <span style="font-size: 11px; font-weight: bold; color: var(--primary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Pomodoro</span>
+            <span id="miniTimerTime" style="font-size: 24px; font-weight: 900; font-family: monospace; color: var(--text-main); line-height: 1;">25:00</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <button id="btnToggleTimerEye" onclick="toggleMiniTimerEye()" style="background: rgba(0, 123, 255, 0.15); border: 1px solid var(--primary-color); border-radius: 6px; font-size: 14px; cursor: pointer; color: var(--text-main); padding: 4px 8px; transition: 0.2s;" title="Ocultar tempo">👁️</button>
+            <button id="btnCloseMiniTimer" onclick="fecharMiniTimer()" style="background: rgba(220, 53, 69, 0.15); border: 1px solid #dc3545; border-radius: 6px; font-size: 12px; cursor: pointer; color: #ff5252; padding: 4px 8px; transition: 0.2s;" title="Fechar">❌</button>
+        </div>
+    </div>
+
+    <script src="aluno.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área do Aluno - Provão Paulista+TCC</title>
+    <link rel="stylesheet" href="aluno.css">
+</head>
+
+<body class="dark-theme">
+
+    <!-- Barra Lateral -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-brand-icon">
+                <span class="logo-emoji">🎓</span>
+            </div>
+            <div class="logo-text-wrapper">
+                <span class="logo-text">Study<span class="logo-accent">SP</span></span>
+                <span class="logo-sub"><span class="logo-live-dot"></span>PLATAFORMA DE ESTUDOS</span>
+            </div>
+        </div>
+        <nav>
+            <a href="#" class="active" id="menu-inicio">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Início</span>
+            </a>
+            <a href="#" id="menu-estudar">
+                <span class="nav-icon">📚</span>
+                <span class="nav-label">Estudar</span>
+            </a>
+            <a href="#" id="menu-pomodoro">
+                <span class="nav-icon">🍅</span>
+                <span class="nav-label">Pomodoro</span>
+            </a>
+            <a href="#" id="menu-simulados">
+                <span class="nav-icon">📝</span>
+                <span class="nav-label">Simulados</span>
+                <span class="nav-badge">Provão</span>
+            </a>
+            <a href="#" id="menu-tcc">
+                <span class="nav-icon">🎓</span>
+                <span class="nav-label">TCC</span>
+                <span class="nav-badge ia-badge">IA</span>
+            </a>
+        </nav>
+
+        <!-- Rodapé do Menu Lateral -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user-card" onclick="toggleMenuConfig()" title="Abrir configurações de perfil">
+                <div class="sidebar-user-avatar" id="sidebarAvatar">👤</div>
+                <div class="sidebar-user-info">
+                    <span class="sidebar-user-name" id="sidebarUserName">Aluno</span>
+                    <span class="sidebar-user-role" id="sidebarUserRole">Painel Ativo</span>
+                </div>
+                <span class="sidebar-gear">⚙️</span>
+            </div>
+            <div class="sidebar-badge-study">
+                <span class="badge-study-icon">⚡</span>
+                <span class="badge-study-text">Provão Paulista 2024</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- Cabeçalho -->
+        <header class="topbar">
+            <div class="streak-container">
+                <span class="fire-icon">🔥</span>
+                <span class="streak-text" id="userStreak">0 Dias de Ofensiva</span>
+            </div>
+
+
+
+            <!-- CENTRO: O Letreiro StudySP -->
+            <div class="topbar-logo">
+                <img src="./img/logo.png" alt="Logo StudySP" class="study">
+            </div>
+
+        <div class="user-menu-container" style="display: flex; gap: 15px; align-items: center;">
+            <!-- Botão de Conquistas -->
+            <button class="btn-conquistas" onclick="toggleConquistas()">🏆 Conquistas</button>
+
+            <div class="user-info" onclick="toggleMenuConfig()">
+                <span id="userNameDisplay">Nome do Aluno</span>
+                <div class="avatar-circle" id="userAvatarDisplay">👤</div>
+            </div>
+
+            <!-- Dropdown de Conquistas -->
+            <div id="conquistasDropdown" class="dropdown-menu hidden" style="right: 180px; width: 350px;">
+                <h3 style="color: var(--primary-color);">🏆 Minhas Conquistas</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Interaja com a IA do TCC
+                    para desbloquear medalhas e pontos.</p>
+                <div id="lista-conquistas-ui" class="conquistas-lista">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <!-- Dropdown de Configurações -->
+            <div id="configDropdown" class="dropdown-menu hidden">
+                <h3>Configurações</h3>
+                <button class="btn-config" onclick="toggleTheme()">🌓 Alternar Tema</button>
+                <label class="btn-config" style="cursor:pointer; display:block; text-align:center;">
+                    📷 Mudar Foto
+                    <input type="file" id="inputFoto" accept="image/*" style="display:none;">
+                </label>
+                <p class="user-email-display"><strong>E-mail:</strong> <span
+                        id="userEmailDisplay">email@teste.com</span></p>
+                <hr>
+                <h3>Perfil Pessoal</h3>
+                <input type="text" id="perfilEndereco" placeholder="Endereço">
+                <input type="text" id="perfilCidade" placeholder="Cidade">
+                <input type="tel" id="perfilTelefone" placeholder="Telefone">
+                <input type="number" id="perfilIdade" placeholder="Idade">
+                <textarea id="perfilBio" placeholder="Biografia e gostos pessoais..." rows="3"></textarea>
+                <div class="perfil-stats">
+                    <span id="horasEstudadasStats">⏱ Horas: <strong>0h 0m</strong></span>
+                    <span id="sequenciaStats">🔥 Sequência: <strong>0 Dias</strong></span>
+                </div>
+                <button class="btn-config btn-save" onclick="salvarPerfil()">Salvar Perfil</button>
+                <button class="btn-config btn-logout" onclick="sairDaConta()">🚪 Sair da Conta</button>
+            </div>
+        </div>
+        </header>
+
+        <!-- Seções Anteriores Ocultadas para brevidade na visualização, mas presentes -->
+        <section id="secao-inicio" class="dashboard-grid">
+            <div class="card card-desempenho">
+                <h2>Meu Desempenho</h2>
+                <div class="medidor-container">
+                    <!-- Instrumento de Ponteiro (Gauge de Desempenho) -->
+                    <div class="gauge-instrument">
+                        <svg class="gauge-svg" viewBox="0 0 240 145">
+                            <defs>
+                                <linearGradient id="gradRuim" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ff5252"/>
+                                    <stop offset="100%" stop-color="#d32f2f"/>
+                                </linearGradient>
+                                <linearGradient id="gradMedio" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffd54f"/>
+                                    <stop offset="100%" stop-color="#f57f17"/>
+                                </linearGradient>
+                                <linearGradient id="gradBom" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#81c784"/>
+                                    <stop offset="100%" stop-color="#2e7d32"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Arco Base Cinza Sutil -->
+                            <path class="gauge-bg-arc" d="M 25 125 A 95 95 0 0 1 215 125" fill="none" stroke-width="20" stroke-linecap="round"/>
+
+                            <!-- Arco Ruim: 0 a 40% (Vermelho) -->
+                            <path class="gauge-arc arc-ruim" d="M 25 125 A 95 95 0 0 1 90.6 34.6" fill="none" stroke="url(#gradRuim)" stroke-width="18" stroke-linecap="round"/>
+
+                            <!-- Arco Médio: 41 a 70% (Amarelo) -->
+                            <path class="gauge-arc arc-medio" d="M 90.6 34.6 A 95 95 0 0 1 175.8 48.1" fill="none" stroke="url(#gradMedio)" stroke-width="18"/>
+
+                            <!-- Arco Bom: 71 a 100% (Verde) -->
+                            <path class="gauge-arc arc-bom" d="M 175.8 48.1 A 95 95 0 0 1 215 125" fill="none" stroke="url(#gradBom)" stroke-width="18" stroke-linecap="round"/>
+
+                            <!-- Marcas Numéricas -->
+                            <text x="25" y="140" class="gauge-tick-text" text-anchor="middle">0</text>
+                            <text x="86" y="24" class="gauge-tick-text" text-anchor="middle">40</text>
+                            <text x="180" y="36" class="gauge-tick-text" text-anchor="middle">70</text>
+                            <text x="215" y="140" class="gauge-tick-text" text-anchor="middle">100</text>
+                        </svg>
+
+                        <!-- Ponteiro Móvel com Pivô -->
+                        <div class="gauge-needle" id="gaugeNeedle">
+                            <div class="needle-body" id="needleBody"></div>
+                        </div>
+                        <div class="gauge-hub"></div>
+                    </div>
+
+                    <!-- Leitura Digital e Classificação -->
+                    <div class="gauge-readout">
+                        <span class="progress-value">0%</span>
+                        <div class="gauge-status-badge status-ruim" id="gaugeStatus">Ruim</div>
+                    </div>
+
+                    <!-- Legenda das Faixas de Desempenho -->
+                    <div class="gauge-legend-pills">
+                        <span class="legend-pill pill-ruim">🔴 0 a 40: Ruim</span>
+                        <span class="legend-pill pill-medio">🟡 41 a 70: Médio</span>
+                        <span class="legend-pill pill-bom">🟢 71 a 100: Bom</span>
+                    </div>
+
+                    <p class="legenda">Baseado nos Simulados</p>
+                </div>
+                <!-- PÓDIO DO TOP 3 -->
+                <div class="podio-section" style="margin-top: 40px; padding-bottom: 20px;">
+                    <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 30px;">🏆 Pódio dos
+                        Melhores 🏆</h3>
+                    <div id="podio-container" class="podio-container">
+                        <!-- O JavaScript vai injetar os 3 retângulos do pódio aqui dentro -->
+                    </div>
+                </div>
+                <div class="pontuacao-total">
+                    <h3>Pontuação Total</h3><span class="pontos" id="pontosDisplay">0 pts</span>
+                </div>
+            </div>
+            <div class="card card-rank">
+                <h2>🏆 PP Rank (Top 99)</h2>
+                <div class="rank-list" id="rankList"></div>
+            </div>
+        </section>
+
+        <section id="secao-estudar" class="secao-conteudo hidden">
+
+            <div class="secao-header-title">
+                <h2 id="titulo-secao-estudar">📚 Material de Estudos</h2>
+                <p class="secao-subtitle" id="subtitulo-secao-estudar">Acesse as aulas e conteúdos organizados por disciplina</p>
+            </div>
+
+            <!-- PAINEL SECRETO DO PROFESSOR: ADICIONAR CONTEÚDO -->
+            <div id="painelProfessorConteudo"
+                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">👨‍🏫 Publicar Nova Aula</h3>
+                <form onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="text" id="profTitulo" placeholder="Título do Conteúdo" required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    <textarea id="profTexto" rows="3" placeholder="Texto explicativo ou resumo da matéria..." required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);"></textarea>
+
+                    <div style="display: flex; gap: 10px;">
+                        <input type="url" id="profLink" placeholder="Link externo (opcional)"
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profVideo" placeholder="ID do Vídeo YouTube (ex: dQw4w9WgXcQ)"
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    </div>
+
+                    <label style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">Anexar Arquivo (PDF ou
+                        Imagem):</label>
+                    <input type="file" id="profArquivo" style="color: white;">
+
+                    <button type="submit"
+                        style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Salvar
+                        Conteúdo</button>
+                </form>
+            </div>
+            <nav class="barra-materias">
+                <button class="materia-btn active" onclick="carregarMateria('Português')">Português</button>
+                <button class="materia-btn" onclick="carregarMateria('Inglês')">Inglês</button>
+                <button class="materia-btn" onclick="carregarMateria('Matemática')">Matemática</button>
+                <button class="materia-btn" onclick="carregarMateria('Física')">Física</button>
+                <button class="materia-btn" onclick="carregarMateria('Química')">Química</button>
+                <button class="materia-btn" onclick="carregarMateria('Biologia')">Biologia</button>
+                <button class="materia-btn" onclick="carregarMateria('História')">História</button>
+                <button class="materia-btn" onclick="carregarMateria('Geografia')">Geografia</button>
+                <button class="materia-btn" onclick="carregarMateria('Filosofia')">Filosofia</button>
+                <button class="materia-btn" onclick="carregarMateria('Sociologia')">Sociologia</button>
+                <button class="materia-btn" onclick="carregarMateria('Redação')">Redação</button>
+            </nav>
+            <div id="conteudo-materia" class="materia-grid"></div>
+            <button class="btn-floating-chat" id="btnChatIA" onclick="toggleChatIA()">💬</button>
+            <div class="chat-ia-modal hidden" id="chatIAModal">
+                <div class="chat-header">
+                    <h4>Assistente de Estudos</h4><button onclick="toggleChatIA()">X</button>
+                </div>
+                <div class="chat-messages" id="chatMessagesIA">
+                    <div class="msg ia">Olá! Estou aqui para tirar dúvidas teóricas.</div>
+                </div>
+                <div class="chat-input"><input type="text" id="inputChatIA" placeholder="Digite sua dúvida..."><button
+                        onclick="enviarMensagemIA()">Enviar</button></div>
+            </div>
+        </section>
+
+        <section id="secao-pomodoro" class="secao-conteudo hidden">
+            <div class="pomodoro-container">
+                <h2>🍅 Método Pomodoro</h2>
+                <div class="pomodoro-config">
+                    <div><label>Estudo (min):</label><input type="number" id="tempoEstudo" value="25" min="1"></div>
+                    <div><label>Descanso (min):</label><input type="number" id="tempoDescanso" value="5" min="1"></div>
+                </div>
+                <div class="tomato-clock">
+                    <div class="tomato-leaf"></div>
+                    <div class="tomato-body">
+                        <div class="clock-center"></div>
+                        <div class="clock-hand" id="clockHand"></div>
+                        <div class="timer-display" id="timerDisplay">25:00</div>
+                    </div>
+                </div>
+                <div class="pomodoro-controls">
+                    <button class="btn" onclick="iniciarPomodoro()">Iniciar</button>
+                    <button class="btn" style="background:#ffc107; color:#000;"
+                        onclick="pausarPomodoro()">Pausar</button>
+                    <button class="btn btn-logout" onclick="resetarPomodoro()">Reiniciar</button>
+                </div>
+                <div class="pomodoro-stats">
+                    <p>Estado: <strong id="estadoPomodoro">Aguardando</strong></p>
+                    <p>Tempo total estudado: <strong id="totalEstudadoDisplay">0h 0m</strong></p>
+                    <p>Multiplicador: <strong id="multiplicadorDisplay"
+                            style="color:var(--accent-color); font-size:18px;">1.0x</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="secao-simulados" class="secao-conteudo hidden">
+
+            <!-- PAINEL SECRETO DO PROFESSOR: CRIAR QUESTÃO -->
+            <div id="painelProfessorSimulado"
+                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">📝 Cadastrar Nova Questão no Simulado</h3>
+                <form onsubmit="salvarQuestao(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                    <textarea id="profPergunta" rows="2" placeholder="Enunciado da Questão cobrada no Provão..."
+                        required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);"></textarea>
+                    <input type="text" id="profTema" placeholder="Tema Específico (ex: Física: Ondulatória)" required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="profAlt0" placeholder="Alternativa A" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profAlt1" placeholder="Alternativa B" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="profAlt2" placeholder="Alternativa C" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profAlt3" placeholder="Alternativa D" required
+                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    </div>
+
+                    <select id="profCorreta" required
+                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <option value="">Selecione a Alternativa Correta...</option>
+                        <option value="0">Alternativa A</option>
+                        <option value="1">Alternativa B</option>
+                        <option value="2">Alternativa C</option>
+                        <option value="3">Alternativa D</option>
+                    </select>
+
+                    <button type="submit"
+                        style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Adicionar
+                        ao Banco de Questões</button>
+                </form>
+            </div>
+
+            <div id="lista-provas" class="simulados-container">
+                <div class="secao-header-title">
+                    <h2>📝 Simulados Oficiais - Provão Paulista</h2>
+                    <p class="secao-subtitle">Pratique com questões reais e recentes das edições do Provão Paulista (VUNESP / SEDUC-SP)</p>
+                </div>
+                <div class="provas-grid">
+                    <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2024')">
+                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                        <div class="prova-card-ano">3º ANO</div>
+                        <h3>Provão Paulista 2024</h3>
+                        <p class="prova-card-desc">Linguagens, Matemática, Ciências Humanas e da Natureza</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2023')">
+                        <div class="prova-card-badge">Edição 2023</div>
+                        <div class="prova-card-ano">3º ANO</div>
+                        <h3>Provão Paulista 2023</h3>
+                        <p class="prova-card-desc">Primeira edição histórica do Provão Paulista</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2024')">
+                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                        <div class="prova-card-ano">2º ANO</div>
+                        <h3>Provão Paulista 2024</h3>
+                        <p class="prova-card-desc">Conteúdos curriculares da 2ª série do Ensino Médio</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2023')">
+                        <div class="prova-card-badge">Edição 2023</div>
+                        <div class="prova-card-ano">2º ANO</div>
+                        <h3>Provão Paulista 2023</h3>
+                        <p class="prova-card-desc">Questões elaboradas pela banca VUNESP</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2024')">
+                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                        <div class="prova-card-ano">1º ANO</div>
+                        <h3>Provão Paulista 2024</h3>
+                        <p class="prova-card-desc">Fundamentos essenciais da 1ª série do Ensino Médio</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2023')">
+                        <div class="prova-card-badge">Edição 2023</div>
+                        <div class="prova-card-ano">1º ANO</div>
+                        <h3>Provão Paulista 2023</h3>
+                        <p class="prova-card-desc">Revisão completa das disciplinas do 1º ano</p>
+                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                    </div>
+                    <div class="prova-card card-destaque" onclick="iniciarSimulado('Simulado Geral')">
+                        <div class="prova-card-badge badge-geral">🎯 Simulado Geral</div>
+                        <div class="prova-card-ano">TODAS AS SÉRIES</div>
+                        <h3>Simulado Multi-Disciplinar</h3>
+                        <p class="prova-card-desc">Mix com questões recentes de todas as áreas do conhecimento</p>
+                        <span class="btn-iniciar-prova">Iniciar Desafio Geral →</span>
+                    </div>
+                </div>
+            </div>
+            <div id="area-resolucao" class="resolucao-container hidden">
+                <h3 id="titulo-prova-atual" style="color: var(--primary-color); margin-bottom: 15px;">Simulado</h3>
+                <div class="questao-card">
+                    <p id="texto-questao" class="texto-questao">Carregando...</p>
+                    <div id="opcoes-questao" class="opcoes-container"></div>
+                </div>
+                <p id="progresso-simulado" style="margin-top: 15px; text-align: center; color: var(--text-muted);"></p>
+                <button class="btn btn-logout" style="margin-top: 20px;" onclick="cancelarSimulado()">Sair do
+                    Simulado</button>
+            </div>
+            <div id="area-resultados" class="resultados-container hidden">
+                <h2>📊 Resultados</h2>
+                <div class="resultados-stats">
+                    <p>✅ Acertos: <strong id="res-acertos" style="color: #4CAF50;">0</strong></p>
+                    <p>❌ Erros: <strong id="res-erros" style="color: #F44336;">0</strong></p>
+                    <p>⭐ Pontos: <strong id="res-pontos" style="color: var(--accent-color);">0</strong> <span
+                            id="res-multiplicador" style="font-size:12px;">(x1.0)</span></p>
+                </div>
+                <h3 style="margin-top: 25px; color: var(--primary-color);">📋 Gabarito Oficial</h3>
+                <div id="lista-gabarito" class="gabarito-lista"></div>
+                <h3 style="margin-top: 20px; color: var(--primary-color);">📚 Temas Sugeridos</h3>
+                <ul id="lista-temas-sugeridos" class="temas-lista"></ul>
+                <button class="btn btn-save" style="margin-top: 25px;" onclick="voltarParaListaProvas()">Voltar aos
+                    Simulados</button>
+            </div>
+        </section>
+
+        <!-- NOVA SEÇÃO: TCC -->
+        <section id="secao-tcc" class="secao-conteudo hidden">
+            <div class="tcc-container">
+                <div class="tcc-header">
+                    <h2>🎓 IA Orientadora de TCC</h2>
+                    <p>Limite diário: <strong id="msgHojeTCC">0</strong>/10 mensagens.</p>
+                </div>
+                <div class="tcc-chat-box" id="chatBoxTCC">
+                    <!-- Mensagens do TCC aparecerão aqui -->
+                </div>
+                <div class="chat-input"
+                    style="border-radius: 8px; border: 1px solid var(--border-color); margin-top: 10px;">
+                    <input type="text" id="inputChatTCC" placeholder="Pergunte à IA orientadora...">
+                    <button onclick="enviarMensagemTCC()">Enviar</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Pop-up de Conquista (Toast) -->
+    <div id="toast-conquista" class="toast hidden">
+        <div class="toast-icone">🏆</div>
+        <div class="toast-texto">
+            <h4>Conquista Desbloqueada!</h4>
+            <p id="toast-nome">Caminho Inicial</p>
+            <span id="toast-pontos" style="color: #ff9800; font-weight: bold;">+10 pts</span>
+        </div>
+    </div>
+
+    <!-- Toast de Notificação no Canto (Mensagens Passageiras) -->
+    <div id="toast-canto-container" class="toast-canto-container" aria-live="polite"></div>
+
+    <script src="aluno.js"></script>
+</body>
+
+</html>

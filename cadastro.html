@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - StudySP | Escola</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <!-- Coluna Visual / Banner -->
+            <div class="login-banner">
+                <div class="banner-content">
+                    <img src="./img/login-logo.png" alt="StudySP Logo" class="banner-logo">
+                    <div class="banner-text">
+                        <h3>Gestão Escolar</h3>
+                        <p>Controle de acesso e cadastro de alunos e professores</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna do Formulário -->
+            <div class="login-form-section">
+                <div class="form-header">
+                    <h2>Cadastro de Usuários</h2>
+                    <p class="subtitle">Acesso exclusivo da Escola</p>
+                </div>
+                
+                <form id="formCadastro">
+                    <div class="input-group">
+                        <label for="rmCad">RM</label>
+                        <input type="text" id="rmCad" placeholder="Código Único" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="nomeCad">Nome Completo</label>
+                        <input type="text" id="nomeCad" placeholder="Nome do usuário" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="emailCad">E-mail</label>
+                        <input type="email" id="emailCad" placeholder="E-mail" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="senhaCad">Senha</label>
+                        <input type="password" id="senhaCad" placeholder="Crie uma senha" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="perfilCad">Perfil</label>
+                        <select id="perfilCad" required>
+                            <option value="" disabled selected>Selecione uma opção</option>
+                            <option value="Aluno">Aluno</option>
+                            <option value="Professor">Professor</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Cadastrar Usuário</button>
+                </form>
+                
+                <div class="footer-links">
+                    <a href="login.html">Voltar para o Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
