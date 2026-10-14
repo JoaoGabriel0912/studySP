@@ -1,10 +1,20 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-// Garante que o diretório de dados exista
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+// No Vercel, o diretório da aplicação é somente leitura (/var/task).
+// Por isso, se for Vercel, usamos o diretório temporário do sistema (/tmp).
+const isVercel = !!process.env.VERCEL;
+const dataDir = isVercel 
+    ? path.join(os.tmpdir(), 'studysp_data') 
+    : path.join(__dirname, 'data');
+
+try {
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+} catch (e) {
+    console.warn('Aviso: Não foi possível criar dataDir no caminho padrão:', e.message);
 }
 
 let dbEngine = 'json'; // 'postgres', 'sqlite', ou 'json'
@@ -16,13 +26,14 @@ const jsonFilePath = path.join(dataDir, 'studysp.json');
 // 1. INICIALIZAÇÃO DO BANCO DE DADOS
 // ===================================================
 async function inicializar() {
-    // 1.1 Se houver DATABASE_URL no ambiente (ex: Render, Railway, Supabase PostgreSQL)
-    if (process.env.DATABASE_URL) {
+    // 1.1 Se houver DATABASE_URL ou POSTGRES_URL no ambiente (Vercel Postgres, Supabase, Neon, Render)
+    const postgresUri = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
+    if (postgresUri) {
         try {
             const { Pool } = require('pg');
-            const isLocal = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
+            const isLocal = postgresUri.includes('localhost') || postgresUri.includes('127.0.0.1');
             pgPool = new Pool({
-                connectionString: process.env.DATABASE_URL,
+                connectionString: postgresUri,
                 ssl: isLocal ? false : { rejectUnauthorized: false }
             });
 
@@ -46,90 +57,100 @@ async function inicializar() {
                 );
             `);
             dbEngine = 'postgres';
-            console.log('✅ Banco de Dados conectado: PostgreSQL (DATABASE_URL)');
+            console.log('✅ Banco de Dados conectado: PostgreSQL em nuvem (Vercel/Render)');
             return;
         } catch (err) {
             console.warn('⚠️ Falha ao conectar ao PostgreSQL, tentando SQLite/JSON:', err.message);
         }
     }
 
-    // 1.2 Tenta usar SQLite (armazenamento leve em arquivo .sqlite)
-    try {
-        const sqlite3 = require('sqlite3').verbose();
-        const sqliteFile = path.join(dataDir, 'studysp.sqlite');
-        
-        await new Promise((resolve, reject) => {
-            sqliteDb = new sqlite3.Database(sqliteFile, (err) => {
-                if (err) return reject(err);
-                resolve();
+    // 1.2 Tenta usar SQLite (apenas fora do Vercel, pois SQLite precisa de compilação C++ e disco persistente)
+    if (!isVercel) {
+        try {
+            const sqlite3 = require('sqlite3').verbose();
+            const sqliteFile = path.join(dataDir, 'studysp.sqlite');
+            
+            await new Promise((resolve, reject) => {
+                sqliteDb = new sqlite3.Database(sqliteFile, (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
             });
-        });
 
-        const execPromise = (sql) => new Promise((resolve, reject) => {
-            sqliteDb.exec(sql, (err) => {
-                if (err) reject(err);
-                else resolve();
+            const execPromise = (sql) => new Promise((resolve, reject) => {
+                sqliteDb.exec(sql, (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
             });
-        });
 
-        await execPromise(`
-            CREATE TABLE IF NOT EXISTS usuarios (
-                rm TEXT PRIMARY KEY,
-                nome TEXT,
-                email TEXT,
-                senha TEXT,
-                perfil TEXT,
-                dados TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS conteudos (
-                id TEXT PRIMARY KEY,
-                materia TEXT,
-                dados TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS simulados (
-                id TEXT PRIMARY KEY,
-                dados TEXT NOT NULL
-            );
-        `);
+            await execPromise(`
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    rm TEXT PRIMARY KEY,
+                    nome TEXT,
+                    email TEXT,
+                    senha TEXT,
+                    perfil TEXT,
+                    dados TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS conteudos (
+                    id TEXT PRIMARY KEY,
+                    materia TEXT,
+                    dados TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS simulados (
+                    id TEXT PRIMARY KEY,
+                    dados TEXT NOT NULL
+                );
+            `);
 
-        dbEngine = 'sqlite';
-        console.log(`✅ Banco de Dados conectado: SQLite (${sqliteFile})`);
-        return;
-    } catch (err) {
-        console.warn('⚠️ SQLite nativo indisponível (' + err.message + '). Usando engine de persistência JSON segura.');
+            dbEngine = 'sqlite';
+            console.log(`✅ Banco de Dados conectado: SQLite (${sqliteFile})`);
+            return;
+        } catch (err) {
+            console.warn('⚠️ SQLite nativo indisponível. Usando engine JSON.');
+        }
     }
 
-    // 1.3 Fallback Universal: Arquivo JSON de alta performance
-    if (!fs.existsSync(jsonFilePath)) {
-        fs.writeFileSync(jsonFilePath, JSON.stringify({
-            usuarios: [],
-            conteudos: [],
-            simulados: []
-        }, null, 2), 'utf-8');
+    // 1.3 Fallback Universal: Arquivo JSON
+    try {
+        if (!fs.existsSync(jsonFilePath)) {
+            fs.writeFileSync(jsonFilePath, JSON.stringify({
+                usuarios: [],
+                conteudos: [],
+                simulados: []
+            }, null, 2), 'utf-8');
+        }
+    } catch (e) {
+        console.warn('Aviso: Falha ao inicializar arquivo JSON no disco:', e.message);
     }
     dbEngine = 'json';
     console.log(`✅ Banco de Dados conectado: JSON File Store (${jsonFilePath})`);
 }
 
 // Helpers para JSON fallback
+let memoriaBackup = { usuarios: [], conteudos: [], simulados: [] };
+
 function lerJson() {
     try {
         if (!fs.existsSync(jsonFilePath)) {
-            return { usuarios: [], conteudos: [], simulados: [] };
+            return memoriaBackup;
         }
         const data = fs.readFileSync(jsonFilePath, 'utf-8');
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        memoriaBackup = parsed;
+        return parsed;
     } catch (e) {
-        console.error('Erro ao ler JSON db:', e);
-        return { usuarios: [], conteudos: [], simulados: [] };
+        return memoriaBackup;
     }
 }
 
 function salvarJson(dados) {
     try {
+        memoriaBackup = dados;
         fs.writeFileSync(jsonFilePath, JSON.stringify(dados, null, 2), 'utf-8');
     } catch (e) {
-        console.error('Erro ao salvar JSON db:', e);
+        memoriaBackup = dados;
     }
 }
 
@@ -137,10 +158,10 @@ function salvarJson(dados) {
 // 2. MÉTODOS DE USUÁRIOS
 // ===================================================
 async function buscarUsuarios() {
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         const res = await pgPool.query('SELECT dados FROM usuarios');
         return res.rows.map(r => r.dados);
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         return new Promise((resolve, reject) => {
             sqliteDb.all('SELECT dados FROM usuarios', [], (err, rows) => {
                 if (err) return reject(err);
@@ -155,10 +176,10 @@ async function buscarUsuarios() {
 
 async function buscarUsuarioPorRM(rm) {
     const rmStr = String(rm).trim();
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         const res = await pgPool.query('SELECT dados FROM usuarios WHERE rm = $1', [rmStr]);
         return res.rows.length ? res.rows[0].dados : null;
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         return new Promise((resolve, reject) => {
             sqliteDb.get('SELECT dados FROM usuarios WHERE rm = ?', [rmStr], (err, row) => {
                 if (err) return reject(err);
@@ -167,13 +188,13 @@ async function buscarUsuarioPorRM(rm) {
         });
     } else {
         const db = lerJson();
-        return db.usuarios.find(u => String(u.rm).trim() === rmStr) || null;
+        return (db.usuarios || []).find(u => String(u.rm).trim() === rmStr) || null;
     }
 }
 
 async function salvarUsuario(usuario) {
     const rmStr = String(usuario.rm).trim();
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         await pgPool.query(
             `INSERT INTO usuarios (rm, nome, email, senha, perfil, dados)
              VALUES ($1, $2, $3, $4, $5, $6)
@@ -185,7 +206,7 @@ async function salvarUsuario(usuario) {
                 dados = EXCLUDED.dados`,
             [rmStr, usuario.nome, usuario.email, usuario.senha, usuario.perfil, usuario]
         );
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         await new Promise((resolve, reject) => {
             sqliteDb.run(
                 `INSERT OR REPLACE INTO usuarios (rm, nome, email, senha, perfil, dados)
@@ -199,6 +220,7 @@ async function salvarUsuario(usuario) {
         });
     } else {
         const db = lerJson();
+        if (!db.usuarios) db.usuarios = [];
         const idx = db.usuarios.findIndex(u => String(u.rm).trim() === rmStr);
         if (idx !== -1) {
             db.usuarios[idx] = usuario;
@@ -226,7 +248,7 @@ async function atualizarUsuario(rm, dadosNovos) {
 // ===================================================
 async function buscarConteudos(materia) {
     let lista = [];
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         if (materia) {
             const res = await pgPool.query('SELECT dados FROM conteudos WHERE LOWER(materia) = LOWER($1)', [materia]);
             lista = res.rows.map(r => r.dados);
@@ -234,7 +256,7 @@ async function buscarConteudos(materia) {
             const res = await pgPool.query('SELECT dados FROM conteudos');
             lista = res.rows.map(r => r.dados);
         }
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         lista = await new Promise((resolve, reject) => {
             if (materia) {
                 sqliteDb.all('SELECT dados FROM conteudos WHERE LOWER(materia) = LOWER(?)', [materia], (err, rows) => {
@@ -263,14 +285,14 @@ async function salvarConteudo(conteudo) {
     conteudo.id = idStr;
     const materia = conteudo.materia || 'Geral';
 
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         await pgPool.query(
             `INSERT INTO conteudos (id, materia, dados)
              VALUES ($1, $2, $3)
              ON CONFLICT (id) DO UPDATE SET materia = EXCLUDED.materia, dados = EXCLUDED.dados`,
             [idStr, materia, conteudo]
         );
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         await new Promise((resolve, reject) => {
             sqliteDb.run(
                 `INSERT OR REPLACE INTO conteudos (id, materia, dados) VALUES (?, ?, ?)`,
@@ -299,10 +321,10 @@ async function salvarConteudo(conteudo) {
 // 4. MÉTODOS DE SIMULADOS (QUESTÕES PROFESSOR)
 // ===================================================
 async function buscarSimulados() {
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         const res = await pgPool.query('SELECT dados FROM simulados');
         return res.rows.map(r => r.dados);
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         return new Promise((resolve, reject) => {
             sqliteDb.all('SELECT dados FROM simulados', [], (err, rows) => {
                 if (err) return reject(err);
@@ -319,13 +341,13 @@ async function salvarSimulado(simulado) {
     const idStr = String(simulado.id || Date.now());
     simulado.id = idStr;
 
-    if (dbEngine === 'postgres') {
+    if (dbEngine === 'postgres' && pgPool) {
         await pgPool.query(
             `INSERT INTO simulados (id, dados) VALUES ($1, $2)
              ON CONFLICT (id) DO UPDATE SET dados = EXCLUDED.dados`,
             [idStr, simulado]
         );
-    } else if (dbEngine === 'sqlite') {
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
         await new Promise((resolve, reject) => {
             sqliteDb.run(
                 `INSERT OR REPLACE INTO simulados (id, dados) VALUES (?, ?)`,

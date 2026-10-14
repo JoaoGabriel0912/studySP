@@ -55,9 +55,17 @@
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
+                let errorMsg = `Erro de servidor (código ${res.status})`;
+                if (data && data.error) {
+                    if (typeof data.error === 'string') {
+                        errorMsg = data.error;
+                    } else if (typeof data.error === 'object') {
+                        errorMsg = data.error.message || data.error.code || JSON.stringify(data.error);
+                    }
+                }
                 return {
                     success: false,
-                    error: data.error || `Erro de servidor (código ${res.status})`,
+                    error: errorMsg,
                     status: res.status
                 };
             }
