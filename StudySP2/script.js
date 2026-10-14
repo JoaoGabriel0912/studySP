@@ -42,9 +42,9 @@ if (formCadastro) {
             const res = await API.cadastrar(dadosNovoUsuario);
 
             if (res && res.success) {
-                // Atualiza também o cache local
+                // Atualiza também o cache local (preservando a senha para fallback)
                 let usuariosLocais = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
-                const usuarioCriado = res.user || dadosNovoUsuario;
+                const usuarioCriado = { ...dadosNovoUsuario, ...(res.user || {}), senha: dadosNovoUsuario.senha };
                 usuariosLocais = usuariosLocais.filter(u => u.rm !== rm);
                 usuariosLocais.push(usuarioCriado);
                 localStorage.setItem('bd_usuarios', JSON.stringify(usuariosLocais));
