@@ -20,14 +20,29 @@ try {
 let dbEngine = 'json'; // 'postgres', 'sqlite', ou 'json'
 let pgPool = null;
 let sqliteDb = null;
+let lastError = null;
 const jsonFilePath = path.join(dataDir, 'studysp.json');
 
 // ===================================================
 // 1. INICIALIZAÇÃO DO BANCO DE DADOS
 // ===================================================
 async function inicializar() {
-    // 1.1 Se houver DATABASE_URL ou POSTGRES_URL no ambiente (Vercel Postgres, Supabase, Neon, Render)
-    const postgresUri = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
+    // 1.1 Busca qualquer variável de conexão configurada (Vercel Postgres, Neon, Supabase, Render)
+    let postgresUri = process.env.DATABASE_URL || 
+                      process.env.POSTGRES_URL || 
+                      process.env.POSTGRES_PRISMA_URL || 
+                      process.env.POSTGRES_URL_NON_POOLING ||
+                      process.env.NEON_DATABASE_URL ||
+                      process.env.STORAGE_DATABASE_URL;
+
+    // Se a integração do Neon injetar as variáveis separadas (PGHOST, PGUSER, etc.)
+    if (!postgresUri && process.env.PGHOST && process.env.PGUSER) {
+        const pass = process.env.PGPASSWORD ? encodeURIComponent(process.env.PGPASSWORD) : '';
+        const port = process.env.PGPORT || 5432;
+        const dbName = process.env.PGDATABASE || 'neondb';
+        postgresUri = `postgres://${process.env.PGUSER}:${pass}@${process.env.PGHOST}:${port}/${dbName}?sslmode=require`;
+    }
+
     if (postgresUri) {
         try {
             const { Pool } = require('pg');
@@ -57,10 +72,12 @@ async function inicializar() {
                 );
             `);
             dbEngine = 'postgres';
-            console.log('✅ Banco de Dados conectado: PostgreSQL em nuvem (Vercel/Render)');
+            lastError = null;
+            console.log('✅ Banco de Dados conectado com sucesso: PostgreSQL em nuvem (Neon/Vercel)');
             return;
         } catch (err) {
-            console.warn('⚠️ Falha ao conectar ao PostgreSQL, tentando SQLite/JSON:', err.message);
+            lastError = err.message;
+            console.error('⚠️ Falha ao conectar ao PostgreSQL, tentando fallback:', err.message);
         }
     }
 
@@ -177,13 +194,20 @@ async function buscarUsuarios() {
 async function buscarUsuarioPorRM(rm) {
     const rmStr = String(rm).trim();
     if (dbEngine === 'postgres' && pgPool) {
-        const res = await pgPool.query('SELECT dados FROM usuarios WHERE rm = $1', [rmStr]);
-        return res.rows.length ? res.rows[0].dados : null;
+        const res = await pgPool.query('SELECT senha, dados FROM usuarios WHERE rm = $1', [rmStr]);
+        if (!res.rows.length) return null;
+        const userObj = res.rows[0].dados;
+        // Garante que a senha venha intacta da coluna protegida 'senha'
+        userObj.senha = res.rows[0].senha || userObj.senha;
+        return userObj;
     } else if (dbEngine === 'sqlite' && sqliteDb) {
         return new Promise((resolve, reject) => {
-            sqliteDb.get('SELECT dados FROM usuarios WHERE rm = ?', [rmStr], (err, row) => {
+            sqliteDb.get('SELECT senha, dados FROM usuarios WHERE rm = ?', [rmStr], (err, row) => {
                 if (err) return reject(err);
-                resolve(row ? JSON.parse(row.dados) : null);
+                if (!row) return resolve(null);
+                const userObj = JSON.parse(row.dados);
+                userObj.senha = row.senha || userObj.senha;
+                resolve(userObj);
             });
         });
     } else {
@@ -194,6 +218,17 @@ async function buscarUsuarioPorRM(rm) {
 
 async function salvarUsuario(usuario) {
     const rmStr = String(usuario.rm).trim();
+    
+    // Se a senha não foi enviada neste payload, busca a senha atual para NUNCA apagá-la
+    let senhaParaSalvar = usuario.senha;
+    if (!senhaParaSalvar || String(senhaParaSalvar).trim() === '') {
+        const usuarioExistente = await buscarUsuarioPorRM(rmStr);
+        if (usuarioExistente && usuarioExistente.senha) {
+            senhaParaSalvar = usuarioExistente.senha;
+            usuario.senha = senhaParaSalvar;
+        }
+    }
+
     if (dbEngine === 'postgres' && pgPool) {
         await pgPool.query(
             `INSERT INTO usuarios (rm, nome, email, senha, perfil, dados)
@@ -201,17 +236,17 @@ async function salvarUsuario(usuario) {
              ON CONFLICT (rm) DO UPDATE SET
                 nome = EXCLUDED.nome,
                 email = EXCLUDED.email,
-                senha = EXCLUDED.senha,
+                senha = COALESCE(NULLIF(EXCLUDED.senha, ''), usuarios.senha),
                 perfil = EXCLUDED.perfil,
                 dados = EXCLUDED.dados`,
-            [rmStr, usuario.nome, usuario.email, usuario.senha, usuario.perfil, usuario]
+            [rmStr, usuario.nome, usuario.email, senhaParaSalvar, usuario.perfil, usuario]
         );
     } else if (dbEngine === 'sqlite' && sqliteDb) {
         await new Promise((resolve, reject) => {
             sqliteDb.run(
                 `INSERT OR REPLACE INTO usuarios (rm, nome, email, senha, perfil, dados)
                  VALUES (?, ?, ?, ?, ?, ?)`,
-                [rmStr, usuario.nome, usuario.email, usuario.senha, usuario.perfil, JSON.stringify(usuario)],
+                [rmStr, usuario.nome, usuario.email, senhaParaSalvar, usuario.perfil, JSON.stringify(usuario)],
                 (err) => {
                     if (err) return reject(err);
                     resolve();
@@ -223,6 +258,9 @@ async function salvarUsuario(usuario) {
         if (!db.usuarios) db.usuarios = [];
         const idx = db.usuarios.findIndex(u => String(u.rm).trim() === rmStr);
         if (idx !== -1) {
+            if (!usuario.senha && db.usuarios[idx].senha) {
+                usuario.senha = db.usuarios[idx].senha;
+            }
             db.usuarios[idx] = usuario;
         } else {
             db.usuarios.push(usuario);
@@ -238,7 +276,16 @@ async function atualizarUsuario(rm, dadosNovos) {
     if (!usuarioAtual) {
         throw new Error('Usuário não encontrado');
     }
-    const usuarioAtualizado = { ...usuarioAtual, ...dadosNovos, rm: rmStr };
+    
+    // NUNCA permite que a senha existente seja apagada durante atualizações de perfil ou pontos
+    const senhaPreservada = usuarioAtual.senha;
+    const usuarioAtualizado = { 
+        ...usuarioAtual, 
+        ...dadosNovos, 
+        rm: rmStr,
+        senha: (dadosNovos.senha && String(dadosNovos.senha).trim() !== '') ? dadosNovos.senha : senhaPreservada
+    };
+    
     await salvarUsuario(usuarioAtualizado);
     return usuarioAtualizado;
 }
@@ -376,6 +423,10 @@ function getEngineName() {
     return dbEngine;
 }
 
+function getLastError() {
+    return lastError;
+}
+
 module.exports = {
     inicializar,
     buscarUsuarios,
@@ -386,5 +437,6 @@ module.exports = {
     salvarConteudo,
     buscarSimulados,
     salvarSimulado,
-    getEngineName
+    getEngineName,
+    getLastError
 };

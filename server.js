@@ -23,10 +23,15 @@ const router = express.Router();
 
 // Status do Servidor e Banco de Dados
 router.get('/status', (req, res) => {
+    const detectedKeys = Object.keys(process.env).filter(k => 
+        k.includes('POSTGRES') || k.includes('DATABASE') || k.includes('NEON') || k.includes('PG')
+    );
     res.json({
         status: 'online',
         environment: process.env.VERCEL ? 'vercel-serverless' : 'standalone',
         database: db.getEngineName(),
+        detectedKeys: detectedKeys,
+        error: typeof db.getLastError === 'function' ? db.getLastError() : null,
         timestamp: new Date().toISOString()
     });
 });
