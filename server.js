@@ -193,6 +193,18 @@ router.post('/conteudos', async (req, res) => {
     }
 });
 
+// Excluir conteúdo da matéria
+router.delete('/conteudos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.excluirConteudo(id);
+        res.json({ success: true, message: 'Conteúdo excluído com sucesso.' });
+    } catch (err) {
+        console.error('Erro na rota DELETE /conteudos/:id:', err);
+        res.status(500).json({ success: false, error: 'Erro ao excluir conteúdo: ' + err.message });
+    }
+});
+
 // Buscar e publicar questões dos simulados
 router.get('/simulados', async (req, res) => {
     try {
@@ -216,6 +228,18 @@ router.post('/simulados', async (req, res) => {
     } catch (err) {
         console.error('Erro na rota POST /simulados:', err);
         res.status(500).json({ success: false, error: 'Erro ao salvar simulado: ' + err.message });
+    }
+});
+
+// Excluir questão do simulado
+router.delete('/simulados/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.excluirSimulado(id);
+        res.json({ success: true, message: 'Simulado excluído com sucesso.' });
+    } catch (err) {
+        console.error('Erro na rota DELETE /simulados/:id:', err);
+        res.status(500).json({ success: false, error: 'Erro ao excluir simulado: ' + err.message });
     }
 });
 

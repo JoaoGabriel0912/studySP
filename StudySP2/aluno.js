@@ -11,7 +11,12 @@ if (!usuarioLogado) {
         const pConteudo = document.getElementById('painelProfessorConteudo');
         const pSimulado = document.getElementById('painelProfessorSimulado');
         if(pConteudo) pConteudo.style.display = 'block';
-        if(pSimulado) pSimulado.style.display = 'block';
+        if(pSimulado) {
+            pSimulado.style.display = 'block';
+            if (typeof renderizarListaQuestoesProfessor === 'function') {
+                renderizarListaQuestoesProfessor();
+            }
+        }
     }
 
     // 2. Coloca o nome e email na tela (Isso que estava faltando!)
@@ -295,6 +300,9 @@ document.querySelectorAll('.sidebar nav a').forEach(link => {
         } else if (this.id === 'menu-simulados') {
             document.getElementById('secao-simulados').classList.remove('hidden');
             cancelarSimulado();
+            if (usuarioLogado && usuarioLogado.perfil === 'Professor' && typeof renderizarListaQuestoesProfessor === 'function') {
+                renderizarListaQuestoesProfessor();
+            }
         } else if (this.id === 'menu-tcc') {
             document.getElementById('secao-tcc').classList.remove('hidden');
             iniciarChatTCC();
@@ -494,11 +502,26 @@ function carregarMateria(materiaNome) {
         return;
     }
 
+    const isProfessor = usuarioLogado && usuarioLogado.perfil === 'Professor';
+
     // 5. Se tem aula, monta a tela com Textos, Links, Anexos e Vídeos:
     container.innerHTML = filtrados.map(item => {
+        const safeId = String(item.id || '');
+        const safeMateria = (item.materia || materiaNome || '').replace(/'/g, "\\'");
+
         // Monta o título e o texto (usando white-space para respeitar as quebras de linha do professor)
-        let htmlCard = `<div class="tema-card" style="margin-bottom: 25px;">
-            <h3 style="color:var(--primary-color); font-size: 20px;">${item.titulo}</h3>
+        let htmlCard = `<div class="tema-card" style="margin-bottom: 25px; position: relative;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; flex-wrap: wrap;">
+                <h3 style="color:var(--primary-color); font-size: 20px; margin: 0;">${item.titulo}</h3>
+                ${isProfessor ? `
+                    <button type="button" 
+                            class="btn-excluir-publicacao" 
+                            onclick="excluirConteudo('${safeId}', '${safeMateria}')" 
+                            title="Excluir esta publicação">
+                        <span>🗑️</span> Excluir Publicação
+                    </button>
+                ` : ''}
+            </div>
             <p style="margin: 15px 0; line-height: 1.6; white-space: pre-wrap; font-size: 15px;">${item.texto}</p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
         `;
@@ -1127,7 +1150,9 @@ function salvarQuestao(e) {
             document.getElementById('profAlt2').value,
             document.getElementById('profAlt3').value
         ],
-        correta: parseInt(document.getElementById('profCorreta').value)
+        correta: parseInt(document.getElementById('profCorreta').value),
+        profNome: usuarioLogado ? usuarioLogado.nome : 'Professor',
+        dataHora: new Date().toLocaleString()
     };
 
     let simulados = JSON.parse(localStorage.getItem('bd_simulados')) || [];
@@ -1135,11 +1160,163 @@ function salvarQuestao(e) {
     localStorage.setItem('bd_simulados', JSON.stringify(simulados));
     
     // Injeta a nova questão na variável da prova atual
+    if (typeof questoesProfessor !== 'undefined') {
+        questoesProfessor.push(novaQuestao);
+    }
     dadosProvaSimulada.push(novaQuestao);
+
+    if (window.API && typeof window.API.salvarSimulado === 'function') {
+        window.API.salvarSimulado(novaQuestao).catch(err => {
+            console.warn('[StudySP] Falha ao enviar simulado para o servidor:', err);
+        });
+    }
     
     mostrarToastCanto('Questão Cadastrada', 'Questão adicionada ao banco de Simulados com sucesso!', 'success');
     e.target.reset();
+    renderizarListaQuestoesProfessor();
 }
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+async function excluirConteudo(id, materiaNome) {
+    if (!confirm('Deseja realmente excluir esta matéria/aula publicada? Essa ação não pode ser desfeita.')) {
+        return;
+    }
+
+    const idStr = String(id);
+    let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
+    conteudos = conteudos.filter(c => String(c.id) !== idStr);
+    localStorage.setItem('bd_conteudos', JSON.stringify(conteudos));
+
+    if (window.API && typeof window.API.excluirConteudo === 'function') {
+        window.API.excluirConteudo(idStr).catch(err => {
+            console.warn('[StudySP] Falha ao excluir conteúdo do servidor:', err);
+        });
+    }
+
+    mostrarToastCanto('Publicação Excluída', 'A matéria/aula foi removida com sucesso!', 'info');
+    
+    let materiaAtiva = materiaNome;
+    if (!materiaAtiva) {
+        const activeBtn = document.querySelector('.materia-btn.active');
+        materiaAtiva = activeBtn ? activeBtn.innerText : 'Português';
+    }
+    carregarMateria(materiaAtiva);
+}
+
+async function excluirQuestao(id) {
+    if (!confirm('Deseja realmente remover esta questão do simulado? Essa ação não pode ser desfeita.')) {
+        return;
+    }
+
+    const idStr = String(id);
+    let simulados = JSON.parse(localStorage.getItem('bd_simulados')) || [];
+    simulados = simulados.filter(q => String(q.id) !== idStr);
+    localStorage.setItem('bd_simulados', JSON.stringify(simulados));
+
+    if (typeof questoesProfessor !== 'undefined') {
+        questoesProfessor = questoesProfessor.filter(q => String(q.id) !== idStr);
+    }
+    dadosProvaSimulada = dadosProvaSimulada.filter(q => String(q.id) !== idStr);
+
+    if (window.API && typeof window.API.excluirSimulado === 'function') {
+        window.API.excluirSimulado(idStr).catch(err => {
+            console.warn('[StudySP] Falha ao excluir simulado do servidor:', err);
+        });
+    }
+
+    renderizarListaQuestoesProfessor();
+    mostrarToastCanto('Questão Removida', 'A questão foi removida do banco de simulados com sucesso!', 'info');
+}
+
+function renderizarListaQuestoesProfessor() {
+    const container = document.getElementById('listaQuestoesProfessor');
+    const badgeContador = document.getElementById('contagemQuestoesProf');
+    if (!container) return;
+
+    let questoes = JSON.parse(localStorage.getItem('bd_simulados')) || [];
+    if (typeof questoesProfessor !== 'undefined') {
+        questoesProfessor = questoes;
+    }
+
+    if (badgeContador) {
+        badgeContador.textContent = questoes.length;
+    }
+
+    if (questoes.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 25px 15px; color: var(--text-muted); font-size: 13px; background: var(--bg-main); border-radius: 8px; border: 1px dashed var(--border-color);">
+                <span>ℹ️</span> Nenhuma questão cadastrada por você no simulado até o momento.
+            </div>
+        `;
+        return;
+    }
+
+    const letras = ['A', 'B', 'C', 'D'];
+
+    container.innerHTML = questoes.map((q, index) => {
+        if (!q.id) {
+            q.id = 'q_' + (index + 1) + '_' + Date.now();
+        }
+        const safeId = String(q.id);
+        const tema = q.tema || 'Geral';
+        const dataCriacao = q.dataHora || 'Cadastrada';
+
+        const opcoesHtml = (q.opcoes || []).map((opc, idx) => {
+            const isCorreta = idx === parseInt(q.correta);
+            const style = isCorreta
+                ? 'background: rgba(46, 213, 115, 0.12); border: 1px solid rgba(46, 213, 115, 0.4); color: #2ed573; font-weight: bold;'
+                : 'background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted);';
+            return `
+                <div style="padding: 6px 10px; border-radius: 5px; ${style} font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                    <span>${letras[idx]})</span>
+                    <span style="flex: 1; word-break: break-word;">${escapeHtml(opc)}</span>
+                    ${isCorreta ? '<span title="Alternativa Correta">✓</span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="questao-prof-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="background: rgba(0, 123, 255, 0.15); color: var(--primary-color); border: 1px solid rgba(0, 123, 255, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                            🏷️ ${escapeHtml(tema)}
+                        </span>
+                        <span style="font-size: 11px; color: var(--text-muted);">
+                            🕒 ${escapeHtml(dataCriacao)}
+                        </span>
+                    </div>
+                    <button type="button" 
+                            onclick="excluirQuestao('${safeId}')" 
+                            class="btn-excluir-questao" 
+                            title="Excluir esta questão do simulado">
+                        <span>🗑️</span> Remover Questão
+                    </button>
+                </div>
+                <div style="font-size: 13.5px; color: var(--text-main); font-weight: 500; line-height: 1.5; white-space: pre-wrap;">
+                    <strong>#${index + 1}:</strong> ${escapeHtml(q.pergunta)}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; margin-top: 4px;">
+                    ${opcoesHtml}
+                </div>
+            </div>
+        `;
+    }).reverse().join('');
+}
+
+window.escapeHtml = escapeHtml;
+window.excluirConteudo = excluirConteudo;
+window.excluirQuestao = excluirQuestao;
+window.renderizarListaQuestoesProfessor = renderizarListaQuestoesProfessor;
 
 // Inicialização Final (Roda ao carregar a página)
 carregarDadosPerfil(); 

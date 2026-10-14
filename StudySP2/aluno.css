@@ -1582,3 +1582,67 @@ body.dark-theme .tcc-chat-box {
     .chat-ia-modal { width: calc(100vw - 20px); right: 10px; }
     .toast-canto-container { bottom: 16px; right: 16px; max-width: calc(100vw - 32px); }
 }
+
+/* ================================================
+   BOTÕES DE EXCLUSÃO (PROFESSOR: PUBLICAR E SIMULADOS)
+   ================================================ */
+.btn-excluir-publicacao {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #f87171;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-excluir-publicacao:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-excluir-questao {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #f87171;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.btn-excluir-questao:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+    transform: translateY(-1px);
+}
+
+.questao-prof-card {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.2s ease;
+}
+
+.questao-prof-card:hover {
+    border-color: rgba(0, 123, 255, 0.3);
+}

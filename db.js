@@ -419,6 +419,48 @@ async function salvarSimulado(simulado) {
     return simulado;
 }
 
+async function excluirConteudo(id) {
+    const idStr = String(id);
+    if (dbEngine === 'postgres' && pgPool) {
+        await pgPool.query('DELETE FROM conteudos WHERE id = $1', [idStr]);
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
+        await new Promise((resolve, reject) => {
+            sqliteDb.run('DELETE FROM conteudos WHERE id = ?', [idStr], (err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+    } else {
+        const db = lerJson();
+        if (db.conteudos) {
+            db.conteudos = db.conteudos.filter(c => String(c.id) !== idStr);
+            salvarJson(db);
+        }
+    }
+    return { success: true, id: idStr };
+}
+
+async function excluirSimulado(id) {
+    const idStr = String(id);
+    if (dbEngine === 'postgres' && pgPool) {
+        await pgPool.query('DELETE FROM simulados WHERE id = $1', [idStr]);
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
+        await new Promise((resolve, reject) => {
+            sqliteDb.run('DELETE FROM simulados WHERE id = ?', [idStr], (err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+    } else {
+        const db = lerJson();
+        if (db.simulados) {
+            db.simulados = db.simulados.filter(s => String(s.id) !== idStr);
+            salvarJson(db);
+        }
+    }
+    return { success: true, id: idStr };
+}
+
 function getEngineName() {
     return dbEngine;
 }
@@ -435,8 +477,10 @@ module.exports = {
     atualizarUsuario,
     buscarConteudos,
     salvarConteudo,
+    excluirConteudo,
     buscarSimulados,
     salvarSimulado,
+    excluirSimulado,
     getEngineName,
     getLastError
 };

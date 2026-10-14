@@ -335,6 +335,19 @@
                         style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Adicionar
                         ao Banco de Questões</button>
                 </form>
+
+                <!-- GERENCIAR / EXCLUIR QUESTÕES PUBLICADAS PELO PROFESSOR -->
+                <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="color: var(--text-main); font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <span>📋</span> Questões Publicadas por Você (<span id="contagemQuestoesProf">0</span>)
+                        </h4>
+                        <span style="font-size: 12px; color: var(--text-muted);">Caso tenha errado na publicação, remova a questão abaixo</span>
+                    </div>
+                    <div id="listaQuestoesProfessor" style="display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; padding-right: 4px;">
+                        <!-- Questões renderizadas dinamicamente via JS -->
+                    </div>
+                </div>
             </div>
 
             <div id="lista-provas" class="simulados-container">
