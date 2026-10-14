@@ -192,27 +192,41 @@
             <!-- PAINEL SECRETO DO PROFESSOR: ADICIONAR CONTEÚDO -->
             <div id="painelProfessorConteudo"
                 style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
-                <h3 style="color: var(--primary-color); margin-bottom: 15px;">👨‍🏫 Publicar Nova Aula</h3>
-                <form onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                    <input type="text" id="profTitulo" placeholder="Título do Conteúdo" required
-                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
-                    <textarea id="profTexto" rows="3" placeholder="Texto explicativo ou resumo da matéria..." required
-                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);"></textarea>
+                <h3 id="tituloPainelProfessor" style="color: var(--primary-color); margin-bottom: 15px;">👨‍🏫 Publicar Nova Aula</h3>
+                <form id="formPublicarConteudo" onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="hidden" id="profEditandoId" value="">
+                    <select id="profMateria" class="prof-field">
+                        <option value="Português">Português</option>
+                        <option value="Inglês">Inglês</option>
+                        <option value="Matemática">Matemática</option>
+                        <option value="Física">Física</option>
+                        <option value="Química">Química</option>
+                        <option value="Biologia">Biologia</option>
+                        <option value="História">História</option>
+                        <option value="Geografia">Geografia</option>
+                        <option value="Filosofia">Filosofia</option>
+                        <option value="Sociologia">Sociologia</option>
+                        <option value="Redação">Redação</option>
+                    </select>
+                    <input type="text" id="profTitulo" class="prof-field" placeholder="Título do Conteúdo" required>
+                    <textarea id="profTexto" class="prof-field" rows="3" placeholder="Texto explicativo ou resumo da matéria..." required></textarea>
 
                     <div style="display: flex; gap: 10px;">
-                        <input type="url" id="profLink" placeholder="Link externo (opcional)"
-                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
-                        <input type="text" id="profVideo" placeholder="ID do Vídeo YouTube (ex: dQw4w9WgXcQ)"
-                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="url" id="profLink" class="prof-field" placeholder="Link externo (opcional)" style="flex:1;">
+                        <input type="text" id="profVideo" class="prof-field" placeholder="ID do Vídeo YouTube (ex: dQw4w9WgXcQ)" style="flex:1;">
                     </div>
 
                     <label style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">Anexar Arquivo (PDF ou
                         Imagem):</label>
-                    <input type="file" id="profArquivo" style="color: white;">
+                    <input type="file" id="profArquivo" class="prof-field">
 
-                    <button type="submit"
-                        style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Salvar
-                        Conteúdo</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" id="btnSalvarConteudo"
+                            style="flex:1; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Salvar
+                            Conteúdo</button>
+                        <button type="button" id="btnCancelarEdicao" class="btn-acao-pub" onclick="cancelarEdicaoConteudo()"
+                            style="display: none; margin-top: 5px; padding: 10px 14px;">Cancelar edição</button>
+                    </div>
                 </form>
             </div>
             <nav class="barra-materias">
@@ -280,27 +294,20 @@
                 style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
                 <h3 style="color: var(--primary-color); margin-bottom: 15px;">📝 Cadastrar Nova Questão no Simulado</h3>
                 <form onsubmit="salvarQuestao(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                    <textarea id="profPergunta" rows="2" placeholder="Enunciado da Questão cobrada no Provão..."
-                        required
-                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);"></textarea>
-                    <input type="text" id="profTema" placeholder="Tema Específico (ex: Física: Ondulatória)" required
-                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    <textarea id="profPergunta" class="prof-field" rows="2" placeholder="Enunciado da Questão cobrada no Provão..."
+                        required></textarea>
+                    <input type="text" id="profTema" class="prof-field" placeholder="Tema Específico (ex: Física: Ondulatória)" required>
 
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="profAlt0" placeholder="Alternativa A" required
-                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
-                        <input type="text" id="profAlt1" placeholder="Alternativa B" required
-                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profAlt0" class="prof-field" placeholder="Alternativa A" required style="flex:1;">
+                        <input type="text" id="profAlt1" class="prof-field" placeholder="Alternativa B" required style="flex:1;">
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="profAlt2" placeholder="Alternativa C" required
-                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
-                        <input type="text" id="profAlt3" placeholder="Alternativa D" required
-                            style="flex:1; padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                        <input type="text" id="profAlt2" class="prof-field" placeholder="Alternativa C" required style="flex:1;">
+                        <input type="text" id="profAlt3" class="prof-field" placeholder="Alternativa D" required style="flex:1;">
                     </div>
 
-                    <select id="profCorreta" required
-                        style="padding: 10px; border-radius: 5px; background: var(--bg-main); color: white; border: 1px solid var(--border-color);">
+                    <select id="profCorreta" class="prof-field" required>
                         <option value="">Selecione a Alternativa Correta...</option>
                         <option value="0">Alternativa A</option>
                         <option value="1">Alternativa B</option>
@@ -625,6 +632,17 @@
             </div>
 
             <button class="btn btn-save" style="width: 100%; margin-top: 10px; padding: 12px;" onclick="fecharModalDetalheTCC()">Fechar Detalhes</button>
+        </div>
+    </div>
+
+    <div id="modal-confirmacao" class="modal-overlay hidden">
+        <div class="modal-content modal-confirmacao">
+            <h3 id="confirm-titulo">Tem certeza?</h3>
+            <p id="confirm-mensagem">Esta ação não poderá ser desfeita.</p>
+            <div class="confirm-actions">
+                <button type="button" id="confirm-cancelar" class="btn-confirm-cancelar">Cancelar</button>
+                <button type="button" id="confirm-ok" class="btn-confirm-ok">Confirmar</button>
+            </div>
         </div>
     </div>
 

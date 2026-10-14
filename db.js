@@ -364,6 +364,26 @@ async function salvarConteudo(conteudo) {
     return conteudo;
 }
 
+async function excluirConteudo(id) {
+    const idStr = String(id);
+
+    if (dbEngine === 'postgres' && pgPool) {
+        await pgPool.query('DELETE FROM conteudos WHERE id = $1', [idStr]);
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
+        await new Promise((resolve, reject) => {
+            sqliteDb.run('DELETE FROM conteudos WHERE id = ?', [idStr], (err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+    } else {
+        const db = lerJson();
+        db.conteudos = (db.conteudos || []).filter(c => String(c.id) !== idStr);
+        salvarJson(db);
+    }
+    return true;
+}
+
 // ===================================================
 // 4. MÉTODOS DE SIMULADOS (QUESTÕES PROFESSOR)
 // ===================================================
@@ -435,6 +455,7 @@ module.exports = {
     atualizarUsuario,
     buscarConteudos,
     salvarConteudo,
+    excluirConteudo,
     buscarSimulados,
     salvarSimulado,
     getEngineName,

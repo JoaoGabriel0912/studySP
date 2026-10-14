@@ -374,7 +374,7 @@ body {
 
 .topbar {
     height: 64px;
-    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(13, 23, 38, 0.95) 100%);
+    background: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
@@ -382,12 +382,17 @@ body {
     padding: 0 24px;
     position: relative;
     z-index: 10;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 body.dark-theme .topbar {
     background: linear-gradient(135deg, #0d1726 0%, #080d16 100%);
     border-bottom-color: rgba(0, 123, 255, 0.15);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .topbar-logo {
+    background: linear-gradient(135deg, #060a12 0%, #0d1726 100%);
 }
 
 /* Logo centralizado no topbar */
@@ -399,7 +404,7 @@ body.dark-theme .topbar {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #060a12 0%, #0d1726 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #e8eef6 100%);
     padding: 5px 20px;
     border-radius: 40px;
     box-shadow:
@@ -842,6 +847,122 @@ body.dark-theme .tema-card {
     box-shadow: 0 4px 20px rgba(0, 123, 255, 0.08);
 }
 
+.prof-field {
+    padding: 10px;
+    border-radius: 5px;
+    background: var(--bg-main);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+}
+
+.prof-field:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.tema-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.acoes-publicacao {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.btn-acao-pub {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-acao-pub:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-acao-pub.btn-apagar:hover {
+    border-color: #dc3545;
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.08);
+}
+
+.select-mover-materia {
+    max-width: 140px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.modal-confirmacao {
+    max-width: 420px;
+    padding: 28px 24px 22px;
+    text-align: center;
+}
+
+.modal-confirmacao h3 {
+    color: var(--text-main);
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.modal-confirmacao p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 22px;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.confirm-actions button {
+    flex: 1;
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+}
+
+.btn-confirm-cancelar {
+    background: var(--bg-main);
+    color: var(--text-main);
+}
+
+.btn-confirm-ok {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: #fff;
+    border: none !important;
+}
+
+.btn-confirm-ok.btn-confirm-danger {
+    background: #dc3545;
+}
+
 /* Chat IA flutuante */
 .btn-floating-chat {
     position: fixed;
@@ -1024,10 +1145,13 @@ body.dark-theme .prova-card {
 
 .card-destaque {
     border-top-color: var(--accent-color) !important;
-    background: linear-gradient(135deg, #0d1726 0%, #0d1e38 100%) !important;
+    background: linear-gradient(135deg, #ffffff 0%, #e8f4ff 100%) !important;
 }
 
-body.dark-theme .card-destaque { border-color: rgba(0, 200, 255, 0.2) !important; }
+body.dark-theme .card-destaque {
+    background: linear-gradient(135deg, #0d1726 0%, #0d1e38 100%) !important;
+    border-color: rgba(0, 200, 255, 0.2) !important;
+}
 
 .prova-card-badge {
     display: inline-block;
@@ -1392,6 +1516,17 @@ body.dark-theme .tcc-chat-box {
     margin: 0;
 }
 
+body:not(.dark-theme) .toast-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f4f7fb 100%);
+    border-color: rgba(0, 123, 255, 0.22);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+body:not(.dark-theme) .toast-card-title { color: #1e293b; }
+body:not(.dark-theme) .toast-card-text { color: #64748b; }
+body:not(.dark-theme) .toast-card-close { color: #64748b; }
+body:not(.dark-theme) .toast-card-close:hover { color: #1e293b; }
+
 .toast-card-progress {
     position: absolute;
     bottom: 0;
@@ -1453,6 +1588,7 @@ body.dark-theme .tcc-chat-box {
     padding: 48px 6px 14px 6px;
     position: relative;
     color: #111;
+    border: 2px solid #000;
     box-shadow: 0 -6px 20px rgba(0,0,0,0.25);
     justify-content: flex-start;
     transition: transform 0.3s;

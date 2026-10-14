@@ -622,41 +622,112 @@ updateRankCountdown();
 // ==========================================
 // ESTUDAR (CONTEÚDO) - ATUALIZADO PARA LER O BANCO DO PROFESSOR
 // ==========================================
+const LISTA_MATERIAS = ['Português', 'Inglês', 'Matemática', 'Física', 'Química', 'Biologia', 'História', 'Geografia', 'Filosofia', 'Sociologia', 'Redação'];
+
+function ehProfessor() {
+    return !!(usuarioLogado && usuarioLogado.perfil === 'Professor');
+}
+
+function escapeHtml(texto) {
+    return String(texto == null ? '' : texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function obterConteudosLocais() {
+    return JSON.parse(localStorage.getItem('bd_conteudos')) || [];
+}
+
+function salvarConteudosLocais(lista) {
+    localStorage.setItem('bd_conteudos', JSON.stringify(lista));
+}
+
+function ordemConteudo(item) {
+    if (item && item.ordem != null && item.ordem !== '') return Number(item.ordem);
+    return Number(item && item.id) || 0;
+}
+
+function ordenarConteudos(lista) {
+    return [...lista].sort((a, b) => ordemConteudo(b) - ordemConteudo(a));
+}
+
+function persistirConteudoServidor(conteudo) {
+    if (window.API && typeof window.API.salvarConteudo === 'function') {
+        window.API.salvarConteudo(conteudo).catch(err => {
+            console.warn('[StudySP] Falha ao enviar aula para o servidor:', err);
+        });
+    }
+}
+
 function renderizarConteudosNaTela(filtrados, materiaNome) {
     const container = document.getElementById('conteudo-materia');
     if (!container) return;
 
-    if (filtrados.length === 0) {
+    const lista = ordenarConteudos(filtrados);
+
+    if (lista.length === 0) {
         container.innerHTML = `
             <div class="tema-card">
-                <h3 style="color:var(--primary-color);">${materiaNome}</h3>
+                <h3 style="color:var(--primary-color);">${escapeHtml(materiaNome)}</h3>
                 <p style="margin-top:10px; color:var(--text-muted); line-height: 1.6;">Nenhum conteúdo publicado pelo professor para esta matéria ainda.</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = filtrados.map(item => {
+    const professor = ehProfessor();
+
+    container.innerHTML = lista.map((item, index) => {
+        const idSeguro = escapeHtml(item.id);
         let avatarStyle = item.profFoto ? `background-image: url(${item.profFoto}); background-size: cover; background-position: center; color: transparent;` : '';
-        let htmlCard = `<div class="tema-card" style="margin-bottom: 25px;">
-            <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 10px;">
-                <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; ${avatarStyle}">👤</div>
-                <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 13px; font-weight: bold; color: var(--text-main);">${item.profNome || 'Professor'}</span>
-                    <span style="font-size: 11px; color: var(--text-muted);">${item.dataHora || 'Recentemente'}</span>
+        const horario = item.editado
+            ? `✏️ Editado em ${item.dataHora || 'agora'}`
+            : (item.dataHora || 'Recentemente');
+
+        let acoesHtml = '';
+        if (professor) {
+            const opcoesMover = LISTA_MATERIAS
+                .filter(m => m.toLowerCase() !== String(item.materia || '').toLowerCase())
+                .map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`)
+                .join('');
+            acoesHtml = `
+                <div class="acoes-publicacao">
+                    <button type="button" class="btn-acao-pub" title="Mover para cima" ${index === 0 ? 'disabled' : ''} onclick="moverConteudo('${idSeguro}', -1)">↑</button>
+                    <button type="button" class="btn-acao-pub" title="Mover para baixo" ${index === lista.length - 1 ? 'disabled' : ''} onclick="moverConteudo('${idSeguro}', 1)">↓</button>
+                    <select class="select-mover-materia" title="Mover para outra matéria" onchange="pedirMoverMateria('${idSeguro}', this.value)">
+                        <option value="" selected>Mover para...</option>
+                        ${opcoesMover}
+                    </select>
+                    <button type="button" class="btn-acao-pub" onclick="iniciarEdicaoConteudo('${idSeguro}')">✏️ Editar</button>
+                    <button type="button" class="btn-acao-pub btn-apagar" onclick="pedirApagarConteudo('${idSeguro}')">🗑️ Apagar</button>
                 </div>
+            `;
+        }
+
+        let htmlCard = `<div class="tema-card" style="margin-bottom: 25px;">
+            <div class="tema-card-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; ${avatarStyle}">👤</div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 13px; font-weight: bold; color: var(--text-main);">${escapeHtml(item.profNome || 'Professor')}</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(horario)}</span>
+                    </div>
+                </div>
+                ${acoesHtml}
             </div>
-            <h3 style="color:var(--primary-color); font-size: 20px;">${item.titulo}</h3>
-            <p style="margin: 15px 0; line-height: 1.6; white-space: pre-wrap; font-size: 15px;">${item.texto}</p>
+            <h3 style="color:var(--primary-color); font-size: 20px;">${escapeHtml(item.titulo)}</h3>
+            <p style="margin: 15px 0; line-height: 1.6; white-space: pre-wrap; font-size: 15px;">${escapeHtml(item.texto)}</p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
         `;
 
         if (item.link) {
-            htmlCard += `<a href="${item.link}" target="_blank" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">🔗 Acessar Link Externo</a>`;
+            htmlCard += `<a href="${escapeHtml(item.link)}" target="_blank" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">🔗 Acessar Link Externo</a>`;
         }
 
         if (item.arquivo) {
-            htmlCard += `<a href="${item.arquivo}" download="${item.nomeArquivo}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">📎 Baixar ${item.nomeArquivo}</a>`;
+            htmlCard += `<a href="${item.arquivo}" download="${escapeHtml(item.nomeArquivo || 'arquivo')}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">📎 Baixar ${escapeHtml(item.nomeArquivo || 'arquivo')}</a>`;
         }
         
         htmlCard += `</div>`; 
@@ -664,14 +735,14 @@ function renderizarConteudosNaTela(filtrados, materiaNome) {
         if (item.video) {
             htmlCard += `
                 <div style="margin:20px auto 0 auto; width: 60%; position:relative; padding-bottom:33.75%; height:0; overflow:hidden; border-radius:10px; border: 1px solid var(--border-color);">
-                    <iframe src="https://www.youtube.com/embed/${item.video}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                    <iframe src="https://www.youtube.com/embed/${escapeHtml(item.video)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
                 </div>
             `;
         }
 
         htmlCard += `</div>`; 
         return htmlCard;
-    }).reverse().join(''); 
+    }).join(''); 
 }
 
 async function carregarMateria(materiaNome) {
@@ -680,6 +751,10 @@ async function carregarMateria(materiaNome) {
         btn.classList.remove('active');
         if (btn.innerText === materiaNome) btn.classList.add('active');
     });
+    const selectMateria = document.getElementById('profMateria');
+    if (selectMateria && !document.getElementById('profEditandoId')?.value) {
+        selectMateria.value = materiaNome;
+    }
 
     // 2. Puxa os conteúdos salvos no cache local para exibição instantânea
     let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
@@ -2050,47 +2125,225 @@ function renderizarConquistas() {
 // ==========================================
 // FUNÇÕES DE ADMINISTRAÇÃO (PROFESSOR)
 // ==========================================
-function salvarConteudo(e) {
-    e.preventDefault();
-    // Descobre qual matéria está selecionada no menu
-    let materiaBtn = document.querySelector('.materia-btn.active');
-    let materiaAtiva = materiaBtn ? materiaBtn.innerText : 'Geral';
-    let arquivoInput = document.getElementById('profArquivo');
-    
-    let salvar = (arquivoBase64, nomeArquivo) => {
-        let novoConteudo = {
-            id: Date.now(), materia: materiaAtiva,
-            titulo: document.getElementById('profTitulo').value,
-            texto: document.getElementById('profTexto').value,
-            link: document.getElementById('profLink').value,
-            video: document.getElementById('profVideo').value,
-            arquivo: arquivoBase64, nomeArquivo: nomeArquivo,
-            dataHora: new Date().toLocaleString(),
-            profNome: usuarioLogado.nome,
-            profFoto: usuarioLogado.foto || null
-        };
-        let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
-        conteudos.push(novoConteudo);
-        localStorage.setItem('bd_conteudos', JSON.stringify(conteudos));
-
-        // Envia para o servidor para persistir entre navegadores e dispositivos
-        if (window.API && typeof window.API.salvarConteudo === 'function') {
-            window.API.salvarConteudo(novoConteudo).catch(err => {
-                console.warn('[StudySP] Falha ao enviar aula para o servidor:', err);
-            });
+function perguntarConfirmacao(titulo, mensagem, { textoOk = 'Confirmar', perigo = false } = {}) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('modal-confirmacao');
+        const tituloEl = document.getElementById('confirm-titulo');
+        const mensagemEl = document.getElementById('confirm-mensagem');
+        const btnOk = document.getElementById('confirm-ok');
+        const btnCancelar = document.getElementById('confirm-cancelar');
+        if (!modal || !btnOk || !btnCancelar) {
+            resolve(window.confirm(mensagem));
+            return;
         }
 
-        mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
-        e.target.reset();
-        carregarMateria(materiaAtiva); // Atualiza a tela na hora
+        tituloEl.textContent = titulo;
+        mensagemEl.textContent = mensagem;
+        btnOk.textContent = textoOk;
+        btnOk.classList.toggle('btn-confirm-danger', !!perigo);
+        modal.classList.remove('hidden');
+
+        const fechar = (valor) => {
+            modal.classList.add('hidden');
+            btnOk.onclick = null;
+            btnCancelar.onclick = null;
+            modal.onclick = null;
+            resolve(valor);
+        };
+
+        btnOk.onclick = () => fechar(true);
+        btnCancelar.onclick = () => fechar(false);
+        modal.onclick = (ev) => {
+            if (ev.target === modal) fechar(false);
+        };
+    });
+}
+
+function atualizarTituloPainelProfessor(editando) {
+    const titulo = document.getElementById('tituloPainelProfessor');
+    const btnSalvar = document.getElementById('btnSalvarConteudo');
+    const btnCancelar = document.getElementById('btnCancelarEdicao');
+    if (titulo) titulo.textContent = editando ? '✏️ Editar publicação' : '👨‍🏫 Publicar Nova Aula';
+    if (btnSalvar) btnSalvar.textContent = editando ? 'Salvar alterações' : 'Salvar Conteúdo';
+    if (btnCancelar) btnCancelar.style.display = editando ? 'inline-flex' : 'none';
+}
+
+function cancelarEdicaoConteudo() {
+    const form = document.getElementById('formPublicarConteudo');
+    const idCampo = document.getElementById('profEditandoId');
+    if (form) form.reset();
+    if (idCampo) idCampo.value = '';
+    atualizarTituloPainelProfessor(false);
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    const selectMateria = document.getElementById('profMateria');
+    if (selectMateria && materiaBtn) selectMateria.value = materiaBtn.innerText;
+}
+
+function iniciarEdicaoConteudo(id) {
+    const item = obterConteudosLocais().find(c => String(c.id) === String(id));
+    if (!item) return;
+
+    document.getElementById('profEditandoId').value = item.id;
+    document.getElementById('profMateria').value = item.materia || 'Geral';
+    document.getElementById('profTitulo').value = item.titulo || '';
+    document.getElementById('profTexto').value = item.texto || '';
+    document.getElementById('profLink').value = item.link || '';
+    document.getElementById('profVideo').value = item.video || '';
+    document.getElementById('profArquivo').value = '';
+    atualizarTituloPainelProfessor(true);
+
+    const painel = document.getElementById('painelProfessorConteudo');
+    if (painel) painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function pedirApagarConteudo(id) {
+    const confirmado = await perguntarConfirmacao(
+        'Apagar publicação?',
+        'Tem certeza de que deseja apagar esta matéria? Essa ação não poderá ser desfeita.',
+        { textoOk: 'Apagar', perigo: true }
+    );
+    if (!confirmado) return;
+
+    const restantes = obterConteudosLocais().filter(c => String(c.id) !== String(id));
+    salvarConteudosLocais(restantes);
+
+    if (window.API && typeof window.API.excluirConteudo === 'function') {
+        window.API.excluirConteudo(id).catch(err => {
+            console.warn('[StudySP] Falha ao apagar aula no servidor:', err);
+        });
+    }
+
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    carregarMateria(materiaBtn ? materiaBtn.innerText : 'Português');
+    mostrarToastCanto('Publicação apagada', 'O conteúdo foi removido com sucesso.', 'success');
+}
+
+async function pedirMoverMateria(id, novaMateria) {
+    if (!novaMateria) return;
+    const confirmado = await perguntarConfirmacao(
+        'Mover publicação?',
+        `Tem certeza de que deseja mover esta matéria para ${novaMateria}?`,
+        { textoOk: 'Mover' }
+    );
+    if (!confirmado) {
+        const materiaBtn = document.querySelector('.materia-btn.active');
+        carregarMateria(materiaBtn ? materiaBtn.innerText : 'Português');
+        return;
+    }
+
+    const conteudos = obterConteudosLocais();
+    const idx = conteudos.findIndex(c => String(c.id) === String(id));
+    if (idx === -1) return;
+
+    conteudos[idx].materia = novaMateria;
+    conteudos[idx].editado = true;
+    conteudos[idx].dataHora = new Date().toLocaleString();
+    salvarConteudosLocais(conteudos);
+    persistirConteudoServidor(conteudos[idx]);
+
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    carregarMateria(materiaBtn ? materiaBtn.innerText : 'Português');
+    mostrarToastCanto('Matéria movida', `Publicação movida para ${novaMateria}.`, 'success');
+}
+
+function moverConteudo(id, direcao) {
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    const materiaNome = materiaBtn ? materiaBtn.innerText : 'Português';
+    const todos = obterConteudosLocais();
+    const daMateria = ordenarConteudos(todos.filter(c => c.materia && c.materia.toLowerCase() === materiaNome.toLowerCase()));
+    const pos = daMateria.findIndex(c => String(c.id) === String(id));
+    const destino = pos + direcao;
+    if (pos === -1 || destino < 0 || destino >= daMateria.length) return;
+
+    const atual = daMateria[pos];
+    const vizinho = daMateria[destino];
+    const ordemAtual = ordemConteudo(atual);
+    atual.ordem = ordemConteudo(vizinho);
+    vizinho.ordem = ordemAtual;
+
+    const idxAtual = todos.findIndex(c => String(c.id) === String(atual.id));
+    const idxVizinho = todos.findIndex(c => String(c.id) === String(vizinho.id));
+    if (idxAtual !== -1) todos[idxAtual] = atual;
+    if (idxVizinho !== -1) todos[idxVizinho] = vizinho;
+
+    salvarConteudosLocais(todos);
+    persistirConteudoServidor(atual);
+    persistirConteudoServidor(vizinho);
+    carregarMateria(materiaNome);
+}
+
+async function salvarConteudo(e) {
+    e.preventDefault();
+    const idEditando = document.getElementById('profEditandoId').value;
+    const materiaAtiva = document.getElementById('profMateria').value
+        || (document.querySelector('.materia-btn.active') ? document.querySelector('.materia-btn.active').innerText : 'Geral');
+    const arquivoInput = document.getElementById('profArquivo');
+
+    if (idEditando) {
+        const confirmado = await perguntarConfirmacao(
+            'Salvar alterações?',
+            'Tem certeza de que deseja salvar as alterações desta publicação?',
+            { textoOk: 'Salvar' }
+        );
+        if (!confirmado) return;
+    }
+
+    const aplicarSalvamento = (arquivoBase64, nomeArquivo) => {
+        const conteudos = obterConteudosLocais();
+        const agora = new Date().toLocaleString();
+
+        if (idEditando) {
+            const idx = conteudos.findIndex(c => String(c.id) === String(idEditando));
+            if (idx === -1) return;
+            const atual = conteudos[idx];
+            atual.materia = materiaAtiva;
+            atual.titulo = document.getElementById('profTitulo').value;
+            atual.texto = document.getElementById('profTexto').value;
+            atual.link = document.getElementById('profLink').value;
+            atual.video = document.getElementById('profVideo').value;
+            atual.dataHora = agora;
+            atual.editado = true;
+            if (arquivoBase64) {
+                atual.arquivo = arquivoBase64;
+                atual.nomeArquivo = nomeArquivo;
+            }
+            conteudos[idx] = atual;
+            salvarConteudosLocais(conteudos);
+            persistirConteudoServidor(atual);
+            mostrarToastCanto('Conteúdo atualizado', `Alterações salvas em ${materiaAtiva}.`, 'success');
+        } else {
+            const novoConteudo = {
+                id: Date.now(),
+                ordem: Date.now(),
+                materia: materiaAtiva,
+                titulo: document.getElementById('profTitulo').value,
+                texto: document.getElementById('profTexto').value,
+                link: document.getElementById('profLink').value,
+                video: document.getElementById('profVideo').value,
+                arquivo: arquivoBase64,
+                nomeArquivo: nomeArquivo,
+                dataHora: agora,
+                editado: false,
+                profNome: usuarioLogado.nome,
+                profFoto: usuarioLogado.foto || null
+            };
+            conteudos.push(novoConteudo);
+            salvarConteudosLocais(conteudos);
+            persistirConteudoServidor(novoConteudo);
+            mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
+        }
+
+        cancelarEdicaoConteudo();
+        carregarMateria(materiaAtiva);
     };
 
-    // Lógica para transformar arquivo em Base64 (salvar localmente)
     if (arquivoInput.files.length > 0) {
-        let reader = new FileReader();
-        reader.onload = function(evt) { salvar(evt.target.result, arquivoInput.files[0].name); };
+        const reader = new FileReader();
+        reader.onload = function(evt) { aplicarSalvamento(evt.target.result, arquivoInput.files[0].name); };
         reader.readAsDataURL(arquivoInput.files[0]);
-    } else { salvar(null, null); }
+    } else {
+        aplicarSalvamento(null, null);
+    }
 }
 
 function salvarQuestao(e) {
