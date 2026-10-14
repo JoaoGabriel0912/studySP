@@ -369,7 +369,16 @@ function atualizarBanco(usuarioAtualizado) {
     let index = usuariosBD.findIndex(u => u.rm === usuarioAtualizado.rm);
     if(index !== -1) {
         usuariosBD[index] = usuarioAtualizado;
-        localStorage.setItem('bd_usuarios', JSON.stringify(usuariosBD));
+    } else {
+        usuariosBD.push(usuarioAtualizado);
+    }
+    localStorage.setItem('bd_usuarios', JSON.stringify(usuariosBD));
+
+    // Sincroniza com a API do Servidor (persistência global entre navegadores)
+    if (window.API && typeof window.API.atualizarUsuario === 'function') {
+        window.API.atualizarUsuario(usuarioAtualizado).catch(err => {
+            console.warn('[StudySP] Falha ao sincronizar dados com o servidor:', err);
+        });
     }
 }
 
@@ -431,28 +440,14 @@ function sairDaConta() { localStorage.removeItem('usuarioLogado'); window.locati
 
 // RANK REAL DOS ALUNOS E PÓDIO
 // ==========================================
-function carregarRank() {
-    const rankList = document.getElementById('rankList');
-    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
-    let alunos = usuarios.filter(user => user.perfil === 'Aluno');
-    
-    alunos.forEach(aluno => {
-        if (!aluno.pontos) aluno.pontos = 0;
-        if (!aluno.sequencia) aluno.sequencia = 0;
-    });
-    
-    // Ordena do maior para o menor ponto
-    alunos.sort((a, b) => b.pontos - a.pontos);
-    
+function renderizarRankComAlunos(alunos) {
     let userRankIndex = alunos.findIndex(u => u.rm === usuarioLogado.rm);
     let rankPos = userRankIndex !== -1 ? userRankIndex + 1 : '-';
     if(document.getElementById('rankPositionDisplay')) {
         document.getElementById('rankPositionDisplay').textContent = `Você está no Top ${rankPos}`;
     }
     
-    // ----------------------------------------------------
     // 1. RENDERIZAR O PÓDIO (TOP 3 NA TELA INÍCIO)
-    // ----------------------------------------------------
     const podioContainer = document.getElementById('podio-container');
     if (podioContainer) {
         let top3 = alunos.slice(0, 3);
@@ -489,9 +484,8 @@ function carregarRank() {
         podioContainer.innerHTML = htmlPodio;
     }
 
-    // ----------------------------------------------------
     // 2. RENDERIZAR A LISTA LATERAL COMPLETA
-    // ----------------------------------------------------
+    const rankList = document.getElementById('rankList');
     if (rankList) {
         rankList.innerHTML = ''; 
         let htmlRank = '';
@@ -515,12 +509,50 @@ function carregarRank() {
     }
 }
 
+async function carregarRank() {
+    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+    let alunos = usuarios.filter(user => user.perfil === 'Aluno');
+    
+    alunos.forEach(aluno => {
+        if (!aluno.pontos) aluno.pontos = 0;
+        if (!aluno.sequencia) aluno.sequencia = 0;
+    });
+    
+    alunos.sort((a, b) => b.pontos - a.pontos);
+    renderizarRankComAlunos(alunos);
+
+    // Busca ranking sincronizado da nuvem para ver alunos de todos os navegadores
+    try {
+        if (window.API && typeof window.API.buscarUsuarios === 'function') {
+            const usuariosRemotos = await window.API.buscarUsuarios();
+            if (Array.isArray(usuariosRemotos) && usuariosRemotos.length > 0) {
+                localStorage.setItem('bd_usuarios', JSON.stringify(usuariosRemotos));
+                let alunosRemotos = usuariosRemotos.filter(user => user.perfil === 'Aluno');
+                alunosRemotos.forEach(aluno => {
+                    if (!aluno.pontos) aluno.pontos = 0;
+                    if (!aluno.sequencia) aluno.sequencia = 0;
+                });
+                alunosRemotos.sort((a, b) => b.pontos - a.pontos);
+                renderizarRankComAlunos(alunosRemotos);
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Erro ao sincronizar ranking com servidor:', err);
+    }
+}
+
 // ----------------------------------------------------
 // NOVO MODAL DE PERFIL (SUBSTITUI O ALERT)
 // ----------------------------------------------------
-function mostrarPerfilRank(rmDestino) {
-    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios'));
+async function mostrarPerfilRank(rmDestino) {
+    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
     let alunoAlvo = usuarios.find(u => u.rm === rmDestino);
+    
+    if (!alunoAlvo && window.API && typeof window.API.buscarUsuario === 'function') {
+        try {
+            alunoAlvo = await window.API.buscarUsuario(rmDestino);
+        } catch(e) {}
+    }
     
     if(alunoAlvo) {
         // Preenche os dados HTML do modal
@@ -590,22 +622,10 @@ updateRankCountdown();
 // ==========================================
 // ESTUDAR (CONTEÚDO) - ATUALIZADO PARA LER O BANCO DO PROFESSOR
 // ==========================================
-function carregarMateria(materiaNome) {
-    // 1. Atualiza os botões visuais da matéria selecionada
-    document.querySelectorAll('.materia-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.innerText === materiaNome) btn.classList.add('active');
-    });
-
-    // 2. Puxa os conteúdos salvos no banco de dados
-    let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
-    
-    // 3. Filtra apenas as aulas da matéria que o aluno clicou
-    let filtrados = conteudos.filter(c => c.materia.toLowerCase() === materiaNome.toLowerCase());
-
+function renderizarConteudosNaTela(filtrados, materiaNome) {
     const container = document.getElementById('conteudo-materia');
+    if (!container) return;
 
-    // 4. Se o professor não publicou nada ainda:
     if (filtrados.length === 0) {
         container.innerHTML = `
             <div class="tema-card">
@@ -616,7 +636,6 @@ function carregarMateria(materiaNome) {
         return;
     }
 
-    // 5. Se tem aula, monta a tela com Textos, Links, Anexos e Vídeos:
     container.innerHTML = filtrados.map(item => {
         let avatarStyle = item.profFoto ? `background-image: url(${item.profFoto}); background-size: cover; background-position: center; color: transparent;` : '';
         let htmlCard = `<div class="tema-card" style="margin-bottom: 25px;">
@@ -653,6 +672,33 @@ function carregarMateria(materiaNome) {
         htmlCard += `</div>`; 
         return htmlCard;
     }).reverse().join(''); 
+}
+
+async function carregarMateria(materiaNome) {
+    // 1. Atualiza os botões visuais da matéria selecionada
+    document.querySelectorAll('.materia-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText === materiaNome) btn.classList.add('active');
+    });
+
+    // 2. Puxa os conteúdos salvos no cache local para exibição instantânea
+    let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
+    let filtrados = conteudos.filter(c => c.materia && c.materia.toLowerCase() === materiaNome.toLowerCase());
+    renderizarConteudosNaTela(filtrados, materiaNome);
+
+    // 3. Sincroniza em segundo plano com o banco de dados do servidor
+    try {
+        if (window.API && typeof window.API.buscarConteudos === 'function') {
+            const conteudosServidor = await window.API.buscarConteudos();
+            if (Array.isArray(conteudosServidor) && conteudosServidor.length > 0) {
+                localStorage.setItem('bd_conteudos', JSON.stringify(conteudosServidor));
+                let filtradosServidor = conteudosServidor.filter(c => c.materia && c.materia.toLowerCase() === materiaNome.toLowerCase());
+                renderizarConteudosNaTela(filtradosServidor, materiaNome);
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Falha ao atualizar conteúdos da matéria do servidor:', err);
+    }
 }
 
 function toggleChatIA() { document.getElementById('chatIAModal').classList.toggle('hidden'); }
@@ -2026,6 +2072,14 @@ function salvarConteudo(e) {
         let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
         conteudos.push(novoConteudo);
         localStorage.setItem('bd_conteudos', JSON.stringify(conteudos));
+
+        // Envia para o servidor para persistir entre navegadores e dispositivos
+        if (window.API && typeof window.API.salvarConteudo === 'function') {
+            window.API.salvarConteudo(novoConteudo).catch(err => {
+                console.warn('[StudySP] Falha ao enviar aula para o servidor:', err);
+            });
+        }
+
         mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
         e.target.reset();
         carregarMateria(materiaAtiva); // Atualiza a tela na hora
@@ -2059,7 +2113,15 @@ function salvarQuestao(e) {
     localStorage.setItem('bd_simulados', JSON.stringify(simulados));
     
     // Injeta a nova questão na variável da prova atual
+    questoesProfessor.push(novaQuestao);
     dadosProvaSimulada.push(novaQuestao);
+
+    // Envia para o servidor para persistir para todos os alunos em qualquer navegador
+    if (window.API && typeof window.API.salvarSimulado === 'function') {
+        window.API.salvarSimulado(novaQuestao).catch(err => {
+            console.warn('[StudySP] Falha ao enviar simulado para o servidor:', err);
+        });
+    }
     
     mostrarToastCanto('Questão Cadastrada', 'Questão adicionada ao banco de Simulados com sucesso!', 'success');
     e.target.reset();
@@ -2285,9 +2347,48 @@ window.addEventListener('click', function(e) {
     }
 });
 
+// ==========================================
+// SINCRONIZAÇÃO EM SEGUNDO PLANO COM O SERVIDOR
+// ==========================================
+async function sincronizarComServidor() {
+    if (!usuarioLogado || !usuarioLogado.rm) return;
+    try {
+        if (window.API && typeof window.API.buscarUsuario === 'function') {
+            const remoto = await window.API.buscarUsuario(usuarioLogado.rm);
+            if (remoto && remoto.rm) {
+                // Atualiza dados locais com a versão mais recente do banco de dados
+                Object.assign(usuarioLogado, remoto);
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+                carregarDadosPerfil();
+                carregarRank();
+                if (typeof atualizarDesempenho === 'function') atualizarDesempenho();
+                if (typeof renderizarConquistas === 'function') renderizarConquistas();
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Sincronização inicial com o servidor indisponível:', err);
+    }
+}
+
+async function carregarQuestoesDoServidor() {
+    try {
+        if (window.API && typeof window.API.buscarSimulados === 'function') {
+            const questoesServidor = await window.API.buscarSimulados();
+            if (Array.isArray(questoesServidor) && questoesServidor.length > 0) {
+                questoesProfessor = questoesServidor;
+                localStorage.setItem('bd_simulados', JSON.stringify(questoesServidor));
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Simulados do servidor indisponíveis, mantendo locais:', err);
+    }
+}
+
 // Inicialização Final (Roda ao carregar a página)
 carregarDadosPerfil(); 
 carregarRank(); 
 calcularMultiplicador(); 
 atualizarDesempenho(); 
 renderizarConquistas();
+sincronizarComServidor();
+carregarQuestoesDoServidor();

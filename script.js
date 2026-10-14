@@ -1,4 +1,9 @@
-// Inicializa o 'Banco de Dados' no LocalStorage se não existir
+// ==========================================
+// StudySP - Lógica de Cadastro e Login
+// Integrado com a API do Backend para persistência entre navegadores
+// ==========================================
+
+// Inicializa o cache local no LocalStorage se não existir
 if (!localStorage.getItem('bd_usuarios')) {
     localStorage.setItem('bd_usuarios', JSON.stringify([]));
 }
@@ -7,41 +12,77 @@ if (!localStorage.getItem('bd_usuarios')) {
 const formCadastro = document.getElementById('formCadastro');
 
 if (formCadastro) {
-    formCadastro.addEventListener('submit', function(e) {
-        e.preventDefault(); // Evita recarregar a página
+    formCadastro.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btnSubmit = formCadastro.querySelector('button[type="submit"]');
+        const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Cadastrar Usuário';
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Cadastrando...';
+        }
 
         // Captura os dados do formulário
-        const rm = document.getElementById('rmCad').value;
-        const nome = document.getElementById('nomeCad').value;
-        const email = document.getElementById('emailCad').value;
+        const rm = document.getElementById('rmCad').value.trim();
+        const nome = document.getElementById('nomeCad').value.trim();
+        const email = document.getElementById('emailCad').value.trim();
         const senha = document.getElementById('senhaCad').value;
         const perfil = document.getElementById('perfilCad').value;
 
-        // Pega os usuários atuais do LocalStorage
-        let usuarios = JSON.parse(localStorage.getItem('bd_usuarios'));
-
-        // Verifica se o RM já existe
-        const usuarioExiste = usuarios.find(user => user.rm === rm);
-        if (usuarioExiste) {
-            alert('Erro: Este RM já está cadastrado!');
-            return;
-        }
-
-        // Cria o objeto do novo usuário
-        const novoUsuario = {
-            rm: rm,
-            nome: nome,
-            email: email,
-            senha: senha,
-            perfil: perfil
+        const dadosNovoUsuario = {
+            rm,
+            nome,
+            email,
+            senha,
+            perfil
         };
 
-        // Salva no banco local
-        usuarios.push(novoUsuario);
-        localStorage.setItem('bd_usuarios', JSON.stringify(usuarios));
+        try {
+            // Tenta cadastrar via API no Servidor/Banco de Dados
+            const res = await API.cadastrar(dadosNovoUsuario);
 
-        alert('Usuário cadastrado com sucesso!');
-        formCadastro.reset(); // Limpa os campos
+            if (res && res.success) {
+                // Atualiza também o cache local
+                let usuariosLocais = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+                const usuarioCriado = res.user || dadosNovoUsuario;
+                usuariosLocais = usuariosLocais.filter(u => u.rm !== rm);
+                usuariosLocais.push(usuarioCriado);
+                localStorage.setItem('bd_usuarios', JSON.stringify(usuariosLocais));
+
+                alert('Usuário cadastrado com sucesso no banco de dados!');
+                formCadastro.reset();
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Se a API retornou erro específico (ex: RM duplicado)
+            if (res && !res.networkError) {
+                alert('Erro ao cadastrar: ' + (res.error || 'Não foi possível cadastrar'));
+                return;
+            }
+
+            // Fallback caso o backend esteja temporariamente inacessível
+            console.warn('Backend indisponível no momento. Salvando no cache local...');
+            let usuariosLocais = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+            if (usuariosLocais.some(u => u.rm === rm)) {
+                alert('Erro: Este RM já está cadastrado localmente!');
+                return;
+            }
+            usuariosLocais.push(dadosNovoUsuario);
+            localStorage.setItem('bd_usuarios', JSON.stringify(usuariosLocais));
+            alert('Aviso: Servidor offline. Usuário cadastrado no armazenamento local deste navegador!');
+            formCadastro.reset();
+            window.location.href = 'login.html';
+
+        } catch (err) {
+            console.error('Erro no cadastro:', err);
+            alert('Erro inesperado ao cadastrar usuário. Tente novamente.');
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = textoOriginal;
+            }
+        }
     });
 }
 
@@ -49,29 +90,60 @@ if (formCadastro) {
 const formLogin = document.getElementById('formLogin');
 
 if (formLogin) {
-    formLogin.addEventListener('submit', function(e) {
+    formLogin.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const rmLogin = document.getElementById('rmLogin').value;
+        const btnSubmit = formLogin.querySelector('button[type="submit"]');
+        const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Entrar';
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Entrando...';
+        }
+
+        const rmLogin = document.getElementById('rmLogin').value.trim();
         const senhaLogin = document.getElementById('senhaLogin').value;
 
-        // Pega os usuários do LocalStorage (o "|| []" evita erros se o banco estiver vazio)
-        const usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+        try {
+            // 1. Tenta autenticar na API do Servidor (persistência global)
+            const res = await API.login(rmLogin, senhaLogin);
 
-        // Procura o usuário correspondente
-        const usuarioValido = usuarios.find(user => user.rm === rmLogin && user.senha === senhaLogin);
+            if (res && res.success && res.user) {
+                alert('Login efetuado com sucesso! Bem-vindo(a), ' + res.user.nome);
+                
+                // Salva o usuário logado para persistir a sessão neste navegador
+                localStorage.setItem('usuarioLogado', JSON.stringify(res.user));
 
-        if (usuarioValido) {
-            alert('Login efetuado com sucesso! Bem-vindo(a), ' + usuarioValido.nome);
-            
-            // Salva o usuário logado para usarmos nas próximas telas
-            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioValido));
+                // Manda para a tela principal
+                window.location.href = 'aluno.html';
+                return;
+            }
 
-            // Manda TODO MUNDO para a tela principal
-            window.location.href = 'aluno.html';
-        } else {
-            // Avisa o usuário caso ele digite algo errado
-            alert('RM ou Senha incorretos. Tente novamente!');
+            // Se a API respondeu que os dados estão incorretos
+            if (res && !res.networkError) {
+                alert(res.error || 'RM ou Senha incorretos. Tente novamente!');
+                return;
+            }
+
+            // 2. Fallback: Se o servidor estiver indisponível, checa cache local
+            console.warn('Backend indisponível no momento. Verificando cache local...');
+            const usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+            const usuarioValido = usuarios.find(u => u.rm === rmLogin && u.senha === senhaLogin);
+
+            if (usuarioValido) {
+                alert('Login efetuado em modo offline! Bem-vindo(a), ' + usuarioValido.nome);
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioValido));
+                window.location.href = 'aluno.html';
+            } else {
+                alert('RM ou Senha incorretos, ou servidor backend indisponível. Verifique suas credenciais!');
+            }
+        } catch (err) {
+            console.error('Erro no login:', err);
+            alert('Erro ao processar login. Tente novamente.');
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = textoOriginal;
+            }
         }
     });
 }
