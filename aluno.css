@@ -4,24 +4,30 @@
    ============================================== */
 
 :root {
-    /* Paleta Light (padrão claro) */
-    --bg-main: #f0f4f8;
-    --bg-card: #ffffff;
-    --bg-sidebar: #0d1726;
+    /* Paleta Light Confortável (Anti-Ofuscamento / Proteção Visual)
+       Fundo em ardósia suave e cards serenos que não agridem a vista */
+    --bg-main: #e2e8f0;
+    --bg-card: #f1f5f9;
+    --bg-card-subtle: #e2e8f0;
+    --bg-sidebar: #050912;
     --text-main: #1e293b;
     --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --primary-color: #007bff;
-    --primary-dark: #0056b3;
-    --primary-glow: rgba(0, 123, 255, 0.25);
-    --accent-color: #00c8ff;
+    --border-color: #cbd5e1;
+    --primary-color: #0284c7;
+    --primary-dark: #0369a1;
+    --primary-glow: rgba(2, 132, 199, 0.15);
+    --accent-color: #0284c7;
     --sidebar-text: #b0c4de;
-    --sidebar-active-bg: rgba(0, 123, 255, 0.18);
+    --sidebar-active-bg: rgba(2, 132, 199, 0.12);
+    --card-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+    --modal-shadow: 0 16px 45px rgba(15, 23, 42, 0.14);
 }
 
 body.dark-theme {
+    /* Paleta Dark (Identidade Tecnológica Navy) */
     --bg-main: #080d16;
     --bg-card: #0d1726;
+    --bg-card-subtle: #101c30;
     --bg-sidebar: #060a12;
     --text-main: #e8edf5;
     --text-muted: #8899aa;
@@ -32,6 +38,8 @@ body.dark-theme {
     --accent-color: #00c8ff;
     --sidebar-text: #8aa0bb;
     --sidebar-active-bg: rgba(0, 123, 255, 0.2);
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --modal-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -404,13 +412,12 @@ body.dark-theme .topbar-logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #ffffff 0%, #e8eef6 100%);
+    background: linear-gradient(135deg, #f0f5fa 0%, #dfe7f0 100%);
     padding: 5px 20px;
     border-radius: 40px;
     box-shadow:
-        0 4px 14px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(0, 123, 255, 0.3),
-        0 0 20px rgba(0, 123, 255, 0.1);
+        0 4px 14px rgba(15, 23, 42, 0.08),
+        0 0 0 1px rgba(0, 102, 204, 0.25);
     transition: all 0.25s ease;
     user-select: none;
     cursor: default;
@@ -562,6 +569,7 @@ body.dark-theme .dropdown-menu {
 
 .perfil-stats { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 15px; }
 
+
 /* Botão de conquistas */
 .btn-conquistas {
     background: transparent;
@@ -576,8 +584,13 @@ body.dark-theme .dropdown-menu {
 }
 .btn-conquistas:hover {
     background: var(--accent-color);
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.35);
+}
+
+body.dark-theme .btn-conquistas:hover {
     color: #060a12;
-    box-shadow: 0 0 15px rgba(0, 200, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 200, 255, 0.35);
 }
 
 /* ================================================
@@ -607,7 +620,7 @@ body.dark-theme .dropdown-menu {
     background: var(--bg-card);
     border-radius: 14px;
     padding: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--card-shadow);
     border: 1px solid var(--border-color);
 }
 
@@ -1755,7 +1768,7 @@ body:not(.dark-theme) .toast-card-close:hover { color: #1e293b; }
     border-radius: 16px;
     width: 90%;
     max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 123, 255, 0.15);
+    box-shadow: var(--modal-shadow);
     position: relative;
     overflow: hidden;
     transform: translateY(0) scale(1);
@@ -1764,6 +1777,7 @@ body:not(.dark-theme) .toast-card-close:hover { color: #1e293b; }
 
 body.dark-theme .modal-content {
     background: linear-gradient(135deg, #0d1726 0%, #101e35 100%);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 123, 255, 0.2);
 }
 
 @keyframes modalPop {

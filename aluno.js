@@ -297,14 +297,29 @@ function toggleConquistas() {
     fecharModalMeuPerfil(); 
     renderizarConquistas(); 
 }
+function aplicarTema(tema) {
+    const isLight = (tema === 'light');
+    if (isLight) {
+        document.body.classList.remove('dark-theme');
+        document.documentElement.classList.remove('dark-theme');
+    } else {
+        document.body.classList.add('dark-theme');
+        document.documentElement.classList.add('dark-theme');
+    }
+}
+
 function toggleTheme() {
-    document.body.classList.toggle('dark-theme');
-    localStorage.setItem('tema', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    const isDark = document.body.classList.contains('dark-theme');
+    const novoTema = isDark ? 'light' : 'dark';
+    localStorage.setItem('tema', novoTema);
+    aplicarTema(novoTema);
 }
-// Sempre inicia no tema escuro (padrão StudySP)
-if (localStorage.getItem('tema') !== 'light') {
-    document.body.classList.add('dark-theme');
-}
+
+// Inicializa o tema na inicialização
+(function() {
+    const temaSalvo = localStorage.getItem('tema');
+    aplicarTema(temaSalvo === 'light' ? 'light' : 'dark');
+})();
 
 // Se for professor, renomeia o item "Estudar" para "Publicar" na barra lateral
 if (usuarioLogado && usuarioLogado.perfil === 'Professor') {

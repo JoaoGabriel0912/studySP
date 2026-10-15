@@ -5,8 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - StudySP | Escola</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            const tema = localStorage.getItem('tema');
+            if (tema !== 'light') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        })();
+    </script>
 </head>
 <body>
+    <!-- Botão de Alternar Tema (Claro / Escuro) -->
+    <button id="themeToggleBtn" class="theme-toggle-btn" onclick="alternarTema()" title="Alternar entre tema claro e escuro">
+        <span id="themeToggleIcon" class="theme-toggle-icon">☀️</span>
+        <span id="themeToggleText">Modo Claro</span>
+    </button>
+
     <div class="login-wrapper">
         <div class="login-card">
             <!-- Coluna Visual / Banner -->

@@ -147,3 +147,35 @@ if (formLogin) {
         }
     });
 }
+
+// ==========================================
+// GERENCIADOR DE TEMA (CLARO / ESCURO)
+// ==========================================
+function aplicarTema(tema) {
+    const isLight = (tema === 'light');
+    if (isLight) {
+        document.body.classList.remove('dark-theme');
+        document.documentElement.classList.remove('dark-theme');
+    } else {
+        document.body.classList.add('dark-theme');
+        document.documentElement.classList.add('dark-theme');
+    }
+
+    const icon = document.getElementById('themeToggleIcon');
+    const text = document.getElementById('themeToggleText');
+    if (icon) icon.textContent = isLight ? '🌙' : '☀️';
+    if (text) text.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+}
+
+function alternarTema() {
+    const isDark = document.body.classList.contains('dark-theme');
+    const novoTema = isDark ? 'light' : 'dark';
+    localStorage.setItem('tema', novoTema);
+    aplicarTema(novoTema);
+}
+
+// Inicializa o tema conforme preferência salva no LocalStorage (padrão StudySP: escuro)
+document.addEventListener('DOMContentLoaded', function() {
+    const temaSalvo = localStorage.getItem('tema');
+    aplicarTema(temaSalvo === 'light' ? 'light' : 'dark');
+});

@@ -6,9 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Área do Aluno - Provão Paulista+TCC</title>
     <link rel="stylesheet" href="aluno.css">
+    <script>
+        (function() {
+            if (localStorage.getItem('tema') === 'light') {
+                document.documentElement.classList.add('theme-light');
+            }
+        })();
+    </script>
 </head>
 
 <body class="dark-theme">
+    <script>
+        if (localStorage.getItem('tema') === 'light') {
+            document.body.classList.remove('dark-theme');
+        }
+    </script>
 
     <!-- Barra Lateral -->
     <aside class="sidebar">
