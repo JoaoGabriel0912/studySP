@@ -136,6 +136,12 @@
             });
         },
 
+        async excluirConteudo(id) {
+            return await apiFetch(`/conteudos/${encodeURIComponent(id)}`, {
+                method: 'DELETE'
+            });
+        },
+
         // --- SIMULADOS (QUESTÕES DOS PROFESSORES) ---
         async buscarSimulados() {
             const res = await apiFetch('/simulados');

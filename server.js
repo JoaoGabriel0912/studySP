@@ -193,6 +193,20 @@ router.post('/conteudos', async (req, res) => {
     }
 });
 
+router.delete('/conteudos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ success: false, error: 'ID do conteúdo é obrigatório.' });
+        }
+        await db.excluirConteudo(id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro na rota DELETE /conteudos/:id:', err);
+        res.status(500).json({ success: false, error: 'Erro ao apagar conteúdo: ' + err.message });
+    }
+});
+
 // Buscar e publicar questões dos simulados
 router.get('/simulados', async (req, res) => {
     try {
