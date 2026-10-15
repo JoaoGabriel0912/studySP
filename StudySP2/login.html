@@ -5,8 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - StudySP | Provão Paulista+TCC</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        (function() {
+            const tema = localStorage.getItem('tema');
+            if (tema !== 'light') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        })();
+    </script>
 </head>
 <body>
+    <!-- Botão de Alternar Tema (Claro / Escuro) -->
+    <button id="themeToggleBtn" class="theme-toggle-btn" onclick="alternarTema()" title="Alternar entre tema claro e escuro">
+        <span id="themeToggleIcon" class="theme-toggle-icon">☀️</span>
+        <span id="themeToggleText">Modo Claro</span>
+    </button>
+
     <div class="login-wrapper">
         <div class="login-card">
             <!-- Coluna Visual / Banner -->
@@ -45,6 +59,27 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Flutuante de Login Bem-Sucedido -->
+    <div id="modal-login-sucesso" class="modal-overlay hidden">
+        <div class="modal-content modal-login-card">
+            <div class="login-sucesso-icon">🎓</div>
+            <h3 class="login-sucesso-title">Login Bem-Sucedido!</h3>
+            <p class="login-sucesso-mensagem" id="loginSucessoMensagem">Seja bem-vindo(a), Aluno: <strong>Nome</strong></p>
+            <div class="login-loading-bar">
+                <div class="login-loading-progress" id="loginProgressBar"></div>
+            </div>
+            <p class="login-loading-text">Carregando seus simulados e metas...</p>
+            <button type="button" class="btn btn-login-avancar" onclick="redirecionarAlunoAgora()">Entrar no Painel ➔</button>
+        </div>
+    </div>
+
+    <!-- Toast / Alerta Flutuante para Erros de Login -->
+    <div id="loginToastErro" class="login-toast-erro hidden">
+        <span class="erro-icon">⚠️</span>
+        <span id="loginToastTexto">RM ou Senha incorretos.</span>
+    </div>
+
     <script src="api.js"></script>
     <script src="script.js"></script>
 </body>

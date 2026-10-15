@@ -1,3 +1,43 @@
+:root {
+    /* Paleta Light Confortável (Anti-Ofuscamento / Proteção Visual) */
+    --bg-page: radial-gradient(circle at 20% 20%, rgba(2, 132, 199, 0.06) 0%, transparent 45%),
+               radial-gradient(circle at 80% 80%, rgba(2, 132, 199, 0.06) 0%, transparent 50%),
+               #e2e8f0;
+    --card-bg: #f1f5f9;
+    --form-bg: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --label-color: #334155;
+    --input-bg: #ffffff;
+    --input-border: #cbd5e1;
+    --input-text: #1e293b;
+    --card-shadow: 0 16px 40px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(2, 132, 199, 0.08);
+    --btn-toggle-bg: rgba(241, 245, 249, 0.92);
+    --btn-toggle-border: #cbd5e1;
+    --btn-toggle-text: #1e293b;
+    --btn-toggle-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+}
+
+body.dark-theme {
+    /* Paleta Dark */
+    --bg-page: radial-gradient(circle at 20% 20%, rgba(0, 123, 255, 0.15) 0%, transparent 45%),
+               radial-gradient(circle at 80% 80%, rgba(0, 86, 179, 0.18) 0%, transparent 50%),
+               #080d16;
+    --card-bg: #0d1726;
+    --form-bg: #0d1726;
+    --text-primary: #e8edf5;
+    --text-secondary: #8899aa;
+    --label-color: #b0c4de;
+    --input-bg: #152238;
+    --input-border: #1a2b4a;
+    --input-text: #e8edf5;
+    --card-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 150, 255, 0.18);
+    --btn-toggle-bg: rgba(13, 23, 38, 0.88);
+    --btn-toggle-border: rgba(0, 150, 255, 0.35);
+    --btn-toggle-text: #e8edf5;
+    --btn-toggle-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -6,15 +46,14 @@
 }
 
 body {
-    background: radial-gradient(circle at 20% 20%, rgba(0, 123, 255, 0.15) 0%, transparent 45%),
-                radial-gradient(circle at 80% 80%, rgba(0, 86, 179, 0.18) 0%, transparent 50%),
-                #080d16;
+    background: var(--bg-page);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
-    color: #333333;
+    color: var(--text-primary);
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Container Principal */
@@ -30,11 +69,12 @@ body {
 .login-card {
     display: flex;
     width: 100%;
-    background-color: #ffffff;
+    background-color: var(--card-bg);
     border-radius: 18px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    box-shadow: var(--card-shadow);
     overflow: hidden;
     min-height: 520px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Coluna Visual (Banner com a Imagem) */
@@ -104,7 +144,8 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    background-color: #ffffff;
+    background-color: var(--form-bg);
+    transition: background-color 0.3s ease;
 }
 
 .form-header {
@@ -113,15 +154,17 @@ body {
 }
 
 .form-header h2 {
-    color: #1e293b;
+    color: var(--text-primary);
     font-size: 24px;
     font-weight: 700;
     margin-bottom: 6px;
+    transition: color 0.3s ease;
 }
 
 .form-header .subtitle {
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 14px;
+    transition: color 0.3s ease;
 }
 
 /* Campos de Entrada */
@@ -133,27 +176,28 @@ body {
 .input-group label {
     display: block;
     margin-bottom: 6px;
-    color: #334155;
+    color: var(--label-color);
     font-weight: 600;
     font-size: 13px;
+    transition: color 0.3s ease;
 }
 
 .input-group input, .input-group select {
     width: 100%;
     padding: 12px 14px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid var(--input-border);
     border-radius: 8px;
     font-size: 14px;
-    color: #1e293b;
-    background-color: #f8fafc;
-    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    color: var(--input-text);
+    background-color: var(--input-bg);
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s, color 0.2s;
 }
 
 .input-group input:focus, .input-group select:focus {
     outline: none;
     border-color: #007bff;
-    background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    background-color: var(--card-bg);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 
 /* Botão */
@@ -211,24 +255,27 @@ body {
 
 /* Compatibilidade com .card clássico */
 .card {
-    background-color: #ffffff;
+    background-color: var(--card-bg);
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    box-shadow: var(--card-shadow);
     text-align: center;
     width: 100%;
     max-width: 420px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .card h2 {
-    color: #1e293b;
+    color: var(--text-primary);
     margin-bottom: 5px;
+    transition: color 0.3s ease;
 }
 
 .card p {
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 14px;
     margin-bottom: 25px;
+    transition: color 0.3s ease;
 }
 
 .study {
@@ -237,8 +284,58 @@ body {
     object-fit: contain;
 }
 
+/* ================================================
+   BOTÃO DE ALTERNAR TEMA (LOGIN E CADASTRO)
+   ================================================ */
+.theme-toggle-btn {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 24px;
+    background: var(--btn-toggle-bg);
+    border: 1px solid var(--btn-toggle-border);
+    color: var(--btn-toggle-text);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--btn-toggle-shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1000;
+    user-select: none;
+}
+
+.theme-toggle-btn:hover {
+    transform: translateY(-2px);
+    border-color: #007bff;
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.25);
+    color: #007bff;
+}
+
+.theme-toggle-btn:active {
+    transform: translateY(0);
+}
+
+.theme-toggle-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
 /* Responsividade Mobile */
 @media (max-width: 768px) {
+    .theme-toggle-btn {
+        top: 14px;
+        right: 14px;
+        padding: 7px 12px;
+        font-size: 12.5px;
+        gap: 6px;
+    }
+
     .login-card {
         flex-direction: column;
         max-width: 440px;
@@ -261,5 +358,457 @@ body {
 
     .login-form-section {
         padding: 30px 24px;
+    }
+}
+
+/* ================================================
+   MODAIS FLUTUANTES (LOGIN & GESTÃO ESCOLAR)
+   ================================================ */
+.hidden {
+    display: none !important;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(4, 8, 16, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 16px;
+    animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Card do Modal de Login Bem-Sucedido */
+.modal-login-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(0, 123, 255, 0.35);
+    border-radius: 20px;
+    padding: 36px 30px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 35px rgba(0, 123, 255, 0.25);
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.login-sucesso-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.2) 0%, rgba(2, 132, 199, 0.08) 100%);
+    border: 2px solid #007bff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    box-shadow: 0 0 25px rgba(0, 123, 255, 0.35);
+    animation: iconBounce 1.5s infinite ease-in-out;
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.login-sucesso-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.login-sucesso-mensagem {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 22px;
+}
+
+.login-sucesso-mensagem strong {
+    color: #007bff;
+    font-weight: 700;
+}
+
+.login-loading-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid rgba(0, 123, 255, 0.2);
+}
+
+.login-loading-progress {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #007bff, #00d2ff);
+    border-radius: 10px;
+    transition: width 1.5s linear;
+}
+
+.login-loading-text {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+}
+
+.btn-login-avancar {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: #ffffff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.btn-login-avancar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(0, 123, 255, 0.45);
+}
+
+/* Card do Modal de Cadastro - Gestão Escolar */
+.modal-credenciais-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(0, 123, 255, 0.35);
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 35px rgba(0, 123, 255, 0.2);
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.credencial-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--input-border);
+    padding-bottom: 16px;
+}
+
+.credencial-icon {
+    font-size: 36px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(0, 123, 255, 0.15);
+    border: 2px solid #007bff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.credencial-header h3 {
+    font-size: 19px;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    font-weight: 800;
+}
+
+.credencial-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* O Cartão de Acesso Estilizado */
+.cartao-acesso {
+    background: linear-gradient(145deg, #0d1726, #070c14);
+    border: 2px solid #007bff;
+    border-radius: 14px;
+    padding: 20px;
+    color: #e8edf5;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(0, 123, 255, 0.08);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.cartao-acesso::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 130px;
+    height: 130px;
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.2) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.cartao-acesso-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+    padding-bottom: 10px;
+}
+
+.escola-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #38bdf8;
+    text-transform: uppercase;
+}
+
+.cartao-perfil-tag {
+    background: #007bff;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.cartao-campo {
+    margin-bottom: 12px;
+}
+
+.cartao-campo label {
+    display: block;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}
+
+.cartao-campo .valor {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.cartao-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.valor-destaque {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: #38bdf8 !important;
+    background: rgba(0, 123, 255, 0.18);
+    border: 1px solid rgba(0, 123, 255, 0.4);
+    padding: 6px 12px;
+    border-radius: 8px;
+    letter-spacing: 1px;
+    display: inline-block;
+    width: 100%;
+}
+
+.cartao-rodape-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: #94a3b8;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    padding-top: 10px;
+    margin-top: 6px;
+}
+
+.credencial-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.btn-compartilhar {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    border: none;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+}
+
+.btn-compartilhar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+}
+
+.btn-imprimir {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: none;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-imprimir:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.credencial-footer-btns {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.btn-outro {
+    background: transparent;
+    border: 1px solid var(--input-border);
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-outro:hover {
+    color: var(--text-primary);
+    border-color: #007bff;
+}
+
+.btn-ir-login {
+    background: rgba(0, 123, 255, 0.15);
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-ir-login:hover {
+    background: #007bff;
+    color: #ffffff;
+}
+
+/* Toast de Alerta Flutuante */
+.login-toast-erro {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ef4444;
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+    z-index: 3000;
+    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translate(-50%, -20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* IMPRESSÃO DA FICHA DO ALUNO */
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    
+    #modal-cadastro-sucesso,
+    #modal-cadastro-sucesso .modal-content,
+    #cartaoAcessoImpressao,
+    #cartaoAcessoImpressao * {
+        visibility: visible !important;
+    }
+
+    #modal-cadastro-sucesso {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: transparent !important;
+        padding: 0 !important;
+    }
+
+    .modal-credenciais-card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .credencial-header,
+    .credencial-actions,
+    .credencial-footer-btns,
+    .theme-toggle-btn {
+        display: none !important;
+    }
+
+    .cartao-acesso {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+        padding: 25px !important;
+        margin: 20px auto !important;
+        width: 85% !important;
+    }
+
+    .cartao-acesso::after { display: none !important; }
+
+    .valor-destaque {
+        background: #f1f5f9 !important;
+        color: #000000 !important;
+        border: 1px solid #000000 !important;
+    }
+
+    .cartao-campo .valor {
+        color: #000000 !important;
+    }
+
+    .escola-tag {
+        color: #000000 !important;
+    }
+
+    .cartao-perfil-tag {
+        background: #000000 !important;
+        color: #ffffff !important;
     }
 }

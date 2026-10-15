@@ -382,28 +382,24 @@ body {
 
 .topbar {
     height: 64px;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #0d1726 0%, #080d16 100%) !important;
+    border-bottom: 1px solid rgba(0, 123, 255, 0.18) !important;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 24px;
     position: relative;
     z-index: 10;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35) !important;
 }
 
-body.dark-theme .topbar {
-    background: linear-gradient(135deg, #0d1726 0%, #080d16 100%);
-    border-bottom-color: rgba(0, 123, 255, 0.15);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+body.dark-theme .topbar,
+body:not(.dark-theme) .topbar {
+    background: linear-gradient(135deg, #0d1726 0%, #080d16 100%) !important;
+    border-bottom: 1px solid rgba(0, 123, 255, 0.18) !important;
 }
 
-body.dark-theme .topbar-logo {
-    background: linear-gradient(135deg, #060a12 0%, #0d1726 100%);
-}
-
-/* Logo centralizado no topbar */
+/* Logo centralizado no topbar (sempre com fundo escuro e borda neon) */
 .topbar-logo {
     position: absolute;
     left: 50%;
@@ -412,12 +408,13 @@ body.dark-theme .topbar-logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f0f5fa 0%, #dfe7f0 100%);
+    background: linear-gradient(135deg, #060a12 0%, #0d1726 100%) !important;
     padding: 5px 20px;
     border-radius: 40px;
+    border: 1px solid rgba(0, 123, 255, 0.35) !important;
     box-shadow:
-        0 4px 14px rgba(15, 23, 42, 0.08),
-        0 0 0 1px rgba(0, 102, 204, 0.25);
+        0 4px 14px rgba(0, 0, 0, 0.5),
+        0 0 16px rgba(0, 123, 255, 0.15) !important;
     transition: all 0.25s ease;
     user-select: none;
     cursor: default;
@@ -426,9 +423,9 @@ body.dark-theme .topbar-logo {
 .topbar-logo:hover {
     transform: translate(-50%, -50%) scale(1.03);
     box-shadow:
-        0 6px 20px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(0, 123, 255, 0.5),
-        0 0 30px rgba(0, 123, 255, 0.2);
+        0 6px 20px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(0, 123, 255, 0.6),
+        0 0 30px rgba(0, 123, 255, 0.3) !important;
 }
 
 .study {
@@ -442,21 +439,92 @@ body.dark-theme .topbar-logo {
     user-select: none;
 }
 
-/* Streak (Ofensiva) */
+/* Streak (Ofensiva) - Design Premium com Animação da Chama */
 .streak-container {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--accent-color);
+    font-size: 14px;
+    font-weight: 800;
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(0, 200, 255, 0.08);
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 200, 255, 0.2);
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(255, 87, 34, 0.18) 0%, rgba(255, 152, 0, 0.08) 100%) !important;
+    padding: 6px 16px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 110, 0, 0.45) !important;
+    box-shadow: 0 2px 12px rgba(255, 87, 34, 0.2), inset 0 0 10px rgba(255, 152, 0, 0.1) !important;
+    color: #ff9800;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
 }
 
-.fire-icon { font-size: 18px; }
+.streak-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 18px rgba(255, 87, 34, 0.4), inset 0 0 14px rgba(255, 152, 0, 0.2) !important;
+    border-color: rgba(255, 140, 0, 0.7) !important;
+}
+
+.fire-icon {
+    font-size: 19px;
+    display: inline-block;
+    animation: fireFlicker 2s infinite ease-in-out;
+    transform-origin: center bottom;
+    filter: drop-shadow(0 0 4px #ff5722);
+}
+
+@keyframes fireFlicker {
+    0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 4px #ff5722); }
+    25% { transform: scale(1.15) rotate(-3deg); filter: drop-shadow(0 0 8px #ff9800); }
+    50% { transform: scale(1.05) rotate(2deg); filter: drop-shadow(0 0 6px #ff5722); }
+    75% { transform: scale(1.18) rotate(-1deg); filter: drop-shadow(0 0 10px #ffc107); }
+}
+
+.streak-text {
+    background: linear-gradient(90deg, #ffb300 0%, #ff7043 50%, #ffa726 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+/* User menu container garantido sempre nítido e legível na topbar escura */
+.topbar .user-info {
+    color: #e8edf5 !important;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.topbar .user-info:hover {
+    background: rgba(0, 123, 255, 0.2);
+    border-color: rgba(0, 123, 255, 0.4);
+}
+
+.topbar .btn-conquistas {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.08) 100%) !important;
+    border: 1px solid rgba(255, 193, 7, 0.45) !important;
+    color: #ffc107 !important;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(255, 193, 7, 0.15);
+    transition: all 0.25s ease;
+}
+
+.topbar .btn-conquistas:hover {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    color: #060a12 !important;
+    box-shadow: 0 4px 18px rgba(255, 193, 7, 0.45) !important;
+    transform: translateY(-1px);
+}
+
+/* Dropdown de conquistas sempre com tema dark escuro e legível */
+#conquistasDropdown {
+    background: #0d1726 !important;
+    border: 1px solid rgba(0, 123, 255, 0.25) !important;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 123, 255, 0.15) !important;
+    color: #e8edf5 !important;
+}
 
 /* User menu container */
 .user-menu-container {
@@ -1971,4 +2039,675 @@ body.dark-theme .modal-info-item { background: rgba(0,0,0,0.2); }
     color: var(--text-main);
     line-height: 1.55;
     margin: 0;
+}
+
+/* ================================================
+   MÉTODO POMODORO - BOTÃO INFO & CONTAINER
+   ================================================ */
+.pomodoro-container {
+    position: relative;
+}
+
+.pomodoro-info-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 123, 255, 0.12);
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 10px rgba(0, 123, 255, 0.2);
+    z-index: 5;
+}
+
+.pomodoro-info-btn:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 4px 18px rgba(0, 123, 255, 0.5);
+}
+
+/* Modal Pomodoro Info */
+.pomodoro-info-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+    margin-top: 15px;
+}
+
+.pomodoro-info-body .info-block {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.pomodoro-info-body .info-block h4 {
+    color: var(--primary-color);
+    font-size: 15px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pomodoro-info-body .info-block p,
+.pomodoro-info-body .info-block ul {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.pomodoro-info-body .info-block ul {
+    padding-left: 20px;
+    margin-top: 6px;
+}
+
+.pomodoro-info-body .info-block.highlight {
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.08) 0%, rgba(2, 132, 199, 0.03) 100%);
+    border-color: rgba(0, 123, 255, 0.3);
+}
+
+.multiplicador-tabela {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.mult-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-card);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+}
+
+.mult-tag {
+    background: linear-gradient(135deg, #007bff, #00b4d8);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+/* Modal Pomodoro Transição Flutuante (Descanso e Estudo) */
+.modal-pomodoro-transicao-card {
+    max-width: 460px;
+    width: 90%;
+    text-align: center;
+    padding: 32px 24px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 123, 255, 0.2);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    animation: modalPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPopIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.transicao-icon-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.15) 0%, rgba(2, 132, 199, 0.05) 100%);
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 25px rgba(0, 123, 255, 0.3);
+    animation: iconBounce 1.5s infinite ease-in-out;
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.modal-pomodoro-transicao-card h3 {
+    font-size: 24px;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-weight: 800;
+}
+
+.modal-pomodoro-transicao-card p {
+    font-size: 15px;
+    color: var(--text-main);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.transicao-stats-badge {
+    background: rgba(0, 200, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    border-radius: 30px;
+    padding: 8px 16px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Mini Timer Draggable */
+#miniTimerWidget {
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+}
+
+#miniTimerWidget.dragging {
+    cursor: grabbing !important;
+    transform: scale(1.04);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px var(--primary-glow) !important;
+}
+
+.mini-timer-drag-handle {
+    cursor: grab;
+    font-size: 16px;
+    color: var(--text-muted);
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.mini-timer-drag-handle:hover {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+/* ================================================
+   SISTEMA DE CONQUISTAS AVANÇADO (OBJETIVOS & PONTOS)
+   ================================================ */
+.conquista-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    transition: all 0.25s ease;
+}
+
+.conquista-card.desbloqueada {
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.12) 0%, rgba(2, 132, 199, 0.04) 100%);
+    border-color: rgba(0, 123, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(0, 123, 255, 0.1);
+}
+
+.conquista-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.conquista-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.conquista-nome {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #e8edf5;
+}
+
+.conquista-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-dif {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.badge-facil { background: rgba(76, 175, 80, 0.2); color: #4CAF50; border: 1px solid rgba(76, 175, 80, 0.4); }
+.badge-medio { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.4); }
+.badge-dificil { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+.badge-lendario { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+
+.badge-pontos {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffb703;
+    background: rgba(255, 183, 3, 0.12);
+    border: 1px solid rgba(255, 183, 3, 0.3);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.conquista-desc {
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    line-height: 1.45;
+}
+
+.conquista-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.conquista-progress-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.conquista-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #00d2ff);
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+.conquista-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: #38bdf8;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* ================================================
+   SIMULADOS: BÔNUS +7 ACERTOS & CONFETES
+   ================================================ */
+.bonus-simulado-banner {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 152, 0, 0.1) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffc107;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 4px 20px rgba(255, 193, 7, 0.25);
+    animation: pulseBanner 2s infinite ease-in-out;
+}
+
+@keyframes pulseBanner {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.015); }
+}
+
+#confettiCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 999999;
+}
+
+/* ================================================
+   ABA TCC REFORMULADA (WORKSTATION ELEGANTE)
+   ================================================ */
+.tcc-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.tcc-hero-card {
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.15) 0%, rgba(13, 23, 38, 0.8) 100%);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    border-radius: 16px;
+    padding: 22px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.tcc-hero-left h2 {
+    font-size: 24px;
+    color: #ffffff;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tcc-hero-left p {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.tcc-hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tcc-stat-pill {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 123, 255, 0.25);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    color: #e8edf5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tcc-stat-pill strong {
+    color: var(--accent-color);
+}
+
+.btn-tcc-editar-tema {
+    background: rgba(0, 123, 255, 0.2);
+    border: 1px solid var(--primary-color);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-tcc-editar-tema:hover {
+    background: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.tcc-grid-columns {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 980px) {
+    .tcc-grid-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tcc-chat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.tcc-chat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 14px;
+}
+
+.tcc-quick-prompts {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+}
+
+.tcc-prompt-chip {
+    background: rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(0, 123, 255, 0.25);
+    color: var(--accent-color);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.tcc-prompt-chip:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.tcc-chat-card .tcc-chat-box {
+    height: 380px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tcc-chat-card .msg {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    word-break: break-word;
+}
+
+.tcc-chat-card .msg.ia {
+    align-self: flex-start;
+    background: #111e33;
+    border: 1px solid rgba(0, 123, 255, 0.2);
+    color: #e8edf5;
+    border-bottom-left-radius: 3px;
+}
+
+.tcc-chat-card .msg.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: #ffffff;
+    border-bottom-right-radius: 3px;
+}
+
+.tcc-chat-card .chat-input {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.tcc-chat-card .chat-input input {
+    flex: 1;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text-main);
+    font-size: 14px;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.tcc-chat-card .chat-input input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.tcc-side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Card Etapas do TCC */
+.tcc-etapas-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.tcc-etapas-card h3 {
+    font-size: 16px;
+    color: var(--primary-color);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tcc-etapa-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.tcc-etapa-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 123, 255, 0.2);
+    color: var(--primary-color);
+    font-weight: 800;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tcc-etapa-item.ativa .tcc-etapa-num {
+    background: var(--primary-color);
+    color: #ffffff;
+}
+
+/* Card Inspirações & Ideias */
+.tcc-inspiracoes-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.tcc-inspiracoes-card h3 {
+    font-size: 16px;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tcc-filtros-ideias {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.tcc-filtro-btn {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.tcc-filtro-btn.active,
+.tcc-filtro-btn:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+}
+
+.tcc-grid-ideias-moderna {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.ideia-card-moderno {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ideia-card-moderno:hover {
+    border-color: var(--primary-color);
+    background: rgba(0, 123, 255, 0.08);
+    transform: translateX(4px);
+}
+
+.ideia-card-info h4 {
+    font-size: 13.5px;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.ideia-card-info span {
+    font-size: 11.5px;
+    color: var(--text-muted);
 }

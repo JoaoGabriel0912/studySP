@@ -443,6 +443,30 @@ document.getElementById('inputFoto').addEventListener('change', function(e) {
                 sidebarAvatar.style.backgroundPosition = 'center';
                 sidebarAvatar.innerText = '';
             }
+
+            // Se for Professor, atualiza a foto em todas as matérias que ele já publicou
+            if (usuarioLogado.perfil === 'Professor') {
+                const conteudos = obterConteudosLocais();
+                let mudou = false;
+                conteudos.forEach(item => {
+                    const pertenceAoProf = (item.profRM && String(item.profRM) === String(usuarioLogado.rm)) || 
+                                          (item.profNome && item.profNome.trim().toLowerCase() === usuarioLogado.nome.trim().toLowerCase());
+                    if (pertenceAoProf) {
+                        item.profFoto = usuarioLogado.foto;
+                        item.profRM = usuarioLogado.rm;
+                        mudou = true;
+                        persistirConteudoServidor(item);
+                    }
+                });
+                if (mudou) {
+                    salvarConteudosLocais(conteudos);
+                    const btnAtivo = document.querySelector('.materia-btn.active');
+                    if (btnAtivo) {
+                        carregarMateria(btnAtivo.innerText.trim());
+                    }
+                }
+            }
+
             carregarRank(); 
             mostrarToastCanto('Foto Atualizada', 'Sua foto de perfil foi atualizada com sucesso!', 'success');
         };
@@ -696,7 +720,19 @@ function renderizarConteudosNaTela(filtrados, materiaNome) {
 
     container.innerHTML = lista.map((item, index) => {
         const idSeguro = escapeHtml(item.id);
-        let avatarStyle = item.profFoto ? `background-image: url(${item.profFoto}); background-size: cover; background-position: center; color: transparent;` : '';
+        
+        // Determina a foto mais recente do professor que publicou
+        let profFoto = item.profFoto;
+        if (usuarioLogado && ((item.profRM && String(item.profRM) === String(usuarioLogado.rm)) || (item.profNome && usuarioLogado.nome && item.profNome.trim().toLowerCase() === usuarioLogado.nome.trim().toLowerCase()))) {
+            profFoto = usuarioLogado.foto || profFoto;
+        } else {
+            const todosUsuarios = JSON.parse(localStorage.getItem('bd_usuarios') || '[]');
+            const profEncontrado = todosUsuarios.find(u => (item.profRM && String(u.rm) === String(item.profRM)) || (item.profNome && u.nome && item.profNome.trim().toLowerCase() === u.nome.trim().toLowerCase()));
+            if (profEncontrado && profEncontrado.foto) {
+                profFoto = profEncontrado.foto;
+            }
+        }
+        let avatarStyle = profFoto ? `background-image: url(${profFoto}); background-size: cover; background-position: center; color: transparent;` : '';
         const horario = item.editado
             ? `✏️ Editado em ${item.dataHora || 'agora'}`
             : (item.dataHora || 'Recentemente');
@@ -845,8 +881,14 @@ function atualizarVisorPomodoro() {
     }
 }
 function calcularMultiplicador() {
-    let minutosEstudados = usuarioLogado.tempoEstudadoSegundos / 60;
+    let minutosEstudados = (usuarioLogado.tempoEstudadoSegundos || 0) / 60;
     let novoMultiplicador = 1.0;
+    
+    // Quando o Pomodoro é iniciado ou se o usuário já estudou na plataforma, base vai para 1.2x
+    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando) || minutosEstudados > 0) {
+        novoMultiplicador = 1.2;
+    }
+    
     if (minutosEstudados >= 120) novoMultiplicador = 1.5;
     else if (minutosEstudados >= 60) novoMultiplicador = 1.4;
     else if (minutosEstudados >= 30) novoMultiplicador = 1.3;
@@ -854,13 +896,30 @@ function calcularMultiplicador() {
     usuarioLogado.multiplicador = novoMultiplicador;
     atualizarBanco(usuarioLogado);
     
-    if(document.getElementById('multiplicadorDisplay')) document.getElementById('multiplicadorDisplay').textContent = `${novoMultiplicador.toFixed(1)}x`;
+    if (document.getElementById('multiplicadorDisplay')) {
+        document.getElementById('multiplicadorDisplay').textContent = `${novoMultiplicador.toFixed(1)}x`;
+    }
+    if (document.getElementById('res-multiplicador')) {
+        document.getElementById('res-multiplicador').textContent = `(x${novoMultiplicador.toFixed(1)})`;
+    }
     let h = Math.floor(minutosEstudados / 60);
     let m = Math.floor(minutosEstudados % 60);
-    if(document.getElementById('totalEstudadoDisplay')) document.getElementById('totalEstudadoDisplay').textContent = `${h}h ${m}m`;
+    if (document.getElementById('totalEstudadoDisplay')) {
+        document.getElementById('totalEstudadoDisplay').textContent = `${h}h ${m}m`;
+    }
 }
+
 function iniciarPomodoro() {
     if (rodando) return;
+    
+    // Ativa imediatamente o multiplicador para 1.2x em todos os pontos da plataforma
+    usuarioLogado.pomodoroIniciado = true;
+    if (!usuarioLogado.multiplicador || usuarioLogado.multiplicador < 1.2) {
+        usuarioLogado.multiplicador = 1.2;
+    }
+    calcularMultiplicador();
+    if (typeof verificarConquistas === 'function') verificarConquistas();
+    
     if (tempoRestante === 0) {
         let inputId = modoEstudo ? 'tempoEstudo' : 'tempoDescanso';
         tempoTotalSessao = parseInt(document.getElementById(inputId).value) * 60;
@@ -870,15 +929,21 @@ function iniciarPomodoro() {
     document.getElementById('estadoPomodoro').style.color = modoEstudo ? "var(--primary-color)" : "#4CAF50";
     
     let miniW = document.getElementById('miniTimerWidget');
-    if(miniW) { miniW.classList.remove('hidden'); miniW.style.display = 'flex'; }
+    if(miniW) { 
+        miniW.classList.remove('hidden'); 
+        miniW.style.display = 'flex'; 
+    }
     
     rodando = true;
     pomodoroTimer = setInterval(() => {
         if (tempoRestante > 0) {
             tempoRestante--;
             if (modoEstudo) {
-                usuarioLogado.tempoEstudadoSegundos++;
-                if (usuarioLogado.tempoEstudadoSegundos % 60 === 0) calcularMultiplicador(); 
+                usuarioLogado.tempoEstudadoSegundos = (usuarioLogado.tempoEstudadoSegundos || 0) + 1;
+                if (usuarioLogado.tempoEstudadoSegundos % 60 === 0) {
+                    calcularMultiplicador();
+                    if (typeof verificarConquistas === 'function') verificarConquistas();
+                }
             }
             atualizarVisorPomodoro();
         } else {
@@ -886,18 +951,183 @@ function iniciarPomodoro() {
             rodando = false;
             modoEstudo = !modoEstudo; 
             tempoRestante = 0;
-            alert(modoEstudo ? "O descanso acabou! Hora de voltar ao foco." : "Ciclo concluído! Hora de descansar.");
-            iniciarPomodoro(); 
+            // Abre a janela flutuante no lugar do alert do navegador!
+            mostrarModalPomodoroTransicao(modoEstudo ? 'estudo' : 'descanso');
         }
     }, 1000);
 }
-function pausarPomodoro() { clearInterval(pomodoroTimer); rodando = false; document.getElementById('estadoPomodoro').textContent = "Em pausa"; }
+
+function pausarPomodoro() { 
+    clearInterval(pomodoroTimer); 
+    rodando = false; 
+    document.getElementById('estadoPomodoro').textContent = "Em pausa"; 
+}
+
 function resetarPomodoro() {
-    clearInterval(pomodoroTimer); rodando = false; modoEstudo = true;
+    clearInterval(pomodoroTimer); 
+    rodando = false; 
+    modoEstudo = true;
     tempoRestante = parseInt(document.getElementById('tempoEstudo').value) * 60;
-    tempoTotalSessao = tempoRestante; atualizarVisorPomodoro();
-    document.getElementById('estadoPomodoro').textContent = "A aguardar";
+    tempoTotalSessao = tempoRestante; 
+    atualizarVisorPomodoro();
+    document.getElementById('estadoPomodoro').textContent = "Aguardando";
     if(document.getElementById('clockHand')) document.getElementById('clockHand').style.transform = `rotate(0deg)`;
+}
+
+// JANELA FLUTUANTE DE TRANSIÇÃO DO POMODORO (DESCANSO E ESTUDO)
+function mostrarModalPomodoroTransicao(tipo) {
+    const modal = document.getElementById('modal-pomodoro-transicao');
+    if (!modal) return;
+    
+    const icone = document.getElementById('transicaoIconCircle');
+    const titulo = document.getElementById('transicaoTitulo');
+    const subtitulo = document.getElementById('transicaoSubtitulo');
+    const badge = document.getElementById('transicaoBadge');
+    const btn = document.getElementById('btnContinuarTransicao');
+    
+    const mult = (usuarioLogado.multiplicador || 1.2).toFixed(1);
+    
+    if (tipo === 'descanso') {
+        if (icone) icone.textContent = '☕';
+        if (titulo) titulo.textContent = 'Hora do Descanso!';
+        if (subtitulo) subtitulo.textContent = 'Parabéns pelo ciclo de foco concluído! Descanse os olhos, beba água e relaxe por alguns minutos.';
+        if (badge) badge.innerHTML = `<span>✨ Multiplicador ativo: <strong>${mult}x</strong> • Bônus mantido</span>`;
+        if (btn) btn.textContent = 'Aproveitar Descanso ☕';
+    } else {
+        if (icone) icone.textContent = '🎯';
+        if (titulo) titulo.textContent = 'Hora de Voltar ao Foco!';
+        if (subtitulo) subtitulo.textContent = 'O tempo de descanso acabou! Retome os estudos com foco total para o Provão Paulista.';
+        if (badge) badge.innerHTML = `<span>🚀 Ciclo de Estudo Ativado • Multiplicador <strong>${mult}x</strong> turbinando seu aprendizado</span>`;
+        if (btn) btn.textContent = 'Continuar Estudando 📚';
+    }
+    
+    modal.classList.remove('hidden');
+    tocarSinalPomodoro(tipo);
+}
+
+function fecharModalPomodoroTransicao() {
+    const modal = document.getElementById('modal-pomodoro-transicao');
+    if (modal) modal.classList.add('hidden');
+    iniciarPomodoro();
+}
+
+// JANELA FLUTUANTE DE AJUDA / SOBRE O MÉTODO POMODORO
+function abrirModalPomodoroInfo() {
+    const modal = document.getElementById('modal-pomodoro-info');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function fecharModalPomodoroInfo() {
+    const modal = document.getElementById('modal-pomodoro-info');
+    if (modal) modal.classList.add('hidden');
+}
+
+// SINAL SONORO SUAVE SINTETIZADO (WEB AUDIO API)
+function tocarSinalPomodoro(tipo) {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        const freq = (tipo === 'descanso') ? 587.33 : 880;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+    } catch (e) {}
+}
+
+// TORNAR MINI TIMER ARRASTÁVEL PELA TELA
+function tornarMiniTimerArrastavel() {
+    const mini = document.getElementById('miniTimerWidget');
+    if (!mini) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialX = 0;
+    let initialY = 0;
+
+    // Restaura posição salva se o usuário já moveu antes
+    try {
+        const salvo = JSON.parse(localStorage.getItem('miniTimerPos'));
+        if (salvo && typeof salvo.left === 'number' && typeof salvo.top === 'number') {
+            const maxL = window.innerWidth - (mini.offsetWidth || 180) - 10;
+            const maxT = window.innerHeight - (mini.offsetHeight || 80) - 10;
+            mini.style.left = `${Math.max(10, Math.min(salvo.left, maxL))}px`;
+            mini.style.top = `${Math.max(10, Math.min(salvo.top, maxT))}px`;
+            mini.style.right = 'auto';
+            mini.style.bottom = 'auto';
+        }
+    } catch (e) {}
+
+    const onStart = (e) => {
+        if (e.target.closest('button')) return; // Permite clicar nos botões normalmente
+        
+        isDragging = true;
+        mini.classList.add('dragging');
+        
+        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        
+        startX = clientX;
+        startY = clientY;
+        
+        const rect = mini.getBoundingClientRect();
+        initialX = rect.left;
+        initialY = rect.top;
+        
+        mini.style.right = 'auto';
+        mini.style.bottom = 'auto';
+        mini.style.left = `${initialX}px`;
+        mini.style.top = `${initialY}px`;
+        
+        if (e.cancelable) e.preventDefault();
+    };
+
+    const onMove = (e) => {
+        if (!isDragging) return;
+        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        
+        let newX = initialX + dx;
+        let newY = initialY + dy;
+        
+        const maxLeft = window.innerWidth - (mini.offsetWidth || 180) - 10;
+        const maxTop = window.innerHeight - (mini.offsetHeight || 80) - 10;
+        
+        newX = Math.max(10, Math.min(newX, maxLeft));
+        newY = Math.max(10, Math.min(newY, maxTop));
+        
+        mini.style.left = `${newX}px`;
+        mini.style.top = `${newY}px`;
+    };
+
+    const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        mini.classList.remove('dragging');
+        try {
+            const rect = mini.getBoundingClientRect();
+            localStorage.setItem('miniTimerPos', JSON.stringify({ left: rect.left, top: rect.top }));
+        } catch (e) {}
+    };
+
+    mini.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+
+    mini.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
 }
 
 // ==========================================
@@ -1822,26 +2052,51 @@ function finalizarSimulado() {
     let multiplicadorAtual = usuarioLogado.multiplicador || 1.0;
     
     // Garante que se o aluno usou o Pomodoro, o multiplicador base vai para 1.2 no mínimo
-    if (typeof rodando !== 'undefined' && rodando && modoEstudo) {
+    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando)) {
         if (multiplicadorAtual < 1.2) multiplicadorAtual = 1.2;
     }
     
-    // Removemos o Math.round para manter os números decimais (ex: 4.8, 4.4)
-    let pontosFinais = parseFloat(((acertosProva * 2) * multiplicadorAtual).toFixed(1));
+    // BÔNUS PARA MAIS DE 7 ACERTOS: +2 pontos extras e chuva de confetes na tela
+    let pontosExtras = 0;
+    const containerBonus = document.getElementById('bonusSimuladoContainer');
+    if (containerBonus) containerBonus.innerHTML = '';
+
+    if (acertosProva > 7) {
+        pontosExtras = 2;
+        if (containerBonus) {
+            containerBonus.innerHTML = `
+                <div class="bonus-simulado-banner">
+                    <span style="font-size: 28px;">🎉</span>
+                    <div>
+                        <div style="font-size: 16px; font-weight: 800;">Desempenho Excepcional (${acertosProva} Acertos)!</div>
+                        <div style="font-size: 13.5px; color: #ffecb3;">Você acertou mais de 7 questões no simulado e faturou <strong>+2 PONTOS EXTRAS</strong> de bônus!</div>
+                    </div>
+                </div>
+            `;
+        }
+        dispararConfetes();
+        mostrarToastCanto('Super Bônus!', `Mais de 7 acertos (${acertosProva}/10)! +2 pontos extras concedidos!`, 'success', 5000);
+    }
+
+    let pontosBase = (acertosProva * 2) * multiplicadorAtual;
+    let pontosFinais = parseFloat((pontosBase + pontosExtras).toFixed(1));
 
     usuarioLogado.pontos += pontosFinais;
-    // Arredonda apenas para evitar dízimas periódicas longas na hora de salvar
     usuarioLogado.pontos = parseFloat(usuarioLogado.pontos.toFixed(1)); 
     usuarioLogado.totalAcertos += acertosProva;
     usuarioLogado.totalQuestoes += dadosProvaSimulada.length;
+    usuarioLogado.melhorSimuladoAcertos = Math.max(usuarioLogado.melhorSimuladoAcertos || 0, acertosProva);
+    
     atualizarBanco(usuarioLogado);
+    if (typeof verificarConquistas === 'function') verificarConquistas();
     
     document.getElementById('pontosDisplay').textContent = `${usuarioLogado.pontos} pts`;
-    carregarRank(); atualizarDesempenho(); 
+    carregarRank(); 
+    atualizarDesempenho(); 
 
     document.getElementById('res-acertos').textContent = acertosProva;
     document.getElementById('res-erros').textContent = dadosProvaSimulada.length - acertosProva;
-    document.getElementById('res-pontos').textContent = `+${pontosFinais}`;
+    document.getElementById('res-pontos').textContent = pontosExtras > 0 ? `+${pontosFinais} (+2 bônus)` : `+${pontosFinais}`;
     document.getElementById('res-multiplicador').textContent = `(x${multiplicadorAtual.toFixed(1)})`;
 
     let htmlGabarito = '';
@@ -1859,6 +2114,74 @@ function finalizarSimulado() {
         let temasUnicos = [...new Set(errosProva)];
         temasUnicos.forEach(tema => listaTemas.innerHTML += `<li>🔍 <strong>Estudar:</strong> ${tema}</li>`);
     }
+}
+
+// MOTOR DE CONFETES EM TELA CHEIA (SEM BIBLIOTECAS EXTERNAS)
+function dispararConfetes() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const particles = [];
+    const cores = ['#007bff', '#00d2ff', '#ffc107', '#ff5722', '#4CAF50', '#e040fb', '#ffffff', '#ffd700'];
+    const totalParticles = 120;
+    
+    for (let i = 0; i < totalParticles; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * (canvas.height * 0.3) - 50,
+            r: Math.random() * 6 + 4,
+            color: cores[Math.floor(Math.random() * cores.length)],
+            tilt: Math.floor(Math.random() * 10) - 10,
+            tiltAngleIncremental: (Math.random() * 0.08) + 0.05,
+            tiltAngle: 0,
+            vy: Math.random() * 3 + 2.5,
+            vx: Math.random() * 3 - 1.5
+        });
+    }
+    
+    let animationFrame;
+    const startTime = Date.now();
+    const duration = 4000; // 4 segundos de celebração
+    
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const elapsed = Date.now() - startTime;
+        const opacity = Math.max(0, 1 - (elapsed / duration));
+        
+        particles.forEach(p => {
+            p.tiltAngle += p.tiltAngleIncremental;
+            p.y += p.vy;
+            p.x += Math.sin(p.tiltAngle) * 2 + p.vx;
+            p.tilt = Math.sin(p.tiltAngle) * 14;
+            
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.lineWidth = p.r / 2;
+            ctx.moveTo(p.x + p.tilt + p.r, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+            ctx.lineTo(p.x + p.r, p.y + p.tilt + p.r);
+            ctx.lineTo(p.x + p.r, p.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        });
+        
+        if (elapsed < duration) {
+            animationFrame = requestAnimationFrame(draw);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            cancelAnimationFrame(animationFrame);
+        }
+    }
+    
+    draw();
 }
 
 // ==========================================
@@ -1950,29 +2273,223 @@ if(document.getElementById('inputChatIA')){
     });
 }
 
-// --- IA DE TCC (Direta, Sem Loop de Perguntas e com Conquistas) ---
+// ==========================================
+// SISTEMA DE METAS & CONQUISTAS (MULTIDISCIPLINAR COM PONTOS POR DIFICULDADE)
+// ==========================================
 const conquistasConfig = [
-    { id: 'caminho', nome: 'Caminho Inicial', meta: 10, pts: 10, icone: '🏅' },
-    { id: 'bronze', nome: 'Medalha de Bronze', meta: 100, pts: 70, icone: '🥉' },
-    { id: 'prata', nome: 'Medalha de Prata', meta: 150, pts: 105, icone: '🥈' },
-    { id: 'ouro', nome: 'Medalha de Ouro', meta: 200, pts: 180, icone: '🥇' },
-    { id: 'diamantina', nome: 'Medalha de Diamantina', meta: 300, pts: 270, icone: '💎' }
+    {
+        id: 'pomodoro_primeiro',
+        nome: 'Primeiro Foco',
+        desc: 'Complete 25 minutos de estudo concentrado usando o Pomodoro.',
+        categoria: 'Pomodoro',
+        icone: '🍅',
+        dificuldade: 'Fácil',
+        pts: 15,
+        progresso: (u) => Math.min(Math.floor(((u.tempoEstudadoSegundos || 0) / (25 * 60)) * 100), 100),
+        statusTexto: (u) => `${Math.floor((u.tempoEstudadoSegundos || 0) / 60)}/25 min`,
+        checar: (u) => (u.tempoEstudadoSegundos || 0) >= 25 * 60
+    },
+    {
+        id: 'simulado_iniciante',
+        nome: 'Primeiro Simulado',
+        desc: 'Complete sua primeira bateria de simulado do Provão Paulista.',
+        categoria: 'Simulados',
+        icone: '📝',
+        dificuldade: 'Fácil',
+        pts: 15,
+        progresso: (u) => Math.min(Math.floor(((u.totalQuestoes || 0) / 10) * 100), 100),
+        statusTexto: (u) => `${Math.min(u.totalQuestoes || 0, 10)}/10 questões`,
+        checar: (u) => (u.totalQuestoes || 0) >= 10
+    },
+    {
+        id: 'tcc_orientacao',
+        nome: 'Projeto Definido',
+        desc: 'Defina seu curso e tema de TCC e troque pelo menos 5 mensagens com a IA.',
+        categoria: 'TCC',
+        icone: '💡',
+        dificuldade: 'Fácil',
+        pts: 15,
+        progresso: (u) => {
+            let pts = 0;
+            if (u.curso) pts += 25;
+            if (u.temaTCC) pts += 25;
+            pts += Math.min(((u.mensagensTCC || 0) / 5) * 50, 50);
+            return Math.floor(pts);
+        },
+        statusTexto: (u) => `${u.mensagensTCC || 0}/5 msgs`,
+        checar: (u) => (u.mensagensTCC || 0) >= 5 && !!u.curso && !!u.temaTCC
+    },
+    {
+        id: 'ofensiva_3dias',
+        nome: 'Hábito de Ferro',
+        desc: 'Mantenha 3 dias consecutivos de ofensiva de estudos ativa.',
+        categoria: 'Constância',
+        icone: '🔥',
+        dificuldade: 'Médio',
+        pts: 30,
+        progresso: (u) => Math.min(Math.floor(((u.sequencia || 0) / 3) * 100), 100),
+        statusTexto: (u) => `${u.sequencia || 0}/3 dias`,
+        checar: (u) => (u.sequencia || 0) >= 3
+    },
+    {
+        id: 'pomodoro_1hora',
+        nome: 'Mestre da Disciplina',
+        desc: 'Acumule 60 minutos (1 hora) de estudo concentrado no Pomodoro.',
+        categoria: 'Pomodoro',
+        icone: '⏳',
+        dificuldade: 'Médio',
+        pts: 30,
+        progresso: (u) => Math.min(Math.floor(((u.tempoEstudadoSegundos || 0) / 3600) * 100), 100),
+        statusTexto: (u) => `${Math.floor((u.tempoEstudadoSegundos || 0) / 60)}/60 min`,
+        checar: (u) => (u.tempoEstudadoSegundos || 0) >= 3600
+    },
+    {
+        id: 'simulado_ouro',
+        nome: 'Nota de Ouro',
+        desc: 'Acerte mais de 7 questões em um simulado do Provão Paulista.',
+        categoria: 'Simulados',
+        icone: '🎯',
+        dificuldade: 'Difícil',
+        pts: 50,
+        progresso: (u) => {
+            const melhor = u.melhorSimuladoAcertos || 0;
+            return Math.min(Math.floor((melhor / 8) * 100), 100);
+        },
+        statusTexto: (u) => `${u.melhorSimuladoAcertos || 0}/8 acertos`,
+        checar: (u) => (u.melhorSimuladoAcertos || 0) >= 8
+    },
+    {
+        id: 'tcc_avancado',
+        nome: 'Pesquisador de Ponta',
+        desc: 'Troque 25 mensagens aprofundadas com a IA orientadora de TCC.',
+        categoria: 'TCC',
+        icone: '🎓',
+        dificuldade: 'Difícil',
+        pts: 50,
+        progresso: (u) => Math.min(Math.floor(((u.mensagensTCC || 0) / 25) * 100), 100),
+        statusTexto: (u) => `${u.mensagensTCC || 0}/25 msgs`,
+        checar: (u) => (u.mensagensTCC || 0) >= 25
+    },
+    {
+        id: 'pomodoro_maratona',
+        nome: 'Maratonista dos Estudos',
+        desc: 'Alcance 120 minutos (2 horas) de estudo focado com o Pomodoro.',
+        categoria: 'Pomodoro',
+        icone: '👑',
+        dificuldade: 'Lendário',
+        pts: 90,
+        progresso: (u) => Math.min(Math.floor(((u.tempoEstudadoSegundos || 0) / 7200) * 100), 100),
+        statusTexto: (u) => `${Math.floor((u.tempoEstudadoSegundos || 0) / 60)}/120 min`,
+        checar: (u) => (u.tempoEstudadoSegundos || 0) >= 7200
+    },
+    {
+        id: 'ofensiva_lenda',
+        nome: 'Lenda da Constância',
+        desc: 'Mantenha 7 dias consecutivos de ofensiva sem quebrar o ritmo!',
+        categoria: 'Constância',
+        icone: '⚡',
+        dificuldade: 'Lendário',
+        pts: 120,
+        progresso: (u) => Math.min(Math.floor(((u.sequencia || 0) / 7) * 100), 100),
+        statusTexto: (u) => `${u.sequencia || 0}/7 dias`,
+        checar: (u) => (u.sequencia || 0) >= 7
+    }
 ];
 
+// --- IA DE TCC (WORKSTATION ELEGANTE) ---
 function iniciarChatTCC() {
-    if(document.getElementById('msgHojeTCC')) {
-        document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje;
+    if (document.getElementById('msgHojeTCC')) {
+        document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje || 0;
     }
+    if (document.getElementById('tccBadgeCurso')) {
+        document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso || 'Não definido';
+    }
+    if (document.getElementById('tccBadgeTema')) {
+        document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC || 'Não definido';
+    }
+
     const chatBox = document.getElementById('chatBoxTCC');
+    if (!chatBox) return;
+
     if (chatBox.innerHTML.trim() === '') {
         if (!usuarioLogado.curso) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Para começarmos, qual é o seu curso?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Para personalizarmos suas orientações, qual é o seu curso técnico ou área de estudo?</div>`;
         } else if (!usuarioLogado.temaTCC) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Já sei que você cursa ${usuarioLogado.curso}. O que você planeja fazer para o seu TCC?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Já vi que você cursa ${usuarioLogado.curso}. Qual ideia ou problema você gostaria de investigar no seu projeto?</div>`;
         } else {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Posso te ajudar com ideias de temas, estruturação de capítulos, formatação ABNT e orientações de pesquisa para o seu TCC em ${usuarioLogado.curso} sobre "${usuarioLogado.temaTCC}". Como posso ajudar hoje?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Estou pronta para auxiliar com metodologia, normas ABNT, objetivos e escrita para seu TCC em <strong>${usuarioLogado.curso}</strong> sobre "<em>${usuarioLogado.temaTCC}</em>". Como posso te ajudar hoje?</div>`;
         }
     }
+}
+
+function aplicarPromptRapidoTCC(texto) {
+    const input = document.getElementById('inputChatTCC');
+    if (input) {
+        input.value = texto;
+        input.focus();
+    }
+}
+
+function abrirModalTccConfig() {
+    const modal = document.getElementById('modal-tcc-config');
+    if (!modal) return;
+    const inputCurso = document.getElementById('inputTccConfigCurso');
+    const inputTema = document.getElementById('inputTccConfigTema');
+    if (inputCurso) inputCurso.value = usuarioLogado.curso || '';
+    if (inputTema) inputTema.value = usuarioLogado.temaTCC || '';
+    modal.classList.remove('hidden');
+}
+
+function fecharModalTccConfig() {
+    const modal = document.getElementById('modal-tcc-config');
+    if (modal) modal.classList.add('hidden');
+}
+
+function salvarConfigTcc() {
+    const inputCurso = document.getElementById('inputTccConfigCurso');
+    const inputTema = document.getElementById('inputTccConfigTema');
+    if (!inputCurso || !inputTema) return;
+
+    const curso = inputCurso.value.trim();
+    const tema = inputTema.value.trim();
+
+    if (!curso) {
+        mostrarToastCanto('Atenção', 'Por favor, informe seu curso para continuar.', 'warning');
+        return;
+    }
+
+    usuarioLogado.curso = curso;
+    usuarioLogado.temaTCC = tema || 'Projeto em definição';
+    atualizarBanco(usuarioLogado);
+
+    if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
+    if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
+
+    const chatBox = document.getElementById('chatBoxTCC');
+    if (chatBox) {
+        chatBox.innerHTML += `<div class="msg ia">✅ Dados atualizados com sucesso! Anotei que seu curso é <strong>${usuarioLogado.curso}</strong> e seu tema foco é "<strong>${usuarioLogado.temaTCC}</strong>". O que você gostaria de estruturar agora?</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    fecharModalTccConfig();
+    mostrarToastCanto('TCC Configurado', 'Curso e tema atualizados com sucesso!', 'success');
+    verificarConquistas();
+}
+
+function filtrarIdeiasTCC(area, btn) {
+    const botoes = document.querySelectorAll('.tcc-filtro-btn');
+    botoes.forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const cards = document.querySelectorAll('.ideia-card-moderno');
+    cards.forEach(card => {
+        const cardArea = card.getAttribute('data-area');
+        if (area === 'todos' || cardArea === area) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 
 async function enviarMensagemTCC() {
@@ -1982,12 +2499,12 @@ async function enviarMensagemTCC() {
     
     if (!msgTexto) return;
 
-    if (usuarioLogado.mensagensTCCHoje >= 10) {
-        alert("Você atingiu o limite de 10 mensagens de TCC por dia. Volte amanhã para continuar!");
+    if ((usuarioLogado.mensagensTCCHoje || 0) >= 10) {
+        mostrarToastCanto("Limite Atingido", "Você atingiu o limite de 10 mensagens de TCC por hoje. Volte amanhã para continuar!", "warning", 4500);
         return;
     }
 
-    chatBox.innerHTML += `<div class="msg user">${input.value}</div>`;
+    chatBox.innerHTML += `<div class="msg user">${escapeHtml(msgTexto)}</div>`;
     input.value = ''; 
     chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -1995,8 +2512,10 @@ async function enviarMensagemTCC() {
     if (!usuarioLogado.curso) {
         usuarioLogado.curso = msgTexto;
         atualizarBanco(usuarioLogado);
-        chatBox.innerHTML += `<div class="msg ia">Perfeito, anotado que seu curso é ${usuarioLogado.curso}! E o que você planeja fazer para o seu TCC? (Pode ser uma ideia geral)</div>`;
+        if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
+        chatBox.innerHTML += `<div class="msg ia">Perfeito, anotado que seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong>! E o que você planeja fazer para o seu TCC? (Pode ser uma ideia geral)</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
+        concluirEnvioTCC();
         return;
     }
 
@@ -2004,23 +2523,25 @@ async function enviarMensagemTCC() {
     if (!usuarioLogado.temaTCC) {
         usuarioLogado.temaTCC = msgTexto;
         atualizarBanco(usuarioLogado);
-        chatBox.innerHTML += `<div class="msg ia">Excelente! Agora que sei que você faz ${usuarioLogado.curso} e quer focar em "${usuarioLogado.temaTCC}", como posso te ajudar com o seu projeto hoje?</div>`;
+        if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
+        chatBox.innerHTML += `<div class="msg ia">Excelente! Agora que sei que você faz <strong>${escapeHtml(usuarioLogado.curso)}</strong> e quer focar em "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>", como posso te ajudar com o seu projeto hoje?</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
+        concluirEnvioTCC();
         return;
     }
 
     const idLoading = "loadTCC-" + Date.now();
-    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Analisando e buscando orientações...</i></div>`;
+    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Analisando e buscando orientações acadêmicas...</i></div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        if (GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
+        if (typeof GEMINI_API_KEY === 'undefined' || GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
             if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
             chatBox.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
             return;
         }
 
-        const prompt = `Você é um orientador de TCC.
+        const prompt = `Você é um orientador de TCC do Ensino Técnico / Médio de São Paulo.
 Regra 1: Você NUNCA deve fazer o trabalho pelo aluno (nada de escrever os textos do TCC para ele), apenas orientar, dar dicas e tirar dúvidas.
 Regra 2: Você deve apenas auxiliar nos estudos.
 Regra 3: O curso do aluno é: ${usuarioLogado.curso}
@@ -2046,54 +2567,52 @@ Mensagem do aluno: ${msgTexto}`;
         concluirEnvioTCC();
     } catch (error) {
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-        chatBox.innerHTML += `<div class="msg ia">❌ Erro de conexão: ${error.message}. Verifique se está rodando em um servidor local (não pelo arquivo direto).</div>`;
+        chatBox.innerHTML += `<div class="msg ia">❌ Erro de conexão: ${error.message}.</div>`;
         console.error(error);
     }
 }
 
-if(document.getElementById('inputChatTCC')){
-    document.getElementById('inputChatTCC').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') enviarMensagemTCC();
-    });
-}
-
 function concluirEnvioTCC() {
     const chatBox = document.getElementById('chatBoxTCC');
-    chatBox.scrollTop = chatBox.scrollHeight;
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
     
-    usuarioLogado.mensagensTCC++;
-    usuarioLogado.mensagensTCCHoje++;
+    usuarioLogado.mensagensTCC = (usuarioLogado.mensagensTCC || 0) + 1;
+    usuarioLogado.mensagensTCCHoje = (usuarioLogado.mensagensTCCHoje || 0) + 1;
     if(document.getElementById('msgHojeTCC')) {
         document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje;
     }
     
-    // Bônus Diamantina (300+ msgs)
-    if (usuarioLogado.mensagensTCC >= 300) {
-        usuarioLogado.pontos += 0.5;
-        document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
-        carregarRank();
+    // Bônus constante ao interagir
+    usuarioLogado.pontos += 0.5;
+    usuarioLogado.pontos = parseFloat(usuarioLogado.pontos.toFixed(1));
+    if (document.getElementById('pontosDisplay')) {
+        document.getElementById('pontosDisplay').textContent = `${usuarioLogado.pontos} pts`;
     }
+    carregarRank();
     
     atualizarBanco(usuarioLogado);
     verificarConquistas();
 }
 
 function verificarConquistas() {
-    let msgCount = usuarioLogado.mensagensTCC;
-    
+    if (!usuarioLogado.conquistas) usuarioLogado.conquistas = [];
+    let desbloqueouNova = false;
+
     conquistasConfig.forEach(conq => {
-        if (msgCount >= conq.meta && !usuarioLogado.conquistas.includes(conq.id)) {
+        if (!usuarioLogado.conquistas.includes(conq.id) && conq.checar(usuarioLogado)) {
             usuarioLogado.conquistas.push(conq.id);
             usuarioLogado.pontos += conq.pts;
-            atualizarBanco(usuarioLogado);
+            usuarioLogado.pontos = parseFloat(usuarioLogado.pontos.toFixed(1));
+            desbloqueouNova = true;
             
-            document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
-            carregarRank();
-            
+            if (document.getElementById('pontosDisplay')) {
+                document.getElementById('pontosDisplay').textContent = `${usuarioLogado.pontos} pts`;
+            }
+
             // Pop-up Toast da Conquista
-            if(document.getElementById('toast-nome')){
-                document.getElementById('toast-nome').textContent = conq.nome;
-                document.getElementById('toast-pontos').textContent = `+${conq.pts} pts`;
+            if (document.getElementById('toast-nome')) {
+                document.getElementById('toast-nome').textContent = `${conq.icone} ${conq.nome}`;
+                document.getElementById('toast-pontos').textContent = `+${conq.pts} pts (${conq.dificuldade})`;
                 
                 const toast = document.getElementById('toast-conquista');
                 toast.classList.remove('hidden');
@@ -2102,35 +2621,60 @@ function verificarConquistas() {
                 setTimeout(() => { 
                     toast.classList.remove('show');
                     setTimeout(() => { toast.classList.add('hidden'); }, 500);
-                }, 4000);
+                }, 4500);
             }
+            
+            mostrarToastCanto('🏆 Conquista Desbloqueada!', `${conq.nome} (+${conq.pts} pts • ${conq.dificuldade})`, 'success', 5000);
         }
     });
+
+    if (desbloqueouNova) {
+        atualizarBanco(usuarioLogado);
+        carregarRank();
+        if (typeof atualizarDesempenho === 'function') atualizarDesempenho();
+    }
+    
     renderizarConquistas();
 }
 
 function renderizarConquistas() {
-    let msgCount = usuarioLogado.mensagensTCC || 0;
-    let painel = document.getElementById('lista-conquistas-ui');
-    if(!painel) return;
+    const painel = document.getElementById('lista-conquistas-ui');
+    if (!painel) return;
     
     let html = '';
     conquistasConfig.forEach(conq => {
-        let porcentagem = Math.min((msgCount / conq.meta) * 100, 100);
-        let desbloqueado = usuarioLogado.conquistas && usuarioLogado.conquistas.includes(conq.id);
+        const pct = conq.progresso(usuarioLogado);
+        const desbloqueado = usuarioLogado.conquistas && usuarioLogado.conquistas.includes(conq.id);
+        const statusTexto = conq.statusTexto(usuarioLogado);
         
+        let difClass = 'badge-facil';
+        if (conq.dificuldade === 'Médio') difClass = 'badge-medio';
+        else if (conq.dificuldade === 'Difícil') difClass = 'badge-dificil';
+        else if (conq.dificuldade === 'Lendário') difClass = 'badge-lendario';
+
         html += `
-            <div class="conquista-item" style="opacity: ${desbloqueado ? '1' : '0.6'}; margin-bottom: 15px;">
-                <div class="conquista-header" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 5px;">
-                    <span>${conq.icone} ${conq.nome}</span>
-                    <span style="color:var(--accent-color);">${Math.floor(porcentagem)}%</span>
+            <div class="conquista-card ${desbloqueado ? 'desbloqueada' : ''}">
+                <div class="conquista-top-row">
+                    <div class="conquista-title-group">
+                        <span style="font-size: 18px;">${conq.icone}</span>
+                        <span class="conquista-nome">${conq.nome}</span>
+                    </div>
+                    <div class="conquista-badges">
+                        <span class="badge-dif ${difClass}">${conq.dificuldade}</span>
+                        <span class="badge-pontos">+${conq.pts} pts</span>
+                    </div>
                 </div>
-                <div class="progress-bar-bg" style="width: 100%; height: 10px; background: var(--bg-main); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color);">
-                    <div class="progress-bar-fill" style="height: 100%; background: var(--accent-color); transition: width 0.5s; width: ${porcentagem}%;"></div>
+                <div class="conquista-desc">${conq.desc}</div>
+                <div class="conquista-progress-wrap">
+                    <div class="conquista-progress-bg">
+                        <div class="conquista-progress-fill" style="width: ${pct}%;"></div>
+                    </div>
+                    <span class="conquista-pct">${desbloqueado ? '✅ 100%' : `${pct}%`}</span>
                 </div>
-                <p style="font-size:11px; margin-top:3px; color:var(--text-muted);">
-                    ${desbloqueado ? '✅ Desbloqueado' : `Troque ${conq.meta} msgs c/ a IA (${msgCount}/${conq.meta})`}
-                </p>
+                <div style="font-size: 11px; color: ${desbloqueado ? '#4CAF50' : 'var(--text-muted)'}; margin-top: 4px; display: flex; justify-content: space-between;">
+                    <span>${desbloqueado ? '✨ Conquista concluída!' : statusTexto}</span>
+                    <span>${conq.categoria}</span>
+                </div>
             </div>
         `;
     });
@@ -2340,7 +2884,8 @@ async function salvarConteudo(e) {
                 dataHora: agora,
                 editado: false,
                 profNome: usuarioLogado.nome,
-                profFoto: usuarioLogado.foto || null
+                profFoto: usuarioLogado.foto || null,
+                profRM: usuarioLogado.rm || null
             };
             conteudos.push(novoConteudo);
             salvarConteudosLocais(conteudos);
@@ -2613,6 +3158,14 @@ window.addEventListener('click', function(e) {
     if (modalTCC && e.target === modalTCC) {
         modalTCC.classList.add('hidden');
     }
+    const modalPomodoroInfo = document.getElementById('modal-pomodoro-info');
+    if (modalPomodoroInfo && e.target === modalPomodoroInfo) {
+        modalPomodoroInfo.classList.add('hidden');
+    }
+    const modalTccConfig = document.getElementById('modal-tcc-config');
+    if (modalTccConfig && e.target === modalTccConfig) {
+        modalTccConfig.classList.add('hidden');
+    }
 });
 
 // ==========================================
@@ -2658,5 +3211,6 @@ carregarRank();
 calcularMultiplicador(); 
 atualizarDesempenho(); 
 renderizarConquistas();
+tornarMiniTimerArrastavel();
 sincronizarComServidor();
 carregarQuestoesDoServidor();

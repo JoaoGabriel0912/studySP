@@ -75,6 +75,75 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Flutuante de Sucesso no Cadastro Escolar com Credenciais & Compartilhar/Imprimir -->
+    <div id="modal-cadastro-sucesso" class="modal-overlay hidden">
+        <div class="modal-content modal-credenciais-card">
+            <div class="credencial-header">
+                <div class="credencial-icon">🎓</div>
+                <div>
+                    <h3 id="modalCadTitulo">Aluno Cadastrado com Sucesso!</h3>
+                    <p>Gestão Escolar • Ficha Oficial de Acesso ao StudySP</p>
+                </div>
+            </div>
+
+            <!-- Cartão Oficial de Acesso (Próprio para Impressão e Envio) -->
+            <div class="cartao-acesso" id="cartaoAcessoImpressao">
+                <div class="cartao-acesso-topo">
+                    <span class="escola-tag">SEDUC-SP • ETEC</span>
+                    <span class="cartao-perfil-tag" id="credPerfilBadge">Aluno</span>
+                </div>
+                
+                <div class="cartao-campo">
+                    <label>Nome do Usuário:</label>
+                    <div class="valor" id="credNome">-</div>
+                </div>
+
+                <div class="cartao-row">
+                    <div class="cartao-campo">
+                        <label>Login / RM:</label>
+                        <div class="valor valor-destaque" id="credRM">-</div>
+                    </div>
+                    <div class="cartao-campo">
+                        <label>Senha de Acesso:</label>
+                        <div class="valor valor-destaque" id="credSenha">-</div>
+                    </div>
+                </div>
+
+                <div class="cartao-campo">
+                    <label>E-mail Cadastrado:</label>
+                    <div class="valor" id="credEmail">-</div>
+                </div>
+
+                <div class="cartao-rodape-info">
+                    <span>🌐 Acesse: <strong>StudySP (Provão Paulista + TCC)</strong></span>
+                    <span>🔒 Guarde suas credenciais com segurança</span>
+                </div>
+            </div>
+
+            <!-- Botões de Ação para a Gestão Escolar -->
+            <div class="credencial-actions">
+                <button type="button" class="btn btn-compartilhar" onclick="compartilharCredenciais()">
+                    <span>📤 Compartilhar / Copiar</span>
+                </button>
+                <button type="button" class="btn btn-imprimir" onclick="imprimirFichaAcesso()">
+                    <span>🖨️ Imprimir Ficha</span>
+                </button>
+            </div>
+
+            <div class="credencial-footer-btns">
+                <button type="button" class="btn btn-outro" onclick="cadastrarOutroUsuario()">➕ Cadastrar Outro</button>
+                <button type="button" class="btn btn-ir-login" onclick="irParaLogin()">Ir para o Login ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast / Alerta Flutuante para Cadastro -->
+    <div id="cadastroToast" class="login-toast-erro hidden">
+        <span class="erro-icon">⚠️</span>
+        <span id="cadastroToastTexto">Mensagem</span>
+    </div>
+
     <script src="api.js"></script>
     <script src="script.js"></script>
 </body>

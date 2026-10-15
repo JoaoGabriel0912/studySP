@@ -78,7 +78,7 @@
     <main class="main-content">
         <!-- Cabeçalho -->
         <header class="topbar">
-            <div class="streak-container">
+            <div class="streak-container" id="streakWidget" title="Sua ofensiva de estudos ativa! Mantenha a sequência diária.">
                 <span class="fire-icon">🔥</span>
                 <span class="streak-text" id="userStreak">0 Dias de Ofensiva</span>
             </div>
@@ -98,10 +98,9 @@
             </div>
 
             <!-- Dropdown de Conquistas -->
-            <div id="conquistasDropdown" class="dropdown-menu hidden" style="right: 180px; width: 350px;">
-                <h3 style="color: var(--primary-color);">🏆 Minhas Conquistas</h3>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Interaja com a IA do TCC
-                    para desbloquear medalhas e pontos.</p>
+            <div id="conquistasDropdown" class="dropdown-menu hidden" style="right: 180px; width: 370px;">
+                <h3 style="color: var(--primary-color);">🏆 Metas & Conquistas</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Complete objetivos de Pomodoro, Simulados, TCC e Ofensiva para subir de nível e ganhar pontos extras!</p>
                 <div id="lista-conquistas-ui" class="conquistas-lista">
                     <!-- Gerado via JS -->
                 </div>
@@ -270,6 +269,7 @@
 
         <section id="secao-pomodoro" class="secao-conteudo hidden">
             <div class="pomodoro-container">
+                <button type="button" class="pomodoro-info-btn" onclick="abrirModalPomodoroInfo()" title="O que é o Método Pomodoro e Multiplicadores?">?</button>
                 <h2>🍅 Método Pomodoro</h2>
                 <div class="pomodoro-config">
                     <div><label>Estudo (min):</label><input type="number" id="tempoEstudo" value="25" min="1"></div>
@@ -403,6 +403,7 @@
             </div>
             <div id="area-resultados" class="resultados-container hidden">
                 <h2>📊 Resultados</h2>
+                <div id="bonusSimuladoContainer"></div>
                 <div class="resultados-stats">
                     <p>✅ Acertos: <strong id="res-acertos" style="color: #4CAF50;">0</strong></p>
                     <p>❌ Erros: <strong id="res-erros" style="color: #F44336;">0</strong></p>
@@ -418,39 +419,181 @@
             </div>
         </section>
 
-        <!-- NOVA SEÇÃO: TCC -->
+        <!-- SEÇÃO REFORMULADA: WORKSTATION DO TCC -->
         <section id="secao-tcc" class="secao-conteudo hidden">
-            <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
-                <div class="tcc-container" style="width: 100%; max-width: 100%;">
-                    <div class="tcc-header">
-                        <h2>🎓 IA Orientadora de TCC</h2>
-                        <p>Limite diário: <strong id="msgHojeTCC">0</strong>/10 mensagens.</p>
+            <div class="tcc-workspace">
+                <!-- Banner de Topo com Metas e Curso -->
+                <div class="tcc-hero-card">
+                    <div class="tcc-hero-left">
+                        <h2>🎓 Mentoria de TCC com IA</h2>
+                        <p>Auxílio metodológico, sugestões de tema, normas ABNT e inspiração em projetos premiados.</p>
                     </div>
-                    <div class="tcc-chat-box" id="chatBoxTCC" style="height: 350px; overflow-y: auto;">
-                        <!-- Mensagens do TCC aparecerão aqui -->
-                    </div>
-                    <div class="chat-input"
-                        style="border-radius: 8px; border: 1px solid var(--border-color); margin-top: 10px;">
-                        <input type="text" id="inputChatTCC" placeholder="Pergunte à IA orientadora...">
-                        <button onclick="enviarMensagemTCC()">Enviar</button>
+                    <div class="tcc-hero-stats">
+                        <div class="tcc-stat-pill" title="Curso cadastrado para o TCC">
+                            <span>🏫</span>
+                            <span>Curso: <strong id="tccBadgeCurso">Não definido</strong></span>
+                        </div>
+                        <div class="tcc-stat-pill" title="Tema do seu projeto de TCC">
+                            <span>📌</span>
+                            <span>Tema: <strong id="tccBadgeTema">Não definido</strong></span>
+                        </div>
+                        <div class="tcc-stat-pill" title="Limite de mensagens diárias com a IA orientadora">
+                            <span>💬</span>
+                            <span>Hoje: <strong id="msgHojeTCC">0</strong>/10</span>
+                        </div>
+                        <button type="button" class="btn-tcc-editar-tema" onclick="abrirModalTccConfig()">✏️ Ajustar Tema</button>
                     </div>
                 </div>
 
-                <div class="tcc-ideias" style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="color: var(--primary-color); margin: 0;">💡 Inspirações: Ideias de Ex-Alunos</h3>
+                <!-- Grid em 2 Colunas: IA Orientadora à esquerda e Painel de Apoio à direita -->
+                <div class="tcc-grid-columns">
+                    <!-- Coluna Principal: Chat com IA -->
+                    <div class="tcc-chat-card">
+                        <div class="tcc-chat-card-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 20px;">🤖</span>
+                                <div>
+                                    <h4 style="margin: 0; color: var(--primary-color); font-size: 15px;">IA Orientadora do TCC</h4>
+                                    <span style="font-size: 11.5px; color: #4CAF50;">● Pronta para te orientar (sem fazer por você)</span>
+                                </div>
+                            </div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Modelo Educacional Especializado</span>
+                        </div>
+
+                        <!-- Chips de Perguntas Rápidas (1 clique para perguntar) -->
+                        <div class="tcc-quick-prompts">
+                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Preciso de 3 ideias inovadoras de temas para meu TCC neste curso.')">💡 Ideias de Temas</span>
+                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Como estruturar a Justificativa e a Relevância Social do meu projeto?')">📝 Fazer Justificativa</span>
+                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Como formular o Problema de Pesquisa e a Hipótese do TCC?')">❓ Problema & Hipótese</span>
+                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Quais são as principais normas ABNT para citações diretas e indiretas?')">📚 Normas ABNT</span>
+                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Dicas de Metodologia: como planejar os passos práticos da pesquisa?')">🔬 Metodologia</span>
+                        </div>
+
+                        <!-- Caixa de Mensagens -->
+                        <div class="tcc-chat-box" id="chatBoxTCC">
+                            <!-- Gerado via JS -->
+                        </div>
+
+                        <!-- Input de Mensagens -->
+                        <div class="chat-input">
+                            <input type="text" id="inputChatTCC" placeholder="Faça uma pergunta sobre tema, ABNT, metodologia ou escrita...">
+                            <button type="button" class="btn btn-save" onclick="enviarMensagemTCC()">Enviar ➔</button>
+                        </div>
                     </div>
-                    
-                    <div class="tcc-grid-ideias" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;">
-                        <!-- Cards compactos -->
-                        <div class="ideia-card" onclick="abrirDetalheTCC('ds_1')">💻 App de Mobilidade Escolar</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('ds_2')">💻 IA para Triagem de Currículos</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('jur_1')">⚖️ Cartilha do Consumidor Jovem</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('jur_2')">⚖️ Impactos da LGPD nas Escolas</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('log_1')">📦 Otimização de Rotas Escolares</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('agro_1')">🚜 Horta Hidropônica Automatizada</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('vet_1')">🐕 App para Adoção de Animais</div>
-                        <div class="ideia-card" onclick="abrirDetalheTCC('adm_1')">📊 Plano p/ Brechó Online</div>
+
+                    <!-- Coluna Lateral: Checklist das Etapas & Inspirações -->
+                    <div class="tcc-side-panel">
+                        <!-- Checklist das Etapas do TCC -->
+                        <div class="tcc-etapas-card">
+                            <h3>🗺️ Roteiro das Etapas do TCC</h3>
+                            <div class="tcc-etapa-item ativa">
+                                <span class="tcc-etapa-num">1</span>
+                                <div>
+                                    <strong>Escolha do Tema & Problema</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted);">Definir área de interesse e dor a resolver</div>
+                                </div>
+                            </div>
+                            <div class="tcc-etapa-item">
+                                <span class="tcc-etapa-num">2</span>
+                                <div>
+                                    <strong>Justificativa & Objetivos</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted);">Objetivo geral e 3 específicos</div>
+                                </div>
+                            </div>
+                            <div class="tcc-etapa-item">
+                                <span class="tcc-etapa-num">3</span>
+                                <div>
+                                    <strong>Referencial Teórico (ABNT)</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted);">Fundamentação com livros e artigos</div>
+                                </div>
+                            </div>
+                            <div class="tcc-etapa-item">
+                                <span class="tcc-etapa-num">4</span>
+                                <div>
+                                    <strong>Metodologia & Desenvolvimento</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted);">Pesquisa de campo, protótipo ou estudo</div>
+                                </div>
+                            </div>
+                            <div class="tcc-etapa-item">
+                                <span class="tcc-etapa-num">5</span>
+                                <div>
+                                    <strong>Resultados & Conclusão</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted);">Análise do impacto e considerações finais</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inspirações de Projetos de Ex-Alunos -->
+                        <div class="tcc-inspiracoes-card">
+                            <h3>💡 Projetos e Inspirações</h3>
+                            <!-- Filtros por Área -->
+                            <div class="tcc-filtros-ideias">
+                                <button type="button" class="tcc-filtro-btn active" onclick="filtrarIdeiasTCC('todos', this)">Todos</button>
+                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('ds', this)">Tecnologia / DS</button>
+                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('jur', this)">Direito / Jurídico</button>
+                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('adm', this)">Administração</button>
+                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('agro', this)">Agro & Vet</button>
+                            </div>
+
+                            <div class="tcc-grid-ideias-moderna" id="tccIdeiasContainer">
+                                <div class="ideia-card-moderno" data-area="ds" onclick="abrirDetalheTCC('ds_1')">
+                                    <div class="ideia-card-info">
+                                        <h4>💻 App de Mobilidade Escolar</h4>
+                                        <span>Desenvolvimento de Sistemas • Acessibilidade</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="ds" onclick="abrirDetalheTCC('ds_2')">
+                                    <div class="ideia-card-info">
+                                        <h4>💻 IA para Triagem de Currículos</h4>
+                                        <span>Desenvolvimento de Sistemas • Processamento de Linguagem</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="jur" onclick="abrirDetalheTCC('jur_1')">
+                                    <div class="ideia-card-info">
+                                        <h4>⚖️ Cartilha do Consumidor Jovem</h4>
+                                        <span>Serviços Jurídicos • Direitos Digitais</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="jur" onclick="abrirDetalheTCC('jur_2')">
+                                    <div class="ideia-card-info">
+                                        <h4>⚖️ Impactos da LGPD nas Escolas</h4>
+                                        <span>Serviços Jurídicos • Privacidade Escolar</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="adm" onclick="abrirDetalheTCC('adm_1')">
+                                    <div class="ideia-card-info">
+                                        <h4>📊 Plano p/ Brechó Online Sustentável</h4>
+                                        <span>Administração • E-commerce & Economia Circular</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="adm" onclick="abrirDetalheTCC('log_1')">
+                                    <div class="ideia-card-info">
+                                        <h4>📦 Otimização de Rotas Escolares</h4>
+                                        <span>Logística • Algoritmos de Roteamento</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="agro" onclick="abrirDetalheTCC('agro_1')">
+                                    <div class="ideia-card-info">
+                                        <h4>🚜 Horta Hidropônica Automatizada</h4>
+                                        <span>Agropecuária • IoT & Sustentabilidade</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                                <div class="ideia-card-moderno" data-area="agro" onclick="abrirDetalheTCC('vet_1')">
+                                    <div class="ideia-card-info">
+                                        <h4>🐕 App para Adoção de Animais</h4>
+                                        <span>Veterinária • Saúde Animal & Políticas Públicas</span>
+                                    </div>
+                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -658,8 +801,87 @@
         </div>
     </div>
 
-    <!-- Floating Mini Timer -->
-    <div id="miniTimerWidget" class="hidden" style="position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, var(--bg-card), var(--bg-main)); border: 1px solid var(--primary-color); border-radius: 12px; padding: 12px 20px; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--primary-glow); z-index: 1000; transition: all 0.3s; display: none;">
+    <!-- Modal Pomodoro Transição (Janela Flutuante ao dar tempo de Descanso e Estudo) -->
+    <div id="modal-pomodoro-transicao" class="modal-overlay hidden">
+        <div class="modal-content modal-pomodoro-transicao-card">
+            <div class="transicao-icon-circle" id="transicaoIconCircle">☕</div>
+            <h3 id="transicaoTitulo">Hora do Descanso!</h3>
+            <p id="transicaoSubtitulo">Ciclo de foco concluído com sucesso. Descanse os olhos e alongue-se!</p>
+            <div class="transicao-stats-badge" id="transicaoBadge">
+                <span>✨ Multiplicador ativo: <strong>1.2x</strong></span>
+            </div>
+            <div class="transicao-actions">
+                <button type="button" class="btn btn-save" id="btnContinuarTransicao" onclick="fecharModalPomodoroTransicao()" style="width: 100%; padding: 12px; font-size: 16px;">Entendido!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pomodoro Informações (Como surgiu e Multiplicadores) -->
+    <div id="modal-pomodoro-info" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 600px; padding: 26px; border: 1px solid var(--primary-color);">
+            <button class="modal-close" onclick="fecharModalPomodoroInfo()">&times;</button>
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                <span style="font-size: 36px;">🍅</span>
+                <div>
+                    <h3 style="color: var(--primary-color); margin: 0; font-size: 22px;">O Método Pomodoro & Multiplicadores</h3>
+                    <span style="font-size: 13px; color: var(--text-muted);">Como funciona e como turbinar seus pontos</span>
+                </div>
+            </div>
+            <div class="pomodoro-info-body">
+                <div class="info-block">
+                    <h4>📜 Como surgiu o Método Pomodoro?</h4>
+                    <p>O método foi desenvolvido no final da década de 1980 pelo universitário italiano <strong>Francesco Cirillo</strong>. Para vencer a procrastinação e aumentar seu foco, ele utilizou um cronômetro de cozinha em formato de tomate (<em>pomodoro</em> em italiano) para cronometrar 25 minutos de estudo concentrado sem nenhuma interrupção.</p>
+                </div>
+                <div class="info-block">
+                    <h4>⏱️ Como a técnica funciona na prática?</h4>
+                    <ul>
+                        <li><strong>Bloco de 25 minutos (Foco Total):</strong> Desligue distrações, notificações e dedique-se exclusivamente ao conteúdo.</li>
+                        <li><strong>5 minutos de Pausa Curta:</strong> Levante-se, beba água e relaxe os olhos.</li>
+                        <li><strong>Pausa Longa (15 a 30 min):</strong> Realizada após completar 4 blocos de foco consecutivos.</li>
+                    </ul>
+                </div>
+                <div class="info-block highlight">
+                    <h4>🚀 Sistema de Multiplicadores do StudySP</h4>
+                    <p>No StudySP, seu tempo de estudo focado é recompensado diretamente em pontos:</p>
+                    <div class="multiplicador-tabela">
+                        <div class="mult-item"><span class="mult-tag">1.2x</span><span><strong>Ativado imediatamente</strong> ao iniciar o Pomodoro na plataforma!</span></div>
+                        <div class="mult-item"><span class="mult-tag">1.3x</span><span>Acumulando <strong>30 minutos</strong> de estudo focado</span></div>
+                        <div class="mult-item"><span class="mult-tag">1.4x</span><span>Acumulando <strong>60 minutos (1 hora)</strong> de estudo</span></div>
+                        <div class="mult-item"><span class="mult-tag">1.5x</span><span>Acumulando <strong>120 minutos (2 horas)</strong> de estudo diário</span></div>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 13px; color: var(--accent-color);">⭐ <em>Esse multiplicador potencializa a pontuação obtida em todos os simulados do Provão Paulista e atividades da plataforma!</em></p>
+                </div>
+            </div>
+            <button type="button" class="btn btn-save" style="width: 100%; margin-top: 18px; padding: 12px; font-size: 15px;" onclick="fecharModalPomodoroInfo()">Entendido, vamos estudar!</button>
+        </div>
+    </div>
+
+    <!-- Modal Ajuste de Curso e Tema do TCC -->
+    <div id="modal-tcc-config" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 480px; padding: 25px; border: 1px solid var(--primary-color);">
+            <button class="modal-close" onclick="fecharModalTccConfig()">&times;</button>
+            <h3 style="color: var(--primary-color); margin-bottom: 8px;">🎓 Meu Projeto de TCC</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Defina seu curso e tema para a IA personalizar suas respostas e orientações.</p>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="display:block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-main);">Seu Curso:</label>
+                    <input type="text" id="inputTccConfigCurso" placeholder="Ex: Informática, Desenvolvimento de Sistemas, Administração..." style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                </div>
+                <div>
+                    <label style="display:block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: var(--text-main);">Tema ou Ideia Geral do TCC:</label>
+                    <textarea id="inputTccConfigTema" rows="3" placeholder="Ex: Sistema inteligente de coleta seletiva na comunidade escolar..." style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <button type="button" class="btn btn-save" style="margin-top: 10px; padding: 12px;" onclick="salvarConfigTcc()">Salvar e Atualizar IA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas de Confetes em Tela Cheia -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Floating Mini Timer (Draggable) -->
+    <div id="miniTimerWidget" class="hidden mini-timer-draggable" style="position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, var(--bg-card), var(--bg-main)); border: 1px solid var(--primary-color); border-radius: 12px; padding: 12px 18px; align-items: center; gap: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--primary-glow); z-index: 1000; display: none;">
+        <div class="mini-timer-drag-handle" id="miniTimerDragHandle" title="Clique e arraste para posicionar onde desejar na tela">⋮⋮</div>
         <div style="display:flex; flex-direction: column; align-items: center;">
             <span style="font-size: 11px; font-weight: bold; color: var(--primary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Pomodoro</span>
             <span id="miniTimerTime" style="font-size: 24px; font-weight: 900; font-family: monospace; color: var(--text-main); line-height: 1;">25:00</span>

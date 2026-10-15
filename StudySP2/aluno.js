@@ -86,6 +86,13 @@ if (!usuarioLogado) {
     if(document.getElementById('sequenciaStats')) {
         document.getElementById('sequenciaStats').innerHTML = `🔥 Sequência: <strong>${usuarioLogado.sequencia} Dias</strong>`;
     }
+    if(document.getElementById('acertosStats')) {
+        document.getElementById('acertosStats').innerHTML = `✅ Acertos: <strong>${usuarioLogado.totalAcertos || 0}</strong>`;
+    }
+    if(document.getElementById('errosStats')) {
+        let erros = (usuarioLogado.totalQuestoes || 0) - (usuarioLogado.totalAcertos || 0);
+        document.getElementById('errosStats').innerHTML = `❌ Erros: <strong>${erros}</strong>`;
+    }
 }
 
 // ==========================================
@@ -160,8 +167,6 @@ function mostrarToastCanto(titulo, mensagem, tipo = 'warning', duracaoMs = 4500)
     });
 }
 
-// O resto do seu código (DESEMPENHO DINÂMICO, etc) continua a partir daqui...
-
 // ==========================================
 // DESEMPENHO DINÂMICO (INSTRUMENTO DE PONTEIRO / GAUGE)
 // ==========================================
@@ -189,9 +194,6 @@ function atualizarDesempenho() {
     }
 
     // Critérios de classificação:
-    // 0 a 40: Ruim (Vermelho)
-    // 41 a 70: Médio (Amarelo)
-    // 71 a 100: Bom (Verde)
     let statusClass = 'status-ruim';
     let statusTexto = 'Ruim';
     let needleColor = 'linear-gradient(to top, #1e293b 0%, #dc2626 100%)';
@@ -231,22 +233,93 @@ function atualizarDesempenho() {
 // NAVEGAÇÃO E TEMA
 // ==========================================
 function toggleMenuConfig() { 
-    document.getElementById('configDropdown').classList.toggle('hidden'); 
-    document.getElementById('conquistasDropdown').classList.add('hidden'); 
+    abrirModalMeuPerfil();
 }
+
+function abrirModalMeuPerfil() {
+    const modal = document.getElementById('modal-meu-perfil');
+    if (!modal) return;
+
+    if (document.getElementById('meuPerfilNomeModal')) {
+        document.getElementById('meuPerfilNomeModal').textContent = usuarioLogado.nome || 'Aluno';
+    }
+    if (document.getElementById('meuPerfilRoleModal')) {
+        document.getElementById('meuPerfilRoleModal').textContent = (usuarioLogado.perfil === 'Professor') ? 'Professor' : 'Estudante Ativo';
+    }
+    if (document.getElementById('userEmailDisplay')) {
+        document.getElementById('userEmailDisplay').textContent = usuarioLogado.email || 'aluno@escola.sp.gov.br';
+    }
+    const avatarEl = document.getElementById('meuPerfilAvatarModal');
+    if (avatarEl) {
+        if (usuarioLogado.foto) {
+            avatarEl.style.backgroundImage = `url(${usuarioLogado.foto})`;
+            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.style.backgroundPosition = 'center';
+            avatarEl.textContent = '';
+        } else {
+            avatarEl.style.backgroundImage = 'none';
+            avatarEl.textContent = '👤';
+        }
+    }
+
+    carregarDadosPerfil();
+
+    if (document.getElementById('acertosStats')) {
+        document.getElementById('acertosStats').textContent = usuarioLogado.totalAcertos || 0;
+    }
+    if (document.getElementById('errosStats')) {
+        let erros = (usuarioLogado.totalQuestoes || 0) - (usuarioLogado.totalAcertos || 0);
+        document.getElementById('errosStats').textContent = erros >= 0 ? erros : 0;
+    }
+    if (document.getElementById('sequenciaStats')) {
+        document.getElementById('sequenciaStats').innerHTML = `🔥 Sequência: <strong>${usuarioLogado.sequencia || 0} Dias</strong>`;
+    }
+    let minutosEstudados = (usuarioLogado.tempoEstudadoSegundos || 0) / 60;
+    let h = Math.floor(minutosEstudados / 60);
+    let m = Math.floor(minutosEstudados % 60);
+    if (document.getElementById('horasEstudadasStats')) {
+        document.getElementById('horasEstudadasStats').innerHTML = `⏱ Horas: <strong>${h}h ${m}m</strong>`;
+    }
+
+    modal.classList.remove('hidden');
+    const conquistasDrop = document.getElementById('conquistasDropdown');
+    if (conquistasDrop) conquistasDrop.classList.add('hidden');
+}
+
+function fecharModalMeuPerfil() {
+    const modal = document.getElementById('modal-meu-perfil');
+    if (modal) modal.classList.add('hidden');
+}
+
 function toggleConquistas() { 
-    document.getElementById('conquistasDropdown').classList.toggle('hidden'); 
-    document.getElementById('configDropdown').classList.add('hidden'); 
+    const cDrop = document.getElementById('conquistasDropdown');
+    if (cDrop) cDrop.classList.toggle('hidden'); 
+    fecharModalMeuPerfil(); 
     renderizarConquistas(); 
 }
+function aplicarTema(tema) {
+    const isLight = (tema === 'light');
+    if (isLight) {
+        document.body.classList.remove('dark-theme');
+        document.documentElement.classList.remove('dark-theme');
+    } else {
+        document.body.classList.add('dark-theme');
+        document.documentElement.classList.add('dark-theme');
+    }
+}
+
 function toggleTheme() {
-    document.body.classList.toggle('dark-theme');
-    localStorage.setItem('tema', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    const isDark = document.body.classList.contains('dark-theme');
+    const novoTema = isDark ? 'light' : 'dark';
+    localStorage.setItem('tema', novoTema);
+    aplicarTema(novoTema);
 }
-// Sempre inicia no tema escuro (padrão StudySP)
-if (localStorage.getItem('tema') !== 'light') {
-    document.body.classList.add('dark-theme');
-}
+
+// Inicializa o tema na inicialização
+(function() {
+    const temaSalvo = localStorage.getItem('tema');
+    aplicarTema(temaSalvo === 'light' ? 'light' : 'dark');
+})();
 
 // Se for professor, renomeia o item "Estudar" para "Publicar" na barra lateral
 if (usuarioLogado && usuarioLogado.perfil === 'Professor') {
@@ -277,7 +350,6 @@ document.querySelectorAll('.sidebar nav a').forEach(link => {
             secaoInicio.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (this.id === 'menu-estudar') {
             document.getElementById('secao-estudar').classList.remove('hidden');
-            // Atualiza o título da seção com base no perfil
             const tituloSecao = document.getElementById('titulo-secao-estudar');
             const subtituloSecao = document.getElementById('subtitulo-secao-estudar');
             if (usuarioLogado && usuarioLogado.perfil === 'Professor') {
@@ -312,18 +384,28 @@ function atualizarBanco(usuarioAtualizado) {
     let index = usuariosBD.findIndex(u => u.rm === usuarioAtualizado.rm);
     if(index !== -1) {
         usuariosBD[index] = usuarioAtualizado;
-        localStorage.setItem('bd_usuarios', JSON.stringify(usuariosBD));
+    } else {
+        usuariosBD.push(usuarioAtualizado);
+    }
+    localStorage.setItem('bd_usuarios', JSON.stringify(usuariosBD));
+
+    // Sincroniza com a API do Servidor (persistência global entre navegadores)
+    if (window.API && typeof window.API.atualizarUsuario === 'function') {
+        window.API.atualizarUsuario(usuarioAtualizado).catch(err => {
+            console.warn('[StudySP] Falha ao sincronizar dados com o servidor:', err);
+        });
     }
 }
 
 function salvarPerfil() {
-    usuarioLogado.endereco = document.getElementById('perfilEndereco').value;
-    usuarioLogado.cidade = document.getElementById('perfilCidade').value;
-    usuarioLogado.telefone = document.getElementById('perfilTelefone').value;
-    usuarioLogado.idade = document.getElementById('perfilIdade').value;
-    usuarioLogado.bio = document.getElementById('perfilBio').value;
+    if (document.getElementById('perfilEndereco')) usuarioLogado.endereco = document.getElementById('perfilEndereco').value;
+    if (document.getElementById('perfilCidade')) usuarioLogado.cidade = document.getElementById('perfilCidade').value;
+    if (document.getElementById('perfilTelefone')) usuarioLogado.telefone = document.getElementById('perfilTelefone').value;
+    if (document.getElementById('perfilIdade')) usuarioLogado.idade = document.getElementById('perfilIdade').value;
+    if (document.getElementById('perfilBio')) usuarioLogado.bio = document.getElementById('perfilBio').value;
     atualizarBanco(usuarioLogado);
     mostrarToastCanto('Perfil Atualizado', 'Suas informações foram salvas com sucesso!', 'success');
+    fecharModalMeuPerfil();
 }
 
 function carregarDadosPerfil() {
@@ -361,6 +443,30 @@ document.getElementById('inputFoto').addEventListener('change', function(e) {
                 sidebarAvatar.style.backgroundPosition = 'center';
                 sidebarAvatar.innerText = '';
             }
+
+            // Se for Professor, atualiza a foto em todas as matérias que ele já publicou
+            if (usuarioLogado.perfil === 'Professor') {
+                const conteudos = obterConteudosLocais();
+                let mudou = false;
+                conteudos.forEach(item => {
+                    const pertenceAoProf = (item.profRM && String(item.profRM) === String(usuarioLogado.rm)) || 
+                                          (item.profNome && item.profNome.trim().toLowerCase() === usuarioLogado.nome.trim().toLowerCase());
+                    if (pertenceAoProf) {
+                        item.profFoto = usuarioLogado.foto;
+                        item.profRM = usuarioLogado.rm;
+                        mudou = true;
+                        persistirConteudoServidor(item);
+                    }
+                });
+                if (mudou) {
+                    salvarConteudosLocais(conteudos);
+                    const btnAtivo = document.querySelector('.materia-btn.active');
+                    if (btnAtivo) {
+                        carregarMateria(btnAtivo.innerText.trim());
+                    }
+                }
+            }
+
             carregarRank(); 
             mostrarToastCanto('Foto Atualizada', 'Sua foto de perfil foi atualizada com sucesso!', 'success');
         };
@@ -373,43 +479,29 @@ function sairDaConta() { localStorage.removeItem('usuarioLogado'); window.locati
 
 // RANK REAL DOS ALUNOS E PÓDIO
 // ==========================================
-function carregarRank() {
-    const rankList = document.getElementById('rankList');
-    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
-    let alunos = usuarios.filter(user => user.perfil === 'Aluno');
+function renderizarRankComAlunos(alunos) {
+    let userRankIndex = alunos.findIndex(u => u.rm === usuarioLogado.rm);
+    let rankPos = userRankIndex !== -1 ? userRankIndex + 1 : '-';
+    if(document.getElementById('rankPositionDisplay')) {
+        document.getElementById('rankPositionDisplay').textContent = `Você está no Top ${rankPos}`;
+    }
     
-    alunos.forEach(aluno => {
-        if (!aluno.pontos) aluno.pontos = 0;
-        if (!aluno.sequencia) aluno.sequencia = 0;
-    });
-    
-    // Ordena do maior para o menor ponto
-    alunos.sort((a, b) => b.pontos - a.pontos);
-    
-    // ----------------------------------------------------
     // 1. RENDERIZAR O PÓDIO (TOP 3 NA TELA INÍCIO)
-    // ----------------------------------------------------
     const podioContainer = document.getElementById('podio-container');
     if (podioContainer) {
         let top3 = alunos.slice(0, 3);
         let htmlPodio = '';
         
-       
-           // Estrutura a ordem visual da tela: Esquerda(2º), Centro(1º), Direita(3º)
         const posicoes = [
-            { rank: 2, aluno: top3[1], class: 'podio-prata', height: '240px' },
-            { rank: 1, aluno: top3[0], class: 'podio-ouro', height: '290px' },
-            { rank: 3, aluno: top3[2], class: 'podio-bronze', height: '200px' }
+            { rank: 2, aluno: top3[1], class: 'podio-prata', height: '200px' },
+            { rank: 1, aluno: top3[0], class: 'podio-ouro', height: '245px' },
+            { rank: 3, aluno: top3[2], class: 'podio-bronze', height: '175px' }
         ];
         
-    
-
         posicoes.forEach(pos => {
             if (pos.aluno) {
-                // Se o aluno tiver foto de perfil, usa a foto. Se não, fica o emoji padrão
                 let avatarStyle = pos.aluno.foto ? `background-image: url(${pos.aluno.foto}); color: transparent; background-size: cover; background-position: center;` : ``;
                 
-                // O .split(' ')[0] pega apenas o primeiro nome do aluno para não quebrar a tela
                 htmlPodio += `
                     <div class="degrau-podio ${pos.class}" style="height: ${pos.height};">
                         <div class="podio-avatar" style="${avatarStyle}">👤</div>
@@ -420,7 +512,6 @@ function carregarRank() {
                     </div>
                 `;
             } else {
-                // Caso ainda não existam 3 alunos cadastrados no sistema
                 htmlPodio += `
                     <div class="degrau-podio ${pos.class}" style="height: ${pos.height}; opacity: 0.3;">
                         <div class="podio-posicao">${pos.rank}º</div>
@@ -432,9 +523,8 @@ function carregarRank() {
         podioContainer.innerHTML = htmlPodio;
     }
 
-    // ----------------------------------------------------
     // 2. RENDERIZAR A LISTA LATERAL COMPLETA
-    // ----------------------------------------------------
+    const rankList = document.getElementById('rankList');
     if (rankList) {
         rankList.innerHTML = ''; 
         let htmlRank = '';
@@ -457,76 +547,284 @@ function carregarRank() {
         rankList.innerHTML = htmlRank;
     }
 }
-function mostrarPerfilRank(rmDestino) {
-    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios'));
-    let alunoAlvo = usuarios.find(u => u.rm === rmDestino);
-    if(alunoAlvo) {
-        alert(`🎓 Perfil de ${alunoAlvo.nome}\n📍 Cidade: ${alunoAlvo.cidade || 'Não informada'}\n⭐ Pontos: ${Math.floor(alunoAlvo.pontos || 0)}\n📝 Biografia: "${alunoAlvo.bio || 'Sem biografia.'}"`);
+
+async function carregarRank() {
+    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+    let alunos = usuarios.filter(user => user.perfil === 'Aluno');
+    
+    alunos.forEach(aluno => {
+        if (!aluno.pontos) aluno.pontos = 0;
+        if (!aluno.sequencia) aluno.sequencia = 0;
+    });
+    
+    alunos.sort((a, b) => b.pontos - a.pontos);
+    renderizarRankComAlunos(alunos);
+
+    // Busca ranking sincronizado da nuvem para ver alunos de todos os navegadores
+    try {
+        if (window.API && typeof window.API.buscarUsuarios === 'function') {
+            const usuariosRemotos = await window.API.buscarUsuarios();
+            if (Array.isArray(usuariosRemotos) && usuariosRemotos.length > 0) {
+                localStorage.setItem('bd_usuarios', JSON.stringify(usuariosRemotos));
+                let alunosRemotos = usuariosRemotos.filter(user => user.perfil === 'Aluno');
+                alunosRemotos.forEach(aluno => {
+                    if (!aluno.pontos) aluno.pontos = 0;
+                    if (!aluno.sequencia) aluno.sequencia = 0;
+                });
+                alunosRemotos.sort((a, b) => b.pontos - a.pontos);
+                renderizarRankComAlunos(alunosRemotos);
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Erro ao sincronizar ranking com servidor:', err);
     }
 }
+
+// ----------------------------------------------------
+// NOVO MODAL DE PERFIL (SUBSTITUI O ALERT)
+// ----------------------------------------------------
+async function mostrarPerfilRank(rmDestino) {
+    let usuarios = JSON.parse(localStorage.getItem('bd_usuarios')) || [];
+    let alunoAlvo = usuarios.find(u => u.rm === rmDestino);
+    
+    if (!alunoAlvo && window.API && typeof window.API.buscarUsuario === 'function') {
+        try {
+            alunoAlvo = await window.API.buscarUsuario(rmDestino);
+        } catch(e) {}
+    }
+    
+    if(alunoAlvo) {
+        // Preenche os dados HTML do modal
+        document.getElementById('modal-perfil-nome').textContent = alunoAlvo.nome;
+        document.getElementById('modal-perfil-role').textContent = alunoAlvo.perfil || 'Aluno';
+        document.getElementById('modal-perfil-cidade').textContent = alunoAlvo.cidade || 'Não informada';
+        document.getElementById('modal-perfil-pontos').textContent = Math.floor(alunoAlvo.pontos || 0) + ' pts';
+        document.getElementById('modal-perfil-ofensiva').textContent = (alunoAlvo.sequencia || 0) + ' Dias';
+        document.getElementById('modal-perfil-bio').textContent = `"${alunoAlvo.bio || 'Este utilizador ainda não escreveu uma biografia.'}"`;
+        
+        // Lógica para mostrar a foto ou o emoji padrão
+        const avatarEl = document.getElementById('modal-perfil-avatar');
+        if (alunoAlvo.foto) {
+            avatarEl.style.backgroundImage = `url(${alunoAlvo.foto})`;
+            avatarEl.textContent = ''; // Tira o emoji se tiver foto
+        } else {
+            avatarEl.style.backgroundImage = 'none';
+            avatarEl.textContent = '👤';
+        }
+
+        // Exibe o modal na tela
+        document.getElementById('modal-perfil').classList.remove('hidden');
+    }
+}
+
+// Função para fechar o Modal
+function fecharModalPerfil() {
+    document.getElementById('modal-perfil').classList.add('hidden');
+}
+
+// Permite fechar o modal clicando fora dele (no fundo escuro)
+document.addEventListener('click', function(e) {
+    const modalOverlay = document.getElementById('modal-perfil');
+    // Verifica se o clique foi exatamente no fundo escuro e não dentro da caixa
+    if (e.target === modalOverlay) {
+        fecharModalPerfil();
+    }
+});
+
+// Lógica de ajuda e contador do Rank
+document.getElementById('btnRankHelp')?.addEventListener('click', () => {
+    document.getElementById('modal-rank-help').classList.remove('hidden');
+});
+function fecharModalRankHelp() {
+    document.getElementById('modal-rank-help').classList.add('hidden');
+}
+
+function updateRankCountdown() {
+    const countdownEl = document.getElementById('rankCountdown');
+    if (!countdownEl) return;
+    
+    const now = new Date();
+    // Próximo dia 1
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const diff = nextMonth - now;
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const mins = Math.floor((diff / 1000 / 60) % 60);
+    const secs = Math.floor((diff / 1000) % 60);
+    
+    countdownEl.textContent = `Reset em: ${days}d ${hours}h ${mins}m ${secs}s`;
+}
+setInterval(updateRankCountdown, 1000);
+updateRankCountdown();
 
 // ==========================================
 // ESTUDAR (CONTEÚDO) - ATUALIZADO PARA LER O BANCO DO PROFESSOR
 // ==========================================
-function carregarMateria(materiaNome) {
-    // 1. Atualiza os botões visuais da matéria selecionada
-    document.querySelectorAll('.materia-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.innerText === materiaNome) btn.classList.add('active');
-    });
+const LISTA_MATERIAS = ['Português', 'Inglês', 'Matemática', 'Física', 'Química', 'Biologia', 'História', 'Geografia', 'Filosofia', 'Sociologia', 'Redação'];
 
-    // 2. Puxa os conteúdos salvos no banco de dados
-    let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
-    
-    // 3. Filtra apenas as aulas da matéria que o aluno clicou
-    let filtrados = conteudos.filter(c => c.materia.toLowerCase() === materiaNome.toLowerCase());
+function ehProfessor() {
+    return !!(usuarioLogado && usuarioLogado.perfil === 'Professor');
+}
 
+function escapeHtml(texto) {
+    return String(texto == null ? '' : texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function obterConteudosLocais() {
+    return JSON.parse(localStorage.getItem('bd_conteudos')) || [];
+}
+
+function salvarConteudosLocais(lista) {
+    localStorage.setItem('bd_conteudos', JSON.stringify(lista));
+}
+
+function ordemConteudo(item) {
+    if (item && item.ordem != null && item.ordem !== '') return Number(item.ordem);
+    return Number(item && item.id) || 0;
+}
+
+function ordenarConteudos(lista) {
+    return [...lista].sort((a, b) => ordemConteudo(b) - ordemConteudo(a));
+}
+
+function persistirConteudoServidor(conteudo) {
+    if (window.API && typeof window.API.salvarConteudo === 'function') {
+        window.API.salvarConteudo(conteudo).catch(err => {
+            console.warn('[StudySP] Falha ao enviar aula para o servidor:', err);
+        });
+    }
+}
+
+function renderizarConteudosNaTela(filtrados, materiaNome) {
     const container = document.getElementById('conteudo-materia');
+    if (!container) return;
 
-    // 4. Se o professor não publicou nada ainda:
-    if (filtrados.length === 0) {
+    const lista = ordenarConteudos(filtrados);
+
+    if (lista.length === 0) {
         container.innerHTML = `
             <div class="tema-card">
-                <h3 style="color:var(--primary-color);">${materiaNome}</h3>
+                <h3 style="color:var(--primary-color);">${escapeHtml(materiaNome)}</h3>
                 <p style="margin-top:10px; color:var(--text-muted); line-height: 1.6;">Nenhum conteúdo publicado pelo professor para esta matéria ainda.</p>
             </div>
         `;
         return;
     }
 
-    // 5. Se tem aula, monta a tela com Textos, Links, Anexos e Vídeos:
-    container.innerHTML = filtrados.map(item => {
-        // Monta o título e o texto (usando white-space para respeitar as quebras de linha do professor)
-        let htmlCard = `<div class="tema-card" style="margin-bottom: 25px;">
-            <h3 style="color:var(--primary-color); font-size: 20px;">${item.titulo}</h3>
-            <p style="margin: 15px 0; line-height: 1.6; white-space: pre-wrap; font-size: 15px;">${item.texto}</p>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-        `;
+    const professor = ehProfessor();
 
-        // Se o professor colocou um link externo
-        if (item.link) {
-            htmlCard += `<a href="${item.link}" target="_blank" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">🔗 Acessar Link Externo</a>`;
-        }
-
-        // Se o professor enviou um arquivo (PDF ou Imagem)
-        if (item.arquivo) {
-            htmlCard += `<a href="${item.arquivo}" download="${item.nomeArquivo}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">📎 Baixar ${item.nomeArquivo}</a>`;
-        }
+    container.innerHTML = lista.map((item, index) => {
+        const idSeguro = escapeHtml(item.id);
         
-        htmlCard += `</div>`; // Fecha a div dos botões
+        // Determina a foto mais recente do professor que publicou
+        let profFoto = item.profFoto;
+        if (usuarioLogado && ((item.profRM && String(item.profRM) === String(usuarioLogado.rm)) || (item.profNome && usuarioLogado.nome && item.profNome.trim().toLowerCase() === usuarioLogado.nome.trim().toLowerCase()))) {
+            profFoto = usuarioLogado.foto || profFoto;
+        } else {
+            const todosUsuarios = JSON.parse(localStorage.getItem('bd_usuarios') || '[]');
+            const profEncontrado = todosUsuarios.find(u => (item.profRM && String(u.rm) === String(item.profRM)) || (item.profNome && u.nome && item.profNome.trim().toLowerCase() === u.nome.trim().toLowerCase()));
+            if (profEncontrado && profEncontrado.foto) {
+                profFoto = profEncontrado.foto;
+            }
+        }
+        let avatarStyle = profFoto ? `background-image: url(${profFoto}); background-size: cover; background-position: center; color: transparent;` : '';
+        const horario = item.editado
+            ? `✏️ Editado em ${item.dataHora || 'agora'}`
+            : (item.dataHora || 'Recentemente');
 
-        // Se o professor colocou um ID de vídeo do YouTube
-        if (item.video) {
-            htmlCard += `
-                <div style="margin-top:20px; position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:10px; border: 1px solid var(--border-color);">
-                    <iframe src="https://www.youtube.com/embed/${item.video}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+        let acoesHtml = '';
+        if (professor) {
+            const opcoesMover = LISTA_MATERIAS
+                .filter(m => m.toLowerCase() !== String(item.materia || '').toLowerCase())
+                .map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`)
+                .join('');
+            acoesHtml = `
+                <div class="acoes-publicacao">
+                    <button type="button" class="btn-acao-pub" title="Mover para cima" ${index === 0 ? 'disabled' : ''} onclick="moverConteudo('${idSeguro}', -1)">↑</button>
+                    <button type="button" class="btn-acao-pub" title="Mover para baixo" ${index === lista.length - 1 ? 'disabled' : ''} onclick="moverConteudo('${idSeguro}', 1)">↓</button>
+                    <select class="select-mover-materia" title="Mover para outra matéria" onchange="pedirMoverMateria('${idSeguro}', this.value)">
+                        <option value="" selected>Mover para...</option>
+                        ${opcoesMover}
+                    </select>
+                    <button type="button" class="btn-acao-pub" onclick="iniciarEdicaoConteudo('${idSeguro}')">✏️ Editar</button>
+                    <button type="button" class="btn-acao-pub btn-apagar" onclick="pedirApagarConteudo('${idSeguro}')">🗑️ Apagar</button>
                 </div>
             `;
         }
 
-        htmlCard += `</div>`; // Fecha o cartão inteiro
+        let htmlCard = `<div class="tema-card" style="margin-bottom: 25px;">
+            <div class="tema-card-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 14px; ${avatarStyle}">👤</div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 13px; font-weight: bold; color: var(--text-main);">${escapeHtml(item.profNome || 'Professor')}</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(horario)}</span>
+                    </div>
+                </div>
+                ${acoesHtml}
+            </div>
+            <h3 style="color:var(--primary-color); font-size: 20px;">${escapeHtml(item.titulo)}</h3>
+            <p style="margin: 15px 0; line-height: 1.6; white-space: pre-wrap; font-size: 15px;">${escapeHtml(item.texto)}</p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+        `;
+
+        if (item.link) {
+            htmlCard += `<a href="${escapeHtml(item.link)}" target="_blank" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">🔗 Acessar Link Externo</a>`;
+        }
+
+        if (item.arquivo) {
+            htmlCard += `<a href="${item.arquivo}" download="${escapeHtml(item.nomeArquivo || 'arquivo')}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">📎 Baixar ${escapeHtml(item.nomeArquivo || 'arquivo')}</a>`;
+        }
+        
+        htmlCard += `</div>`; 
+
+        if (item.video) {
+            htmlCard += `
+                <div style="margin:20px auto 0 auto; width: 60%; position:relative; padding-bottom:33.75%; height:0; overflow:hidden; border-radius:10px; border: 1px solid var(--border-color);">
+                    <iframe src="https://www.youtube.com/embed/${escapeHtml(item.video)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                </div>
+            `;
+        }
+
+        htmlCard += `</div>`; 
         return htmlCard;
-    }).reverse().join(''); // .reverse() faz a aula mais nova aparecer primeiro no topo
+    }).join(''); 
+}
+
+async function carregarMateria(materiaNome) {
+    // 1. Atualiza os botões visuais da matéria selecionada
+    document.querySelectorAll('.materia-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText === materiaNome) btn.classList.add('active');
+    });
+    const selectMateria = document.getElementById('profMateria');
+    if (selectMateria && !document.getElementById('profEditandoId')?.value) {
+        selectMateria.value = materiaNome;
+    }
+
+    // 2. Puxa os conteúdos salvos no cache local para exibição instantânea
+    let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
+    let filtrados = conteudos.filter(c => c.materia && c.materia.toLowerCase() === materiaNome.toLowerCase());
+    renderizarConteudosNaTela(filtrados, materiaNome);
+
+    // 3. Sincroniza em segundo plano com o banco de dados do servidor
+    try {
+        if (window.API && typeof window.API.buscarConteudos === 'function') {
+            const conteudosServidor = await window.API.buscarConteudos();
+            if (Array.isArray(conteudosServidor) && conteudosServidor.length > 0) {
+                localStorage.setItem('bd_conteudos', JSON.stringify(conteudosServidor));
+                let filtradosServidor = conteudosServidor.filter(c => c.materia && c.materia.toLowerCase() === materiaNome.toLowerCase());
+                renderizarConteudosNaTela(filtradosServidor, materiaNome);
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Falha ao atualizar conteúdos da matéria do servidor:', err);
+    }
 }
 
 function toggleChatIA() { document.getElementById('chatIAModal').classList.toggle('hidden'); }
@@ -540,34 +838,88 @@ let tempoTotalSessao = 0;
 let modoEstudo = true; 
 let rodando = false;
 
+let eyeOpen = true;
+function toggleMiniTimerEye() {
+    eyeOpen = !eyeOpen;
+    document.getElementById('btnToggleTimerEye').textContent = eyeOpen ? '👁️' : '🙈';
+    atualizarVisorPomodoro();
+}
+
+function fecharMiniTimer() {
+    const miniW = document.getElementById('miniTimerWidget');
+    if (miniW) {
+        miniW.classList.add('hidden');
+        miniW.style.display = 'none';
+    }
+}
+
+function reexibirMiniTimer() {
+    const miniW = document.getElementById('miniTimerWidget');
+    if (miniW) {
+        miniW.classList.remove('hidden');
+        miniW.style.display = 'flex';
+        atualizarVisorPomodoro();
+        mostrarToastCanto("Mini Cronômetro", "Mini Cronômetro reexibido no canto da tela!", "info", 2500);
+    }
+}
+
 function atualizarVisorPomodoro() {
     let minutos = Math.floor(tempoRestante / 60);
     let segundos = tempoRestante % 60;
+    let tempoStr = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    
     if(document.getElementById('timerDisplay')){
-        document.getElementById('timerDisplay').textContent = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        document.getElementById('timerDisplay').textContent = tempoStr;
     }
+    if(document.getElementById('miniTimerTime')){
+        document.getElementById('miniTimerTime').textContent = eyeOpen ? tempoStr : '***';
+    }
+    
     if (tempoTotalSessao > 0 && document.getElementById('clockHand')) {
         let graus = (1 - (tempoRestante / tempoTotalSessao)) * 360;
         document.getElementById('clockHand').style.transform = `rotate(${graus}deg)`;
     }
 }
 function calcularMultiplicador() {
-    let horasEstudadas = usuarioLogado.tempoEstudadoSegundos / 3600;
+    let minutosEstudados = (usuarioLogado.tempoEstudadoSegundos || 0) / 60;
     let novoMultiplicador = 1.0;
-    if (horasEstudadas >= 3) novoMultiplicador = 1.5;
-    else if (horasEstudadas >= 2) novoMultiplicador = 1.4;
-    else if (horasEstudadas >= 1) novoMultiplicador = 1.2;
+    
+    // Quando o Pomodoro é iniciado ou se o usuário já estudou na plataforma, base vai para 1.2x
+    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando) || minutosEstudados > 0) {
+        novoMultiplicador = 1.2;
+    }
+    
+    if (minutosEstudados >= 120) novoMultiplicador = 1.5;
+    else if (minutosEstudados >= 60) novoMultiplicador = 1.4;
+    else if (minutosEstudados >= 30) novoMultiplicador = 1.3;
 
     usuarioLogado.multiplicador = novoMultiplicador;
     atualizarBanco(usuarioLogado);
     
-    if(document.getElementById('multiplicadorDisplay')) document.getElementById('multiplicadorDisplay').textContent = `${novoMultiplicador.toFixed(1)}x`;
-    let h = Math.floor(horasEstudadas);
-    let m = Math.floor((usuarioLogado.tempoEstudadoSegundos % 3600) / 60);
-    if(document.getElementById('totalEstudadoDisplay')) document.getElementById('totalEstudadoDisplay').textContent = `${h}h ${m}m`;
+    if (document.getElementById('multiplicadorDisplay')) {
+        document.getElementById('multiplicadorDisplay').textContent = `${novoMultiplicador.toFixed(1)}x`;
+    }
+    if (document.getElementById('res-multiplicador')) {
+        document.getElementById('res-multiplicador').textContent = `(x${novoMultiplicador.toFixed(1)})`;
+    }
+    let h = Math.floor(minutosEstudados / 60);
+    let m = Math.floor(minutosEstudados % 60);
+    if (document.getElementById('totalEstudadoDisplay')) {
+        document.getElementById('totalEstudadoDisplay').textContent = `${h}h ${m}m`;
+    }
 }
+
 function iniciarPomodoro() {
     if (rodando) return;
+    
+    // Ativa imediatamente o multiplicador para 1.2x em todos os pontos da plataforma
+    usuarioLogado.pomodoroIniciado = true;
+    if (!usuarioLogado.multiplicador || usuarioLogado.multiplicador < 1.2) {
+        usuarioLogado.multiplicador = 1.2;
+    }
+    calcularMultiplicador();
+    if (typeof verificarConquistas === 'function') verificarConquistas();
+    
     if (tempoRestante === 0) {
         let inputId = modoEstudo ? 'tempoEstudo' : 'tempoDescanso';
         tempoTotalSessao = parseInt(document.getElementById(inputId).value) * 60;
@@ -575,13 +927,23 @@ function iniciarPomodoro() {
     }
     document.getElementById('estadoPomodoro').textContent = modoEstudo ? "A estudar..." : "Em descanso...";
     document.getElementById('estadoPomodoro').style.color = modoEstudo ? "var(--primary-color)" : "#4CAF50";
+    
+    let miniW = document.getElementById('miniTimerWidget');
+    if(miniW) { 
+        miniW.classList.remove('hidden'); 
+        miniW.style.display = 'flex'; 
+    }
+    
     rodando = true;
     pomodoroTimer = setInterval(() => {
         if (tempoRestante > 0) {
             tempoRestante--;
             if (modoEstudo) {
-                usuarioLogado.tempoEstudadoSegundos++;
-                if (usuarioLogado.tempoEstudadoSegundos % 60 === 0) calcularMultiplicador(); 
+                usuarioLogado.tempoEstudadoSegundos = (usuarioLogado.tempoEstudadoSegundos || 0) + 1;
+                if (usuarioLogado.tempoEstudadoSegundos % 60 === 0) {
+                    calcularMultiplicador();
+                    if (typeof verificarConquistas === 'function') verificarConquistas();
+                }
             }
             atualizarVisorPomodoro();
         } else {
@@ -589,119 +951,1035 @@ function iniciarPomodoro() {
             rodando = false;
             modoEstudo = !modoEstudo; 
             tempoRestante = 0;
-            alert(modoEstudo ? "O descanso acabou! Hora de voltar ao foco." : "Ciclo concluído! Hora de descansar.");
-            iniciarPomodoro(); 
+            // Abre a janela flutuante no lugar do alert do navegador!
+            mostrarModalPomodoroTransicao(modoEstudo ? 'estudo' : 'descanso');
         }
     }, 1000);
 }
-function pausarPomodoro() { clearInterval(pomodoroTimer); rodando = false; document.getElementById('estadoPomodoro').textContent = "Em pausa"; }
+
+function pausarPomodoro() { 
+    clearInterval(pomodoroTimer); 
+    rodando = false; 
+    document.getElementById('estadoPomodoro').textContent = "Em pausa"; 
+}
+
 function resetarPomodoro() {
-    clearInterval(pomodoroTimer); rodando = false; modoEstudo = true;
+    clearInterval(pomodoroTimer); 
+    rodando = false; 
+    modoEstudo = true;
     tempoRestante = parseInt(document.getElementById('tempoEstudo').value) * 60;
-    tempoTotalSessao = tempoRestante; atualizarVisorPomodoro();
-    document.getElementById('estadoPomodoro').textContent = "A aguardar";
+    tempoTotalSessao = tempoRestante; 
+    atualizarVisorPomodoro();
+    document.getElementById('estadoPomodoro').textContent = "Aguardando";
     if(document.getElementById('clockHand')) document.getElementById('clockHand').style.transform = `rotate(0deg)`;
 }
 
-// ==========================================
+// JANELA FLUTUANTE DE TRANSIÇÃO DO POMODORO (DESCANSO E ESTUDO)
+function mostrarModalPomodoroTransicao(tipo) {
+    const modal = document.getElementById('modal-pomodoro-transicao');
+    if (!modal) return;
+    
+    const icone = document.getElementById('transicaoIconCircle');
+    const titulo = document.getElementById('transicaoTitulo');
+    const subtitulo = document.getElementById('transicaoSubtitulo');
+    const badge = document.getElementById('transicaoBadge');
+    const btn = document.getElementById('btnContinuarTransicao');
+    
+    const mult = (usuarioLogado.multiplicador || 1.2).toFixed(1);
+    
+    if (tipo === 'descanso') {
+        if (icone) icone.textContent = '☕';
+        if (titulo) titulo.textContent = 'Hora do Descanso!';
+        if (subtitulo) subtitulo.textContent = 'Parabéns pelo ciclo de foco concluído! Descanse os olhos, beba água e relaxe por alguns minutos.';
+        if (badge) badge.innerHTML = `<span>✨ Multiplicador ativo: <strong>${mult}x</strong> • Bônus mantido</span>`;
+        if (btn) btn.textContent = 'Aproveitar Descanso ☕';
+    } else {
+        if (icone) icone.textContent = '🎯';
+        if (titulo) titulo.textContent = 'Hora de Voltar ao Foco!';
+        if (subtitulo) subtitulo.textContent = 'O tempo de descanso acabou! Retome os estudos com foco total para o Provão Paulista.';
+        if (badge) badge.innerHTML = `<span>🚀 Ciclo de Estudo Ativado • Multiplicador <strong>${mult}x</strong> turbinando seu aprendizado</span>`;
+        if (btn) btn.textContent = 'Continuar Estudando 📚';
+    }
+    
+    modal.classList.remove('hidden');
+    tocarSinalPomodoro(tipo);
+}
+
+function fecharModalPomodoroTransicao() {
+    const modal = document.getElementById('modal-pomodoro-transicao');
+    if (modal) modal.classList.add('hidden');
+    iniciarPomodoro();
+}
+
+// JANELA FLUTUANTE DE AJUDA / SOBRE O MÉTODO POMODORO
+function abrirModalPomodoroInfo() {
+    const modal = document.getElementById('modal-pomodoro-info');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function fecharModalPomodoroInfo() {
+    const modal = document.getElementById('modal-pomodoro-info');
+    if (modal) modal.classList.add('hidden');
+}
+
+// SINAL SONORO SUAVE SINTETIZADO (WEB AUDIO API)
+function tocarSinalPomodoro(tipo) {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        const freq = (tipo === 'descanso') ? 587.33 : 880;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+    } catch (e) {}
+}
+
+// TORNAR MINI TIMER ARRASTÁVEL PELA TELA
+function tornarMiniTimerArrastavel() {
+    const mini = document.getElementById('miniTimerWidget');
+    if (!mini) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialX = 0;
+    let initialY = 0;
+
+    // Restaura posição salva se o usuário já moveu antes
+    try {
+        const salvo = JSON.parse(localStorage.getItem('miniTimerPos'));
+        if (salvo && typeof salvo.left === 'number' && typeof salvo.top === 'number') {
+            const maxL = window.innerWidth - (mini.offsetWidth || 180) - 10;
+            const maxT = window.innerHeight - (mini.offsetHeight || 80) - 10;
+            mini.style.left = `${Math.max(10, Math.min(salvo.left, maxL))}px`;
+            mini.style.top = `${Math.max(10, Math.min(salvo.top, maxT))}px`;
+            mini.style.right = 'auto';
+            mini.style.bottom = 'auto';
+        }
+    } catch (e) {}
+
+    const onStart = (e) => {
+        if (e.target.closest('button')) return; // Permite clicar nos botões normalmente
+        
+        isDragging = true;
+        mini.classList.add('dragging');
+        
+        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        
+        startX = clientX;
+        startY = clientY;
+        
+        const rect = mini.getBoundingClientRect();
+        initialX = rect.left;
+        initialY = rect.top;
+        
+        mini.style.right = 'auto';
+        mini.style.bottom = 'auto';
+        mini.style.left = `${initialX}px`;
+        mini.style.top = `${initialY}px`;
+        
+        if (e.cancelable) e.preventDefault();
+    };
+
+    const onMove = (e) => {
+        if (!isDragging) return;
+        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        
+        let newX = initialX + dx;
+        let newY = initialY + dy;
+        
+        const maxLeft = window.innerWidth - (mini.offsetWidth || 180) - 10;
+        const maxTop = window.innerHeight - (mini.offsetHeight || 80) - 10;
+        
+        newX = Math.max(10, Math.min(newX, maxLeft));
+        newY = Math.max(10, Math.min(newY, maxTop));
+        
+        mini.style.left = `${newX}px`;
+        mini.style.top = `${newY}px`;
+    };
+
+    const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        mini.classList.remove('dragging');
+        try {
+            const rect = mini.getBoundingClientRect();
+            localStorage.setItem('miniTimerPos', JSON.stringify({ left: rect.left, top: rect.top }));
+        } catch (e) {}
+    };
+
+    mini.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+
+    mini.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+}
+
 // ==========================================
 // BANCO DE QUESTÕES PROVÃO PAULISTA (ORGANIZADO POR EDIÇÃO)
 // ==========================================
 let questoesProfessor = JSON.parse(localStorage.getItem('bd_simulados')) || [];
 
-// BANCO OFICIAL — questões baseadas nos conteúdos cobrados nas edições 2023 e 2024
+// // BANCO OFICIAL — Questões contextualizadas no modelo VUNESP / Provão Paulista (SEDUC-SP)
 const bancoQuestoes = {
     '1º Ano - 2023': [
-        { pergunta: "Na obra 'Os Lusíadas', de Camões, o episódio do 'Velho do Restelo' representa principalmente:", opcoes: ["A glorificação das navegações portuguesas","A crítica ao espírito expansionista e seus custos humanos","A homenagem ao rei Dom Manuel I","O elogio à bravura dos marinheiros lusitanos"], correta: 1, tema: "Literatura Portuguesa / Camões" },
-        { pergunta: "Qual a fórmula química do Ácido Sulfúrico?", opcoes: ["HCl", "H₂SO₄", "NaCl", "CO₂"], correta: 1, tema: "Química Inorgânica: Ácidos" },
-        { pergunta: "Um ciclista percorre 30 km em 2 horas. Qual a sua velocidade média?", opcoes: ["10 km/h", "15 km/h", "20 km/h", "30 km/h"], correta: 1, tema: "Física: Cinemática" },
-        { pergunta: "O Modernismo brasileiro teve início com a Semana de Arte Moderna de 1922. Qual cidade a sediou?", opcoes: ["Rio de Janeiro", "Salvador", "São Paulo", "Recife"], correta: 2, tema: "Literatura Brasileira: Modernismo" },
-        { pergunta: "Na matemática, a soma dos ângulos internos de um triângulo é sempre:", opcoes: ["90°", "180°", "270°", "360°"], correta: 1, tema: "Matemática: Geometria Plana" },
-        { pergunta: "O processo de fotossíntese ocorre nas células que possuem:", opcoes: ["Mitocôndrias", "Ribossomos", "Cloroplastos", "Lisossomos"], correta: 2, tema: "Biologia: Célula Vegetal" },
-        { pergunta: "A Revolução Industrial teve início no século XVIII em qual país?", opcoes: ["França", "Estados Unidos", "Alemanha", "Inglaterra"], correta: 3, tema: "História: Revolução Industrial" },
-        { pergunta: "Em Inglês, qual é a tradução correta de 'She is studying for the exam'?", opcoes: ["Ela estudou para a prova","Ela está estudando para a prova","Ela vai estudar para a prova","Ela estudará para a prova"], correta: 1, tema: "Inglês: Present Continuous" },
-        { pergunta: "O Brasil possui a maior floresta tropical do mundo. Como ela é chamada?", opcoes: ["Floresta do Pacífico", "Amazônia", "Cerrado", "Mata Atlântica"], correta: 1, tema: "Geografia: Biomas Brasileiros" },
-        { pergunta: "Qual filósofo grego é considerado o 'pai da filosofia ocidental'?", opcoes: ["Aristóteles", "Platão", "Sócrates", "Epicuro"], correta: 2, tema: "Filosofia: Origens do Pensamento Grego" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) Leia o trecho de 'Os Lusíadas' (Canto IV): 'Ó glória de mandar, ó vã cobiça / Desta vaidade a quem chamamos Fama! / Ó fraudulento gosto, que se atiça / C'uma aura popular, que honra se chama!'. A fala do 'Velho do Restelo' no momento da partida das naus portuguesas expressa:",
+            opcoes: [
+                "A glorificação incondicional da expansão marítima e a busca por riquezas nas Índias.",
+                "A crítica severa à ambição desmedida da nobreza e aos custos humanos e sociais das navegações.",
+                "O entusiasmo do povo humilde com a promessa de glória e terras no além-mar.",
+                "A celebração religiosa da catequese sobre os povos do continente africano."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Classicismo e Epopeia Camoniana"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em uma aula prática de química sobre segurança laboratorial, um professor explica que o ácido sulfúrico (H₂SO₄) é um ácido diprótico forte muito utilizado na indústria de fertilizantes. Ao reagir completamente com hidróxido de sódio (NaOH), a equação química balanceada que representa essa neutralização é:",
+            opcoes: [
+                "H₂SO₄ + NaOH → NaSO₄ + H₂O",
+                "H₂SO₄ + 2 NaOH → Na₂SO₄ + 2 H₂O",
+                "2 H₂SO₄ + NaOH → Na₂SO₄ + H₂O",
+                "H₂SO₄ + NaOH → Na₂SO₄ + H₂"
+            ],
+            correta: 1,
+            tema: "Química: Funções Inorgânicas e Reações de Neutralização"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Um veículo de transporte escolar trafega em uma avenida retilínea de São Paulo a 72 km/h (20 m/s). Ao avistar a faixa de pedestres, o motorista aciona os freios, imprimindo uma desaceleração constante de magnitude 4 m/s². A distância percorrida pelo veículo até parar completamente é de:",
+            opcoes: [
+                "25 metros",
+                "50 metros",
+                "80 metros",
+                "100 metros"
+            ],
+            correta: 1,
+            tema: "Física: Movimento Retilíneo Uniformemente Variado (Equação de Torricelli)"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Um agricultor paulista deseja cercar um canteiro retangular de hortaliças com 120 metros de tela. Sabendo que o comprimento do canteiro é o triplo da sua largura, a área total cultivada desse canteiro retangular corresponde a:",
+            opcoes: [
+                "450 m²",
+                "675 m²",
+                "900 m²",
+                "1.350 m²"
+            ],
+            correta: 1,
+            tema: "Matemática: Equações de 1º Grau e Geometria Plana"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Durante uma expedição pela Serra do Mar, estudantes observaram que as briófitas (musgos) crescem apenas em locais úmidos e sombreados, apresentando pequeno porte (poucos centímetros). Essa limitação de tamanho e dependência da água decorre diretamente:",
+            opcoes: [
+                "Da ausência de clorofila e incapacidade de realizar fotossíntese completa.",
+                "Da ausência de vasos condutores de seiva (xilema e floema) e fecundação dependente de água.",
+                "Da produção exclusiva de sementes desprovidas de frutos protetores.",
+                "Da presença de raízes pivotantes profundas que retêm pouca umidade superficial."
+            ],
+            correta: 1,
+            tema: "Biologia: Reino Plantae / Briófitas e Evolução Vegetal"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) 'A introdução das máquinas a vapor e dos teares mecânicos na Inglaterra da segunda metade do século XVIII transformou radicalmente a organização do trabalho humano.' Entre as consequências sociais imediatas da 1ª Revolução Industrial, destaca-se:",
+            opcoes: [
+                "A valorização salarial do artesão tradicional e redução das jornadas fabris.",
+                "A separação definitiva entre o trabalhador e os meios de produção, com longas jornadas e urbanização acelerada.",
+                "A universalização dos direitos trabalhistas e a erradicação do trabalho infantil.",
+                "A descentralização das cidades fabris e o fortalecimento da produção agrícola de subsistência."
+            ],
+            correta: 1,
+            tema: "História: 1ª Revolução Industrial e Transformações Sociais"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O relevo do estado de São Paulo é caracterizado pelo Planalto Atlântico, pela Depressão Periférica e pelo Planalto Ocidental Paulista. A Depressão Periférica Paulista se destaca economicamente e geograficamente por:",
+            opcoes: [
+                "Apresentar as maiores altitudes do estado, abrigando formações de campos de altitude.",
+                "Situar-se entre o Planalto Atlântico e as Cuestas Basálticas, com relevo suave propício à cana-de-açúcar e ferrovias.",
+                "Ser formada exclusivamente por planícies litorâneas sujeitas a transgressões marinhas periódicas.",
+                "Constituir uma zona desértica com solos rasos e ausência de bacias hidrográficas expressivas."
+            ],
+            correta: 1,
+            tema: "Geografia: Geomorfologia e Ocupação do Espaço Paulista"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Na Grécia Antiga, o filósofo Sócrates utilizava um método de diálogo composto por duas etapas: a ironia e a maiêutica. O objetivo central da maiêutica socrática era:",
+            opcoes: [
+                "Transmitir verdades absolutas prontas elaboradas pelos governantes atenienses.",
+                "Ajudar o interlocutor a 'dar à luz' às suas próprias ideias e ao autoconhecimento racional.",
+                "Vencer debates políticos na ágora por meio do uso da retórica sofística e falácias.",
+                "Provar que os sentidos humanos são infalíveis na apreensão da realidade exterior."
+            ],
+            correta: 1,
+            tema: "Filosofia: O Método Socrático e a Busca pela Verdade"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Read the short message: 'Climate change is no longer a future threat; it is an urgent crisis reshaping ecosystems across the globe.' The modal sentence 'Governments must implement strict carbon regulations' expresses an idea of:",
+            opcoes: [
+                "Possibility or doubt about what could occur.",
+                "Obligation and strong necessity in taking action.",
+                "Permission granted by environmental agencies.",
+                "Ability developed through past technological innovation."
+            ],
+            correta: 1,
+            tema: "Língua Inglesa: Modal Verbs (Must / Obligation) e Leitura Temática"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Émile Durkheim postulava que os 'fatos sociais' possuem três características essenciais que condicionam o comportamento dos indivíduos. São elas:",
+            opcoes: [
+                "Subjetividade, flexibilidade e transitoriedade.",
+                "Exterioridade, coercitividade e generalidade.",
+                "Racionalidade econômica, voluntariedade e individualidade.",
+                "Biológica, hereditariedade e determinismo geográfico."
+            ],
+            correta: 1,
+            tema: "Sociologia: Teoria Funcionalista e Fato Social em Durkheim"
+        }
     ],
     '1º Ano - 2024': [
-        { pergunta: "Leia: 'O jogador, que estava cansado, saiu do campo.' A oração sublinhada é:", opcoes: ["Oração coordenada sindética","Oração subordinada adverbial","Oração subordinada adjetiva explicativa","Oração subordinada substantiva"], correta: 2, tema: "Português: Sintaxe / Orações Subordinadas" },
-        { pergunta: "Na tabela periódica, os elementos do Grupo 18 são chamados de:", opcoes: ["Metais alcalinos", "Halogênios", "Gases nobres", "Metais de transição"], correta: 2, tema: "Química: Tabela Periódica" },
-        { pergunta: "Segundo a 1ª Lei de Newton (Inércia), um corpo em repouso permanece em repouso a não ser que:", opcoes: ["Seja aquecido","Uma força resultante não nula atue sobre ele","Seja colocado em movimento por si mesmo","A gravidade deixe de agir"], correta: 1, tema: "Física: Leis de Newton" },
-        { pergunta: "A progressão aritmética (PA) de razão 3 que começa em 2 é: 2, 5, 8, ___, ___. Quais são os próximos termos?", opcoes: ["10 e 12", "11 e 14", "14 e 17", "11 e 13"], correta: 1, tema: "Matemática: Progressão Aritmética" },
-        { pergunta: "Na genética mendeliana, quando dois alelos de um gene são diferentes, o indivíduo é chamado de:", opcoes: ["Homozigoto dominante", "Homozigoto recessivo", "Heterozigoto", "Haplóide"], correta: 2, tema: "Biologia: Genética Mendeliana" },
-        { pergunta: "O período do Brasil Colônia durou aproximadamente de 1500 até:", opcoes: ["1808", "1822", "1889", "1930"], correta: 1, tema: "História: Brasil Colonial" },
-        { pergunta: "Qual fenômeno geográfico explica as diferentes estações do ano na Terra?", opcoes: ["Rotação da Terra","Translação da Terra com eixo inclinado","Atração gravitacional da Lua","Variações na distância Terra-Sol"], correta: 1, tema: "Geografia: Movimentos da Terra" },
-        { pergunta: "O existencialismo de Jean-Paul Sartre é sintetizado na frase:", opcoes: ["'Penso, logo existo'","'A existência precede a essência'","'O homem é a medida de todas as coisas'","'Só sei que nada sei'"], correta: 1, tema: "Filosofia: Existencialismo" },
-        { pergunta: "Em Inglês, complete: 'I ___ to school every day.' (ir - rotina)", opcoes: ["am going", "go", "went", "will go"], correta: 1, tema: "Inglês: Simple Present" },
-        { pergunta: "O processo de globalização intensificado no final do século XX é caracterizado principalmente pela:", opcoes: ["Redução do comércio internacional","Integração econômica, cultural e tecnológica mundial","Fortalecimento das fronteiras nacionais","Diminuição da circulação de pessoas"], correta: 1, tema: "Sociologia: Globalização" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) Leia a estrofe de Gregório de Matos (Barroco Baiano): 'Nasce o Sol, e não dura mais que um dia, / Depois da Luz se segue a noite escura, / Em tristes sombras morre a formosura, / Em contínuas tristezas a alegria.'. A temática central e a figura de linguagem predominante nos versos são, respectivamente:",
+            opcoes: [
+                "A celebração da eternidade das paixões humanas e a metáfora.",
+                "A efemeridade do tempo e da vida (carpe diem / transitoriedade) e a antítese.",
+                "A exaltação patriótica da natureza brasileira e o hipérbato.",
+                "A sátira aos governantes de Salvador e o eufemismo."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Barroco Brasileiro / Gregório de Matos"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em um laboratório de análises, um técnico investiga a densidade de amostras metálicas puras. Uma barra de alumínio de massa 135 g ocupa um volume de 50 cm³. Sabendo que a densidade é a razão entre massa e volume, a densidade dessa barra em g/cm³ e em kg/m³ é, respectivamente:",
+            opcoes: [
+                "2,7 g/cm³ e 2.700 kg/m³",
+                "0,37 g/cm³ e 370 kg/m³",
+                "2,7 g/cm³ e 270 kg/m³",
+                "6,75 g/cm³ e 6.750 kg/m³"
+            ],
+            correta: 0,
+            tema: "Química / Física: Propriedades Gerais da Matéria e Conversão de Unidades"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Segundo a 1ª Lei de Newton (Princípio da Inércia), um corpo em repouso tende a permanecer em repouso e um corpo em movimento retilíneo uniforme tende a permanecer nesse estado a menos que:",
+            opcoes: [
+                "A gravidade atue perpendicularmente ao vetor de velocidade.",
+                "Uma força resultante não nula atue sobre ele, alterando seu estado mecânico.",
+                "Ele perca calor para o meio ambiente circundante.",
+                "Sua velocidade atinja o limiar da velocidade da luz no vácuo."
+            ],
+            correta: 1,
+            tema: "Física: Mecânica Clássica e Leis de Newton"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Os números de casos atendidos em uma unidade de saúde paulista seguiram uma Progressão Aritmética (PA) ao longo de cinco dias: 12, 19, 26, 33, 40. A soma total de atendimentos realizados nessa unidade durante esses cinco dias foi de:",
+            opcoes: [
+                "115 atendimentos",
+                "130 atendimentos",
+                "145 atendimentos",
+                "160 atendimentos"
+            ],
+            correta: 1,
+            tema: "Matemática: Progressão Aritmética (Soma dos Termos de uma PA)"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em ervilhas-de-cheiro (Pisum sativum), o alelo para sementes amarelas (V) é dominante sobre o alelo para sementes verdes (v). Do cruzamento entre duas plantas heterozigotas (Vv × Vv), a proporção fenotípica esperada na descendência é de:",
+            opcoes: [
+                "100% de plantas com sementes amarelas.",
+                "75% sementes amarelas e 25% sementes verdes (proporção 3:1).",
+                "50% sementes amarelas e 50% sementes verdes (proporção 1:1).",
+                "25% sementes amarelas e 75% sementes verdes."
+            ],
+            correta: 1,
+            tema: "Biologia: 1ª Lei de Mendel e Probabilidade Genética"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) 'O Tratado de Tordesilhas, assinado em 1494 entre Portugal e Espanha, dividiu o mundo ultramarino a partir de um meridiano a 370 léguas a oeste de Cabo Verde.' No contexto da colonização do Brasil, as capitanias hereditárias implementadas pela Coroa portuguesa em 1534 objetivavam:",
+            opcoes: [
+                "Permitir a posse da terra aos povos originários tupi-guarani sob supervisão régia.",
+                "Povoar e defender a costa brasileira contra invasões estrangeiras transferindo os custos à iniciativa privada.",
+                "Estabelecer de imediato a mineração de ouro e pedras preciosas no interior da colônia.",
+                "Declarar a emancipação política das províncias ultramarinas perante a Coroa britânica."
+            ],
+            correta: 1,
+            tema: "História: Brasil Colônia / Capitanias Hereditárias e Economia Açucareira"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) As estações do ano ocorrem em ritmos opostos nos hemisférios Norte e Sul. A causa científica fundamental dessa alternância climática ao longo do ano é:",
+            opcoes: [
+                "A variação na distância entre a Terra e o Sol ao longo da órbita elíptica (afélio e periélio).",
+                "A inclinação do eixo de rotação da Terra (aproximadamente 23,5°) combinada com o movimento de translação.",
+                "A rotação diária da Terra associada às variações dos ventos alísios tropicais.",
+                "A atração gravitacional combinada da Lua e dos planetas vizinhos sobre a atmosfera."
+            ],
+            correta: 1,
+            tema: "Geografia: Movimentos da Terra e Climatologia Geral"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O filósofo iluminista Jean-Jacques Rousseau, em sua obra 'Do Contrato Social' (1762), argumenta que o fundamento da autoridade política legítima reside na:",
+            opcoes: [
+                "Tradição monárquica do direito divino dos reis.",
+                "Vontade geral do povo soberano, mediante um pacto social que garanta a liberdade civil.",
+                "Submissão incondicional do cidadão ao poder absolutista do soberano Leviatã.",
+                "Propriedade privada irrestrita regulada exclusivamente pelo livre mercado."
+            ],
+            correta: 1,
+            tema: "Filosofia: Filosofia Política Moderna / Contratualismo de Rousseau"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) In scientific texts, the passive voice is frequently used to emphasize the process rather than the agent. Identify the sentence written in the correct Passive Voice form:",
+            opcoes: [
+                "The researchers collected fifty water samples yesterday.",
+                "Fifty water samples were collected by the researchers yesterday.",
+                "Fifty water samples have collect by the researchers yesterday.",
+                "The researchers was collected fifty water samples yesterday."
+            ],
+            correta: 1,
+            tema: "Língua Inglesa: Voz Passiva (Passive Voice) em Textos Científicos"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Na análise sociológica de Max Weber, o conceito de 'ação social' distingue-se de um mero comportamento reflexo porque a ação social é:",
+            opcoes: [
+                "Praticada unicamente por indivíduos isolados em ambiente doméstico.",
+                "Dotada de sentido subjetivo orientado pela conduta e pelas expectativas de outros indivíduos.",
+                "Imposta compulsoriamente pelas instituições jurídicas do Estado Moderno.",
+                "Determinada de modo automático pelas condições materiais de produção da infraestrutura."
+            ],
+            correta: 1,
+            tema: "Sociologia: Ação Social e Tipos Puros em Max Weber"
+        }
     ],
     '2º Ano - 2023': [
-        { pergunta: "O Naturalismo brasileiro tem como obra mais representativa:", opcoes: ["Dom Casmurro","O Cortiço","Iracema","Memórias de um Sargento de Milícias"], correta: 1, tema: "Literatura: Naturalismo Brasileiro" },
-        { pergunta: "Em química orgânica, os hidrocarbonetos são compostos formados essencialmente por:", opcoes: ["Carbono e Nitrogênio", "Carbono e Hidrogênio", "Oxigênio e Hidrogênio", "Carbono e Oxigênio"], correta: 1, tema: "Química Orgânica: Hidrocarbonetos" },
-        { pergunta: "A fórmula para calcular a energia elétrica consumida é E = P × t. Se uma lâmpada de 100W fica ligada por 5 horas, a energia consumida em Wh é:", opcoes: ["20 Wh", "500 Wh", "100 Wh", "105 Wh"], correta: 1, tema: "Física: Energia Elétrica" },
-        { pergunta: "Qual é o valor de log₁₀(1000)?", opcoes: ["2", "3", "4", "10"], correta: 1, tema: "Matemática: Logaritmos" },
-        { pergunta: "Na cadeia alimentar, os seres que produzem matéria orgânica a partir de luz solar são os:", opcoes: ["Consumidores primários", "Decompositores", "Produtores (Autótrofos)", "Consumidores secundários"], correta: 2, tema: "Biologia: Ecologia / Cadeia Alimentar" },
-        { pergunta: "A Proclamação da República no Brasil ocorreu em:", opcoes: ["7 de setembro de 1822", "15 de novembro de 1889", "13 de maio de 1888", "22 de abril de 1500"], correta: 1, tema: "História: República Velha" },
-        { pergunta: "O fenômeno do El Niño é causado pelo:", opcoes: ["Aquecimento das águas do Oceano Atlântico","Aquecimento anormal das águas do Oceano Pacífico Equatorial","Resfriamento do Oceano Índico","Variação dos ventos alísios no Atlântico"], correta: 1, tema: "Geografia: Climatologia" },
-        { pergunta: "Para Karl Marx, a principal contradição do capitalismo está entre:", opcoes: ["Estado e mercado","Burguesia e proletariado","Cidade e campo","Indústria e comércio"], correta: 1, tema: "Sociologia: Marxismo" },
-        { pergunta: "Em Inglês, 'She has lived in São Paulo since 2010' usa qual tempo verbal?", opcoes: ["Simple Past", "Present Perfect", "Past Perfect", "Present Continuous"], correta: 1, tema: "Inglês: Present Perfect" },
-        { pergunta: "Em uma função do 2º grau f(x) = ax² + bx + c, o gráfico (parábola) abre para cima quando:", opcoes: ["a < 0", "a = 0", "a > 0", "b > 0"], correta: 2, tema: "Matemática: Função Quadrática" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em 'O Cortiço' (1890), Aluísio Azevedo constrói uma narrativa naturalista onde o comportamento das personagens é determinado pelo meio, pela raça e pelo momento histórico (determinismo taineano). A transformação do português Jerônimo, que abandona seus antigos hábitos e família para viver com a mulata Rita Baiana, ilustra:",
+            opcoes: [
+                "O triunfo da moral burguesa sobre os instintos primários dos habitantes do cortiço.",
+                "A influência irresistível do meio tropical e da sensualidade sobre a conduta moral do indivíduo.",
+                "A exaltação do romantismo idealizado onde o amor supera todas as barreiras sociais.",
+                "A denúncia do trabalho assalariado como única causa da decadência psicológica do proletariado."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Naturalismo Brasileiro / Determinismo"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Os hidrocarbonetos constituem a principal matéria-prima fóssil para combustíveis e plásticos. O composto orgânico de fórmula estrutural CH₃–CH₂–CH=CH₂ pertence à função hidrocarboneto e possui a seguinte nomenclatura oficial (IUPAC):",
+            opcoes: [
+                "Butano",
+                "But-1-eno",
+                "But-2-ino",
+                "Ciclobutano"
+            ],
+            correta: 1,
+            tema: "Química Orgânica: Hidrocarbonetos Alcenos e Nomenclatura IUPAC"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em uma residência no interior de SP, um chuveiro elétrico de potência 5.500 W (5,5 kW) é utilizado diariamente durante 30 minutos (0,5 h). Ao final de um mês de 30 dias, a energia elétrica consumida exclusivamente por esse chuveiro, em quilowatts-hora (kWh), é de:",
+            opcoes: [
+                "27,5 kWh",
+                "82,5 kWh",
+                "165,0 kWh",
+                "275,0 kWh"
+            ],
+            correta: 1,
+            tema: "Física: Eletrodinâmica / Potência e Consumo de Energia Elétrica"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A escala Richter quantifica a magnitude sísmica por meio de uma função logarítmica da forma M = ⅔ · log₁₀(E / E₀). Se uma medição resulta no cálculo de log₁₀(x) = 3, o valor real da variável x corresponde a:",
+            opcoes: [
+                "30",
+                "100",
+                "1.000",
+                "10.000"
+            ],
+            correta: 2,
+            tema: "Matemática: Propriedades dos Logaritmos e Funções Exponenciais"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O processo de magnificação trófica (bioacumulação) ocorre ao longo das cadeias alimentares quando poluentes não biodegradáveis (como pesticidas organoclorados ou mercúrio) são ingeridos. Os organismos mais prejudicados e que concentram a maior taxa tóxica no topo da cadeia são os:",
+            opcoes: [
+                "Produtores primários (fitoplâncton e algas)",
+                "Consumidores primários (herbívoros)",
+                "Consumidores quaternários ou predadores de topo",
+                "Decompositores bacterianos exclusivamente"
+            ],
+            correta: 2,
+            tema: "Biologia: Ecologia / Cadeias Alimentares e Bioacumulação"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A Proclamação da República no Brasil, ocorrida em 15 de novembro de 1889, resultou da convergência de interesses entre diferentes setores descontentes com o Império. Dentre esses setores, destacaram-se:",
+            opcoes: [
+                "A Igreja Católica ultramontana e os escravizados recém-libertos pela Lei Áurea.",
+                "A cafeicultura paulista (oeste paulista) defensora do federalismo e o Exército positivista.",
+                "A aristocracia açucareira nordestina e a Coroa britânica interessada no monopólio têxtil.",
+                "Os sindicatos operários anarquistas e os imigrantes italianos fabris."
+            ],
+            correta: 1,
+            tema: "História: Crise do Império e Proclamação da República"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O fenômeno oceânico-atmosférico denominado 'El Niño' caracteriza-se pelo aquecimento anômalo das águas superficiais do Oceano Pacífico Equatorial. No Brasil, os efeitos climáticos típicos desse fenômeno incluem:",
+            opcoes: [
+                "Secas históricas na Região Sul e chuvas torrenciais generalizadas no semiárido nordestino.",
+                "Aumento expressivo das chuvas e inundações na Região Sul e estiagem severa no semiárido setentrional e leste da Amazônia.",
+                "Queda abrupta de temperatura com nevascas no Sudeste e umidade extrema no Centro-Oeste.",
+                "Estabilização térmica total em todas as regiões brasileiras sem desvios de pluviosidade."
+            ],
+            correta: 1,
+            tema: "Geografia: Dinâmica Climática Global e Impactos do El Niño no Brasil"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Para Karl Marx, a produção na sociedade capitalista fundamenta-se na extração de 'mais-valia', que pode ser conceituada como:",
+            opcoes: [
+                "O imposto cobrado pelo Estado burguês para financiar obras públicas de infraestrutura.",
+                "A diferença entre o valor total gerado pelo trabalho do operário e o salário pago a ele pela sua força de trabalho.",
+                "O lucro obtido exclusivamente através de transações especulativas na bolsa de valores.",
+                "A remuneração justa e proporcional ao esforço individual de cada trabalhador na linha de montagem."
+            ],
+            correta: 1,
+            tema: "Sociologia: Teoria Marxista / Mais-Valia e Luta de Classes"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Consider the sentence: 'By the time the rescue team arrived at the isolated village, the floodwaters ___ already damaged dozens of houses.'. The verb form that correctly completes the sentence is:",
+            opcoes: [
+                "have",
+                "had",
+                "were",
+                "will have"
+            ],
+            correta: 1,
+            tema: "Língua Inglesa: Past Perfect Tense e Relações de Anterioridade Temporal"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em uma função quadrática da forma f(x) = ax² + bx + c com a ≠ 0, a coordenada x do vértice (ponto de máximo ou mínimo da parábola) é calculada por xv = -b / (2a). Para a função f(x) = x² - 6x + 8, o ponto vértice e o valor mínimo são, respectivamente:",
+            opcoes: [
+                "Vértice em x = 3 com valor mínimo f(3) = -1",
+                "Vértice em x = -3 com valor mínimo f(-3) = 35",
+                "Vértice em x = 6 com valor mínimo f(6) = 8",
+                "Vértice em x = 2 com valor mínimo f(2) = 0"
+            ],
+            correta: 0,
+            tema: "Matemática: Funções Polinomiais do 2º Grau e Vértice da Parábola"
+        }
     ],
     '2º Ano - 2024': [
-        { pergunta: "O Pré-Modernismo brasileiro é marcado por autores como Euclides da Cunha, Lima Barreto e Monteiro Lobato. A obra 'Os Sertões' de Euclides trata sobre:", opcoes: ["A escravidão no Nordeste","A Guerra de Canudos e o sertanejo","A vida na capital Rio de Janeiro","A imigração europeia no Sul"], correta: 1, tema: "Literatura: Pré-Modernismo" },
-        { pergunta: "Na isomeria óptica, moléculas que são imagens especulares não sobreponíveis são chamadas de:", opcoes: ["Isômeros de posição", "Isômeros de função", "Enantiômeros", "Diastereoisômeros"], correta: 2, tema: "Química Orgânica: Isomeria Óptica" },
-        { pergunta: "O Teorema de Pitágoras afirma que em todo triângulo retângulo: a² = b² + c². Para um triângulo com catetos 3 e 4, a hipotenusa é:", opcoes: ["5", "6", "7", "8"], correta: 0, tema: "Matemática: Geometria / Pitágoras" },
-        { pergunta: "A 2ª Lei de Termodinâmica está relacionada com o conceito de:", opcoes: ["Conservação de energia", "Entropia", "Força elétrica", "Pressão dos gases"], correta: 1, tema: "Física: Termodinâmica" },
-        { pergunta: "O Sistema Nervoso Central (SNC) é composto por:", opcoes: ["Nervos e gânglios","Encéfalo e medula espinhal","Coração e pulmões","Rins e bexiga"], correta: 1, tema: "Biologia: Sistema Nervoso" },
-        { pergunta: "O período conhecido como 'Era Vargas' no Brasil compreende os anos de:", opcoes: ["1922 - 1945", "1930 - 1954", "1889 - 1930", "1945 - 1964"], correta: 1, tema: "História: Era Vargas" },
-        { pergunta: "A teoria da Deriva Continental foi proposta por:", opcoes: ["Charles Darwin", "Alfred Wegener", "Isaac Newton", "Albert Einstein"], correta: 1, tema: "Geografia: Tectônica de Placas" },
-        { pergunta: "Max Weber conceituou 'ação social' como aquela que:", opcoes: ["Beneficia toda a sociedade","É orientada pela conduta de outros","É imposta pelo Estado","Visa apenas o lucro econômico"], correta: 1, tema: "Sociologia: Weber" },
-        { pergunta: "Em Inglês, qual opção usa corretamente o Past Perfect? 'By the time she arrived, he ___ already left.'", opcoes: ["has", "had", "have", "was"], correta: 1, tema: "Inglês: Past Perfect" },
-        { pergunta: "Qual é o resultado de √(144) + 5²?", opcoes: ["29", "37", "41", "35"], correta: 1, tema: "Matemática: Operações com Radicais" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) Leia o trecho de 'Os Sertões' (1902), de Euclides da Cunha: 'O sertanejo é, antes de tudo, um forte. Não tem o raquitismo exaustivo dos mestiços neurastênicos do litoral...'. A obra, inserida no Pré-Modernismo brasileiro, caracteriza-se pela:",
+            opcoes: [
+                "Exaltação ingênua e ufanista da vida na corte do Rio de Janeiro da Belle Époque.",
+                "Denúncia do massacre militar em Canudos combinada a uma rigorosa análise científica (geográfica, antropológica e histórica) do sertão nordestino.",
+                "Criação de versos parnasianos de métrica perfeita sem qualquer engajamento social.",
+                "Ficção romanesca centrada nas lendas do folclore amazônico e heróis mitológicos."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Pré-Modernismo / Euclides da Cunha"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A isomeria espacial óptica manifesta-se em moléculas que possuem pelo menos um carbono assimétrico ou quiral (carbono ligado a quatro grupos ligantes distintos). Qual dos compostos abaixo apresenta isomeria óptica?",
+            opcoes: [
+                "Etanol (CH₃–CH₂–OH)",
+                "Ácido lático / 2-hidroxipropanoico (CH₃–CH(OH)–COOH)",
+                "Metano (CH₄)",
+                "Propan-2-ol (CH₃–CH(OH)–CH₃)"
+            ],
+            correta: 1,
+            tema: "Química Orgânica: Isomeria Espacial Óptica e Carbono Quiral"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A 2ª Lei da Termodinâmica estabelece limitações fundamentais às transformações de energia. De acordo com essa lei física:",
+            opcoes: [
+                "É possível construir uma máquina térmica que transforme integralmente calor em trabalho mecânico em um ciclo contínuo.",
+                "O calor flui espontaneamente de um corpo frio para um corpo quente sem a realização de trabalho externo.",
+                "A entropia total de um sistema termodinamicamente isolado tende sempre a aumentar ou permanecer constante com o tempo.",
+                "A energia mecânica total do universo diminui a cada transformação química."
+            ],
+            correta: 2,
+            tema: "Física: Termodinâmica / 2ª Lei e Conceito de Entropia"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Uma rampa de acessibilidade foi projetada com ângulo de inclinação de 30° em relação ao piso horizontal. Se a rampa atinge uma altura vertical de 1,5 metro no ponto mais alto, o comprimento linear dessa rampa é de (Dado: sen(30°) = 0,5):",
+            opcoes: [
+                "2,0 metros",
+                "3,0 metros",
+                "4,5 metros",
+                "6,0 metros"
+            ],
+            correta: 1,
+            tema: "Matemática: Trigonometria no Triângulo Retângulo"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O Sistema Nervoso Central humano (SNC) é protegido por ossos e por três membranas conjuntivas conhecidas como meninges (dura-máter, aracnoide e pia-máter). Os órgãos que formam anatomica e funcionalmente o SNC são:",
+            opcoes: [
+                "Nervos cranianos e gânglios simpáticos",
+                "Encéfalo (cérebro, cerebelo e tronco encefálico) e Medula Espinhal",
+                "Coração, vasos sanguíneos e pulmões",
+                "Rins, ureteres e glândulas suprarrenais"
+            ],
+            correta: 1,
+            tema: "Biologia: Anatomia e Fisiologia do Sistema Nervoso Humano"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A 'Era Vargas' (1930-1945) introduziu profundas transformações na estrutura política e econômica brasileira. Entre as medidas mais marcantes do primeiro governo Getúlio Vargas, destacam-se:",
+            opcoes: [
+                "A privatização imediata da indústria pesada e o fim do protecionismo cambial.",
+                "A consolidação da legislação trabalhista (CLT em 1943) e a industrialização de base (CSN e Vale do Rio Doce).",
+                "A adoção do sistema parlamentarista republicano e o fechamento de todas as ferrovias.",
+                "A descentralização administrativa total com ampla autonomia armada para os estados da federação."
+            ],
+            correta: 1,
+            tema: "História: Era Vargas / Trabalhismo e Industrialização de Base"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A Teoria da Tectônica de Placas explica a ocorrência de sismos, vulcanismos e a formação de cadeias orogenéticas (montanhas). A Cordilheira dos Andes na América do Sul resulta da colisão entre quais placas tectônicas?",
+            opcoes: [
+                "Placa de Nazca (oceânica) e Placa Sul-Americana (continental), configurando uma zona de subducção e convergência.",
+                "Placa Africana e Placa Norte-Americana em limite divergente oceânico.",
+                "Placa do Pacífico e Placa Euroasiática em limite transformante lateral.",
+                "Placa da Antártida e Placa do Caribe em zona de rifteamento continental."
+            ],
+            correta: 0,
+            tema: "Geografia: Geologia Estrutural e Tectônica de Placas"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O sociólogo polonês Zygmunt Bauman formulou a metáfora da 'Modernidade Líquida' para caracterizar a sociedade contemporânea. De acordo com Bauman, as relações humanas na atualidade são marcadas por:",
+            opcoes: [
+                "Vínculos comunitários indissolúveis, sólidos e permanentes de geração em geração.",
+                "Fragilidade, individualismo exacerbado, efemeridade dos laços afetivos e consumo instantâneo.",
+                "Retorno aos preceitos religiosos e dogmáticos da Idade Média feudal.",
+                "Certezas inabaláveis sobre o futuro e estabilidade profissional vitalícia."
+            ],
+            correta: 1,
+            tema: "Sociologia: Zygmunt Bauman e a Modernidade Líquida"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Read the sentence: 'If solar panels were cheaper, more families ___ them on their rooftops.'. The correct verb form to complete this Second Conditional structure is:",
+            opcoes: [
+                "will install",
+                "would install",
+                "installed",
+                "had installed"
+            ],
+            correta: 1,
+            tema: "Língua Inglesa: Second Conditional (Hipóteses no Presente/Futuro)"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Um investidor aplicou um capital de R$ 5.000,00 sob regime de juros simples a uma taxa de 2% ao mês durante 6 meses. O valor total dos juros obtidos (J = C · i · t) e o montante final resgatado são:",
+            opcoes: [
+                "Juros de R$ 600,00 e Montante de R$ 5.600,00",
+                "Juros de R$ 300,00 e Montante de R$ 5.300,00",
+                "Juros de R$ 1.200,00 e Montante de R$ 6.200,00",
+                "Juros de R$ 500,00 e Montante de R$ 5.500,00"
+            ],
+            correta: 0,
+            tema: "Matemática Financeira: Juros Simples e Montante"
+        }
     ],
     '3º Ano - 2023': [
-        { pergunta: "O Concretismo foi um movimento literário brasileiro da década de 1950 que valorizava principalmente:", opcoes: ["A narrativa romanesca e sentimental","A forma visual do poema na página e o jogo com palavras","A poesia épica de exaltação nacional","O verso livre sem nenhuma estrutura"], correta: 1, tema: "Literatura: Vanguardas Brasileiras" },
-        { pergunta: "A reação de saponificação produz sabão a partir de:", opcoes: ["Ácido + Água","Éster (gordura) + Base forte (NaOH)","Álcool + Ácido","Sal + Ácido"], correta: 1, tema: "Química Orgânica: Saponificação" },
-        { pergunta: "Uma partícula com carga elétrica q = 2C move-se com velocidade v em um campo magnético B. A força magnética sobre ela é calculada por:", opcoes: ["F = q/v", "F = qvB", "F = q + vB", "F = v/B"], correta: 1, tema: "Física: Eletromagnetismo" },
-        { pergunta: "Em Matemática Financeira, o Montante no sistema de Juros Compostos é calculado por:", opcoes: ["M = C + i.n", "M = C(1+i)ⁿ", "M = C × i", "M = C - i.n"], correta: 1, tema: "Matemática: Juros Compostos" },
-        { pergunta: "A mutação gênica é uma alteração na sequência de bases do:", opcoes: ["RNA Ribossômico", "DNA", "Proteína", "Lipídio"], correta: 1, tema: "Biologia: Mutações e Evolução" },
-        { pergunta: "A Guerra Fria (1947-1991) foi um conflito ideológico entre:", opcoes: ["EUA e China","URSS e China","EUA e URSS (Capitalismo vs. Socialismo)","Europa Ocidental e Ásia"], correta: 2, tema: "História: Guerra Fria" },
-        { pergunta: "O Brasil, como maior produtor de café do mundo no início do século XX, adotava a política econômica do 'café com leite'. Quais estados se alternavam no poder?", opcoes: ["SP e MG", "SP e RJ", "MG e RS", "BA e PE"], correta: 0, tema: "História: República Velha / Café com Leite" },
-        { pergunta: "Émile Durkheim definiu o conceito de 'fato social' como aquele que é:", opcoes: ["Individual e subjetivo","Exterior, coercitivo e geral","Econômico e mensurável","Político e estatal"], correta: 1, tema: "Sociologia: Durkheim" },
-        { pergunta: "Em Inglês, 'If I had studied harder, I ___ the exam.' Qual é a forma correta no 3rd Conditional?", opcoes: ["will pass", "would pass", "would have passed", "had passed"], correta: 2, tema: "Inglês: Conditionals (3rd)" },
-        { pergunta: "Um número complexo z = 3 + 4i. Qual é o módulo |z|?", opcoes: ["3", "4", "5", "7"], correta: 2, tema: "Matemática: Números Complexos" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) Na década de 1950, o Concretismo (liderado pelos poetas Augusto de Campos, Haroldo de Campos e Décio Pignatari) inaugurou uma vanguarda poética revolucionária no Brasil. A proposta estética do poema concreto caracteriza-se fundamentalmente por:",
+            opcoes: [
+                "Narrativas épicas em versos decassílabos sobre a colonização do sertão.",
+                "Exploração do espaço gráfico visual da página em branco, valorização sonoro-visual e eliminação do verso linear tradicional.",
+                "Lirismo intimista e confessional de temática religiosa ultrarromântica.",
+                "Preservação rigorosa da sintaxe clássica e de rimas ricas emparelhadas."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Vanguardas Poéticas / Concretismo Brasileiro"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Na produção industrial de sabões e sabonetes, óleos ou gorduras vegetais/animais (triglicerídeos) reagem com uma base inorgânica forte (como NaOH) sob aquecimento. Essa reação de hidrólise alcalina de ésteres é denominada:",
+            opcoes: [
+                "Esterificação de Fischer",
+                "Reação de Saponificação",
+                "Combustão completa",
+                "Craqueamento catalítico"
+            ],
+            correta: 1,
+            tema: "Química Orgânica: Reações de Saponificação e Lipídios"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Uma partícula com carga elétrica puntiforme q = +3 × 10⁻⁶ C move-se com velocidade v = 2 × 10⁴ m/s perpendicularmente às linhas de indução de um campo magnético uniforme de intensidade B = 0,5 T. A força magnética (Fm = |q| · v · B · sen θ) que atua sobre a partícula é igual a:",
+            opcoes: [
+                "0,015 N",
+                "0,030 N",
+                "0,300 N",
+                "3,000 N"
+            ],
+            correta: 1,
+            tema: "Física: Eletromagnetismo / Força Magnética de Lorentz sobre Carga Móvel"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) No sistema de juros compostos, o montante M gerado por um capital C aplicado à taxa i por n períodos é dado pela expressão M = C · (1 + i)ⁿ. Se um capital de R$ 10.000,00 for aplicado à taxa de 10% ao ano durante 2 anos, o montante final será de:",
+            opcoes: [
+                "R$ 11.000,00",
+                "R$ 12.000,00",
+                "R$ 12.100,00",
+                "R$ 13.310,00"
+            ],
+            correta: 2,
+            tema: "Matemática: Matemática Financeira / Juros Compostos"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O dogma central da Biologia Molecular descreve o fluxo de informação genética na célula: o DNA é transcrito em RNA mensageiro, que é traduzido em proteínas nos ribossomos. Se uma fita molde de DNA apresenta a sequência de bases 3'-TAC GGC TTA-5', o RNA mensageiro transcrito correspondente terá a sequência:",
+            opcoes: [
+                "5'-AUG CCG AAU-3'",
+                "5'-ATG CCG AAT-3'",
+                "5'-UAC GGC UUA-3'",
+                "5'-AUC GGC UUA-3'"
+            ],
+            correta: 0,
+            tema: "Biologia: Biologia Molecular / Transcrição Gênica e Código Genético"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A Guerra Fria (1947–1991) caracterizou-se pela bipolarização global entre os blocos liderados pelos Estados Unidos (capitalismo) e pela União Soviética (socialismo). Durante esse período, a contenção bélica direta entre as duas superpotências deveu-se principalmente:",
+            opcoes: [
+                "À intervenção militar pacificadora obrigatória exercida pela Liga das Nações.",
+                "À Doutrina da Destruição Mútua Assegurada (MAD) proporcionada pela proliferação de arsenais nucleares.",
+                "Ao desarmamento atômico voluntário promovido em conjunto pelos dois países em 1950.",
+                "À dependência financeira mútua em um comércio internacional totalmente desregulamentado."
+            ],
+            correta: 1,
+            tema: "História: Guerra Fria / Geopolítica Bipolar e Corrida Armamentista"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A chamada 'República Oligárquica' ou da 'Espada e Café com Leite' (1894–1930) no Brasil foi sustentada pela chamada 'Política dos Governadores', articulada pelo presidente Campos Sales. Esse arranjo político baseava-se em:",
+            opcoes: [
+                "Eleições com voto secreto, universal e fiscalizadas por tribunais independentes.",
+                "Troca mútua de favores entre o governo federal e as oligarquias estaduais dominantes, sustentada pelo coronelismo e voto de cabresto.",
+                "Reforma agrária ampla para fortalecer os pequenos colonos imigrantes do interior.",
+                "Nacionalização de bancos estrangeiros e concessão de crédito estatal à indústria operária."
+            ],
+            correta: 1,
+            tema: "História: República Velha / Coronelismo e Política dos Governadores"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O filósofo alemão Jürgen Habermas propõe em sua teoria social o conceito de 'Agir Comunicativo'. Para Habermas, a emancipação democrática fundamenta-se:",
+            opcoes: [
+                "Na coerção física e imposição unilateral da lei pela força militar do Estado.",
+                "No diálogo racional livre de coações, em que os cidadãos buscam o consenso pelo melhor argumento.",
+                "No cálculo utilitarista individual de ganhos e perdas econômicas no mercado financeiro.",
+                "Na manipulação da opinião pública pelas grandes corporações de mídia digital."
+            ],
+            correta: 1,
+            tema: "Filosofia: Teoria Crítica / Razão Comunicativa de Habermas"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Complete with the correct Third Conditional form: 'If the emergency alarm had sounded in time, the workers ___ the facility without casualties.'.",
+            opcoes: [
+                "would evacuate",
+                "would have evacuated",
+                "had evacuated",
+                "will have evacuated"
+            ],
+            correta: 1,
+            tema: "Língua Inglesa: Third Conditional (Situações Hipotéticas Irreais no Passado)"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Seja o número complexo z = 3 + 4i na sua forma algébrica, onde i é a unidade imaginária (i² = -1). O módulo desse número complexo, dado por |z| = √(a² + b²), é igual a:",
+            opcoes: [
+                "√7",
+                "5",
+                "7",
+                "25"
+            ],
+            correta: 1,
+            tema: "Matemática: Números Complexos e Plano de Argand-Gauss"
+        }
     ],
     '3º Ano - 2024': [
-        { pergunta: "A crônica literária brasileira se consolidou como gênero com autores como Machado de Assis e Rubem Braga. A crônica se caracteriza por:", opcoes: ["Longa narrativa épica com heróis","Texto curto e reflexivo sobre o cotidiano, publicado em jornais","Poema épico de exaltação histórica","Conto de terror sobrenatural"], correta: 1, tema: "Literatura: Gêneros Textuais / Crônica" },
-        { pergunta: "Na Química, a lei da conservação das massas (Lei de Lavoisier) afirma que:", opcoes: ["A massa dos produtos é maior que a dos reagentes","A massa total dos reagentes igual à dos produtos","A massa desaparece durante a reação","Apenas a massa dos gases se conserva"], correta: 1, tema: "Química: Estequiometria / Lavoisier" },
-        { pergunta: "Em Física Moderna, a equação de Einstein E = mc² relaciona:", opcoes: ["Energia com força e aceleração","Massa com velocidade da luz ao quadrado (energia)","Pressão com volume","Temperatura com calor"], correta: 1, tema: "Física: Relatividade / Einstein" },
-        { pergunta: "Calcule a derivada de f(x) = 3x² + 2x - 5:", opcoes: ["6x + 2", "3x + 2", "6x - 5", "2x + 2"], correta: 0, tema: "Matemática: Cálculo Diferencial / Derivadas" },
-        { pergunta: "O processo de respiração celular aeróbia produz como subprodutos:", opcoes: ["Glicose e O₂","CO₂, H₂O e ATP (energia)","Apenas ATP","Apenas CO₂"], correta: 1, tema: "Biologia: Respiração Celular" },
-        { pergunta: "A Ditadura Militar no Brasil durou de 1964 até:", opcoes: ["1978", "1982", "1985", "1988"], correta: 2, tema: "História: Ditadura Militar Brasileira" },
-        { pergunta: "O processo de urbanização acelerada no Brasil nas décadas de 1950-1980 gerou como consequência direta:", opcoes: ["Redução da desigualdade social","Crescimento das favelas e periferias nas grandes cidades","Melhora geral da qualidade de vida","Fortalecimento da agricultura familiar"], correta: 1, tema: "Geografia: Urbanização Brasileira" },
-        { pergunta: "O Iluminismo do século XVIII defendia princípios como:", opcoes: ["Fé religiosa acima da razão","Razão, liberdade e igualdade entre os homens","Poder absoluto dos reis","Manutenção da sociedade feudal"], correta: 1, tema: "Filosofia / História: Iluminismo" },
-        { pergunta: "Em Inglês, complete com a voz passiva correta: 'The book ___ written by Machado de Assis.'", opcoes: ["is", "was", "has", "were"], correta: 1, tema: "Inglês: Passive Voice" },
-        { pergunta: "Um vetor da amostra tem média 8 e desvio padrão 2. O coeficiente de variação (CV = σ/μ × 100%) é:", opcoes: ["16%", "25%", "4%", "20%"], correta: 1, tema: "Matemática: Estatística" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em 'Vidas Secas' (1938), Graciliano Ramos constrói a narrativa da família de retirantes sertanejos (Fabiano, Sinhá Vitória, os dois meninos e a cachorra Baleia). O romance modernista da 2ª fase destaca-se estilisticamente pela:",
+            opcoes: [
+                "Linguagem rebuscada, prolixa e ornamental inspirada no barroco e arcadismo.",
+                "Linguagem seca, concisa e despojada de sentimentalismos, espelhando a aridez do sertão e a mudez social das personagens.",
+                "Idealização heróica dos retirantes sertanejos como seres imunes à fome e às intempéries climáticas.",
+                "Predomínio de versos livres rimados de exaltação ao progresso das cidades litorâneas."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Modernismo Brasileiro (2ª Fase) / Graciliano Ramos"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Na estequiometria química, a combustão completa do gás metano ocorre segundo a equação balanceada: CH₄(g) + 2 O₂(g) → CO₂(g) + 2 H₂O(v). Queimando-se completamente 32 g de gás metano (Massa molar do CH₄ = 16 g/mol; CO₂ = 44 g/mol), a massa de dióxido de carbono (CO₂) formada é de:",
+            opcoes: [
+                "44 g",
+                "66 g",
+                "88 g",
+                "132 g"
+            ],
+            correta: 2,
+            tema: "Química: Cálculos Estequiométricos e Leis Ponderais"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A Teoria da Relatividade Especial de Albert Einstein (1905) revolucionou os conceitos de espaço e tempo da física clássica. Um de seus postulados fundamentais estabelece que:",
+            opcoes: [
+                "A velocidade da luz no vácuo é uma constante universal (c ≈ 3 × 10⁸ m/s), independente do movimento da fonte ou do observador.",
+                "O tempo transcorre de maneira idêntica e absoluta para todos os referenciais inerciais no universo.",
+                "A massa de um corpo diminui e anula-se à medida que sua velocidade se aproxima da velocidade da luz.",
+                "A velocidade da luz varia de acordo com a velocidade do observador que se desloca em sua direção."
+            ],
+            correta: 0,
+            tema: "Física: Física Moderna / Postulados da Relatividade Especial de Einstein"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Uma urna contém 5 bolas vermelhas, 3 bolas azuis e 2 bolas amarelas idênticas em tamanho e peso. Retirando-se aleatoriamente uma única bola dessa urna, a probabilidade de que a bola retirada seja azul é de:",
+            opcoes: [
+                "15%",
+                "20%",
+                "30%",
+                "50%"
+            ],
+            correta: 2,
+            tema: "Matemática: Probabilidade Simples em Espaço Amostral Finito"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A respiração celular aeróbia é o processo pelo qual as células eucariontes extraem energia química da molécula de glicose para produzir ATP. Esse processo bioquímico divide-se em três etapas sucessivas:",
+            opcoes: [
+                "Fotossíntese, ciclo de Calvin e quimiossíntese.",
+                "Glicólise (no citoplasma), Ciclo de Krebs (na matriz mitocondrial) e Cadeia Respiratória / Fosforilação Oxidativa (nas cristas mitocondriais).",
+                "Fermentação láctica, fermentação alcoólica e ciclo do nitrogênio.",
+                "Fagocitose, pinocitose e transcrição reversa."
+            ],
+            correta: 1,
+            tema: "Biologia: Bioenergética / Respiração Celular Aeróbia e Mitocôndria"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O processo de Redemocratização brasileira, que culminou no término do regime militar (1964–1985), teve como marco de mobilização cívica popular o movimento das 'Diretas Já' (1984). Embora a emenda Dante de Oliveira não tenha atingido os votos necessários para eleições diretas imediatas, o processo resultou em:",
+            opcoes: [
+                "Permanência indefinida da junta militar no controle do poder executivo até o ano 2000.",
+                "Eleição de Tancredo Neves no Colégio Eleitoral em 1985 e promulgação da 'Constituição Cidadã' de 1988.",
+                "Dissolução imediata do Congresso Nacional e instauração de nova censura à imprensa.",
+                "Proclamação de um regime monárquico parlamentarista por plebiscito popular."
+            ],
+            correta: 1,
+            tema: "História: Fim da Ditadura Militar, Redemocratização e CF de 1988"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O processo de urbanização acelerada vivido pelo Brasil a partir da década de 1950, estimulado pela industrialização concentrada na Região Sudeste, gerou o fenômeno da 'macrometafização' e da periferização urbana. Entre suas consequências socioespaciais diretas, destaca-se:",
+            opcoes: [
+                "A erradicação dos déficits habitacionais e a distribuição equitativa de saneamento básico em todas as regiões metropolitanas.",
+                "A segregação socioespacial com proliferação de favelas, ocupação de áreas de risco e precariedade na mobilidade urbana.",
+                "A transferência massiva da população das capitais litorâneas para o interior da floresta amazônica.",
+                "O esvaziamento das cidades médias em favor exclusivo das zonas rurais agrícolas."
+            ],
+            correta: 1,
+            tema: "Geografia: Urbanização Brasileira e Segregação Socioespacial"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) O filósofo iluminista Immanuel Kant, ao responder à pergunta 'O que é o Esclarecimento?' (Aufklärung, 1784), defendeu que o esclarecimento consiste na saída do ser humano da sua 'menoridade culpada', sintetizada na célebre máxima latina:",
+            opcoes: [
+                "'Carpe diem' (Aproveite o dia presente)",
+                "'Sapere aude!' (Tenha a coragem de fazer uso do seu próprio entendimento sem tutela de outrem)",
+                "'Cogito, ergo sum' (Penso, logo existo)",
+                "'Homo homini lupus' (O homem é o lobo do próprio homem)"
+            ],
+            correta: 1,
+            tema: "Filosofia: O Iluminismo Kantiano e a Autonomia da Razão"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Read the excerpt: 'Artificial Intelligence algorithms are increasingly embedded in healthcare, analyzing radiological scans with higher speed than human clinicians. Nonetheless, ethical guidelines must prevent biased outcomes.'. The word 'Nonetheless' conveys an idea of:",
+            opcoes: [
+                "Conclusion or summary of previous arguments.",
+                "Contrast, opposition or concession to the preceding statement.",
+                "Addition of similar technical examples.",
+                "Cause and consequence between technology and society."
+            ],
+            correta: 1,
+            tema: "Língua Inglesa: Conectivos e Marcadores Discursivos (Contrast / Nonetheless)"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em estatística básica, a média aritmética e o desvio padrão são medidas de tendência central e de dispersão, respectivamente. Um aluno obteve notas 6,0; 7,0; 8,0 e 9,0 em quatro avaliações bimestrais. A média aritmética dessas notas é:",
+            opcoes: [
+                "7,0",
+                "7,5",
+                "8,0",
+                "8,5"
+            ],
+            correta: 1,
+            tema: "Matemática: Estatística Básica / Média Aritmética"
+        }
     ],
     'Simulado Geral': [
-        { pergunta: "O texto narrativo é caracterizado por elementos como narrador, personagens, enredo, espaço e tempo. A instância que conta a história é chamada de:", opcoes: ["Autor real", "Narrador", "Personagem principal", "Leitor implícito"], correta: 1, tema: "Português: Teoria da Narrativa" },
-        { pergunta: "A Lei de Hess afirma que a variação de entalpia de uma reação é:", opcoes: ["Sempre positiva","Independente do caminho seguido","Dependente da velocidade da reação","Sempre negativa"], correta: 1, tema: "Química: Termoquímica / Lei de Hess" },
-        { pergunta: "Quando a soma dos ângulos internos de um polígono regular é 1080°, quantos lados ele possui?", opcoes: ["6", "7", "8", "9"], correta: 2, tema: "Matemática: Polígonos" },
-        { pergunta: "A ondas de rádio, micro-ondas, infravermelho, luz visível, ultravioleta, raios X e gama fazem parte do:", opcoes: ["Espectro sonoro","Espectro eletromagnético","Espectro de emissão atômica","Campo magnético terrestre"], correta: 1, tema: "Física: Ondas Eletromagnéticas" },
-        { pergunta: "O aquecimento global é intensificado pelo 'efeito estufa' causado principalmente pela emissão de:", opcoes: ["Oxigênio (O₂)","Gás carbônico (CO₂) e metano (CH₄)","Nitrogênio (N₂)","Argônio (Ar)"], correta: 1, tema: "Biologia / Geografia: Meio Ambiente" },
-        { pergunta: "A Constituição Federal do Brasil de 1988 ficou conhecida como a 'Constituição Cidadã' por ter sido promulgada após:", opcoes: ["A Proclamação da República","A Era Vargas","O fim da Ditadura Militar e a redemocratização","A Revolução de 1930"], correta: 2, tema: "História: Redemocratização / CF 1988" },
-        { pergunta: "O conceito de 'identidade cultural' na sociologia contemporânea se refere a:", opcoes: ["A uniformização de costumes pelo mundo","O conjunto de características que definem um grupo e o distingue de outros","A perda das tradições locais com a modernidade","A identidade biológica e genética dos povos"], correta: 1, tema: "Sociologia: Identidade e Cultura" },
-        { pergunta: "Em Inglês, qual frase está correta no futuro com 'going to' (plano/intenção)?", opcoes: ["She will going to travel","She is go to travel","She is going to travel","She going travel"], correta: 2, tema: "Inglês: Future (going to)" },
-        { pergunta: "O Brasil ocupa qual posição em área territorial no ranking mundial?", opcoes: ["3º maior", "4º maior", "5º maior", "6º maior"], correta: 2, tema: "Geografia: Território Brasileiro" },
-        { pergunta: "O filósofo Immanuel Kant, em sua obra 'Crítica da Razão Pura', defende que o conhecimento resulta da combinação de:", opcoes: ["Sensações puras sem razão","Experiência sensível e categorias a priori do entendimento","Apenas a experiência empírica","Apenas a razão pura inata"], correta: 1, tema: "Filosofia: Kant / Teoria do Conhecimento" }
+        {
+            pergunta: "(Provão Paulista / VUNESP) No romance machadiano 'Memórias Póstumas de Brás Cubas' (1881), que inaugurou o Realismo no Brasil, o protagonista narra sua trajetória após a morte como um 'defunto autor'. Esse recurso narrativo inovador permitiu a Machado de Assis:",
+            opcoes: [
+                "Exaltar a nobreza e generosidade desinteressada da elite imperial carioca.",
+                "Analisar com ironia implacável a hipocrisia, o parasitismo e as contradições morais da sociedade burguesa de sua época.",
+                "Defender fervorosamente os dogmas religiosos do catolicismo tradicional.",
+                "Construir um melodrama romântico centrado no sofrimento de amantes proibidos."
+            ],
+            correta: 1,
+            tema: "Língua Portuguesa e Literatura: Realismo Machadiano / Ironia e Crítica Social"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A Lei de Hess fundamenta a termoquímica afirmando que a variação de entalpia (ΔH) de uma reação química depende exclusivamente dos estados inicial e final, sendo independente do número de etapas intermediárias. Se uma reação apresenta ΔH < 0, ela é classificada termodinamicamente como:",
+            opcoes: [
+                "Endotérmica, com absorção líquida de calor do ambiente.",
+                "Exotérmica, com liberação líquida de calor para as vizinhanças.",
+                "Isotérmica perfeita sem troca energética com o meio.",
+                "Adiabática com trabalho nulo."
+            ],
+            correta: 1,
+            tema: "Química: Termoquímica / Lei de Hess e Reações Exotérmicas"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A soma dos ângulos internos de um polígono convexo de n lados é dada pela fórmula S = (n - 2) · 180°. Para um hexágono regular (n = 6), a soma de todos os seus ângulos internos e o valor de cada ângulo interno medem, respectivamente:",
+            opcoes: [
+                "540° e 90°",
+                "720° e 120°",
+                "900° e 150°",
+                "1080° e 180°"
+            ],
+            correta: 1,
+            tema: "Matemática: Geometria Plana / Polígonos Convexos e Ângulos Internos"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) As ondas eletromagnéticas propagam-se no vácuo com velocidade c ≈ 3 × 10⁸ m/s e classificam-se no espectro conforme suas frequências e comprimentos de onda. A radiação eletromagnética de maior frequência e maior energia por fóton é a:",
+            opcoes: [
+                "Onda de rádio AM/FM",
+                "Luz visível amarela",
+                "Radiação infravermelha",
+                "Radiação gama (Raios Gama)"
+            ],
+            correta: 3,
+            tema: "Física: Ondulatória e Espectro Eletromagnético"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A intensificação do efeito estufa antropogênico tem elevado a temperatura média dos oceanos e da atmosfera global. Os principais gases de efeito estufa (GEE) emitidos pelas atividades humanas modernas são:",
+            opcoes: [
+                "Oxigênio molecular (O₂) e nitrogênio gasoso (N₂)",
+                "Dióxido de carbono (CO₂) e gás metano (CH₄)",
+                "Gás hélio (He) e argônio (Ar)",
+                "Monóxido de carbono e ozônio estratosférico puro"
+            ],
+            correta: 1,
+            tema: "Biologia / Geografia: Ecologia e Mudanças Climáticas Globais"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) A Constituição da República Federativa do Brasil de 1988 consagrou em seu Artigo 5º direitos e garantias fundamentais individuais e coletivos. Um princípio basilar nela estabelecido determina que:",
+            opcoes: [
+                "A tortura e o tratamento desumano são admitidos em casos de grave comoção interna.",
+                "Homens e mulheres são iguais em direitos e obrigações nos termos da Constituição, sendo inviolável a liberdade de consciência e de crença.",
+                "A censura prévia de espetáculos públicos e periódicos é permitida aos órgãos executivos de segurança.",
+                "A pena de morte pode ser aplicada sumariamente a qualquer crime contra o patrimônio privado."
+            ],
+            correta: 1,
+            tema: "História / Sociologia: Cidadania, Direitos Humanos e Constituição de 1988"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) No pensamento sociológico contemporâneo, a 'globalização' manifesta-se pela interconexão econômica, cultural e tecnológica planetária. No entanto, teóricos como Milton Santos apontam que esse processo produz simultaneamente:",
+            opcoes: [
+                "Igualdade socioeconômica plena entre todas as nações do globo.",
+                "Fragmentação territorial, exclusão digital e aprofundamento das assimetrias entre países ricos e periféricos.",
+                "Erradicação completa das crises migratórias e das fronteiras nacionais.",
+                "Uniformização absoluta dos idiomas e costumes locais sem qualquer resistência identitária."
+            ],
+            correta: 1,
+            tema: "Geografia / Sociologia: Milton Santos e a Globalização Fragmentada"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Complete with the appropriate future expression indicating a planned, decided intention: 'Look at the schedule! The school board ___ announce the new science fair winners tomorrow morning.'.",
+            opcoes: [
+                "is going to",
+                "will to",
+                "shall to",
+                "goes"
+            ],
+            correta: 0,
+            tema: "Língua Inglesa: Formas de Futuro (Be going to vs. Will)"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) Em termos de extensão territorial contínua, o Brasil possui mais de 8,5 milhões de km², ocupando qual posição entre os maiores países do mundo em área territorial?",
+            opcoes: [
+                "3º maior país (atrás de Rússia e Canadá)",
+                "5º maior país (atrás de Rússia, Canadá, China e EUA)",
+                "7º maior país (atrás da Austrália e Índia)",
+                "2º maior país do planeta"
+            ],
+            correta: 1,
+            tema: "Geografia: Território Brasileiro, Fronteiras e Posição Global"
+        },
+        {
+            pergunta: "(Provão Paulista / VUNESP) René Descartes, pai do Racionalismo moderno, estabeleceu a dúvida metódica radical como caminho para encontrar uma certeza indubitável. Ao duvidar de tudo, inclusive das ilusões dos sentidos, Descartes formulou o princípio fundamental do conhecimento:",
+            opcoes: [
+                "'Tabula rasa' (A mente humana é uma folha em branco)",
+                "'Cogito, ergo sum' (Penso, logo existo)",
+                "'Só sei que nada sei'",
+                "'A existência precede a essência'"
+            ],
+            correta: 1,
+            tema: "Filosofia: Racionalismo Cartesiano e Teoria do Conhecimento"
+        }
     ]
 };
 
-// Questão padrão para edições sem banco específico
+// Questão padrão caso uma edição sem chave específica seja requisitada
 const questoesPadrao = [
-    { pergunta: "Na obra 'Os Lusíadas', de Camões, qual divindade foi principal apoiadora dos navegadores portugueses?", opcoes: ["Baco", "Marte", "Vénus", "Júpiter"], correta: 2, tema: "Literatura Portuguesa / Camões" },
-    { pergunta: "Qual a fórmula química do Ácido Sulfúrico?", opcoes: ["HCl", "H₂SO₄", "NaCl", "CO₂"], correta: 1, tema: "Química Inorgânica: Ácidos" },
-    { pergunta: "Um ciclista percorre 30 km em 2 horas. Qual a sua velocidade média?", opcoes: ["10 km/h", "15 km/h", "20 km/h", "30 km/h"], correta: 1, tema: "Física: Cinemática" },
+    {
+        pergunta: "(Provão Paulista / VUNESP) Em 'Memórias Póstumas de Brás Cubas' (1881), de Machado de Assis, o recurso narrativo inovador do 'defunto autor' possibilitou:",
+        opcoes: [
+            "A exaltação patriótica e ufanista dos costumes do Segundo Reinado.",
+            "Uma análise mordaz, irônica e descompromissada da hipocrisia e mesquinhez humana.",
+            "A defesa da fé religiosa dogmática contra o cientificismo moderno.",
+            "Um enredo policial clássico de investigação sobre o culpado de sua morte."
+        ],
+        correta: 1,
+        tema: "Língua Portuguesa e Literatura: Realismo Machadiano"
+    },
+    {
+        pergunta: "(Provão Paulista / VUNESP) A neutralização estequiométrica total de ácido clorídrico (HCl) por hidróxido de cálcio (Ca(OH)₂) produz água e o sal inorgânico denominado:",
+        opcoes: [
+            "Cloreto de Cálcio (CaCl₂)",
+            "Carbonato de Cálcio (CaCO₃)",
+            "Sulfato de Cálcio (CaSO₄)",
+            "Nitrato de Cálcio (Ca(NO₃)₂)"
+        ],
+        correta: 0,
+        tema: "Química: Funções Inorgânicas e Reações de Neutralização"
+    },
+    {
+        pergunta: "(Provão Paulista / VUNESP) Um objeto de massa 2 kg é solto a partir do repouso de uma altura de 20 metros em relação ao solo. Desprezando a resistência do ar e adotando g = 10 m/s², a sua velocidade imediatamente antes de atingir o solo é de:",
+        opcoes: [
+            "10 m/s",
+            "15 m/s",
+            "20 m/s",
+            "40 m/s"
+        ],
+        correta: 2,
+        tema: "Física: Mecânica / Conservação da Energia Mecânica e Queda Livre"
+    },
+    {
+        pergunta: "(Provão Paulista / VUNESP) Qual é o valor de x que satisfaz a equação exponencial 2^(x + 3) = 64?",
+        opcoes: [
+            "1",
+            "2",
+            "3",
+            "6"
+        ],
+        correta: 2,
+        tema: "Matemática: Equações Exponenciais"
+    },
+    {
+        pergunta: "(Provão Paulista / VUNESP) O processo celular mitótico que produz duas células-filhas geneticamente idênticas à célula-mãe tem como função primária nos organismos pluricelulares:",
+        opcoes: [
+            "A produção exclusiva de gametas haploides para reprodução sexuada.",
+            "O crescimento tecidual, regeneração e renovação celular.",
+            "A introdução contínua de variabilidade genética por crossing-over.",
+            "A redução pela metade do número cromossômico original da espécie."
+        ],
+        correta: 1,
+        tema: "Biologia: Citologia e Divisão Celular (Mitose vs. Meiose)"
+    },
     ...questoesProfessor
 ];
 
@@ -770,20 +2048,55 @@ function responderQuestao(indiceSelecionado) {
 function finalizarSimulado() {
     document.getElementById('area-resolucao').classList.add('hidden');
     document.getElementById('area-resultados').classList.remove('hidden');
+    
     let multiplicadorAtual = usuarioLogado.multiplicador || 1.0;
-    let pontosFinais = Math.round((acertosProva * 2) * multiplicadorAtual);
+    
+    // Garante que se o aluno usou o Pomodoro, o multiplicador base vai para 1.2 no mínimo
+    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando)) {
+        if (multiplicadorAtual < 1.2) multiplicadorAtual = 1.2;
+    }
+    
+    // BÔNUS PARA MAIS DE 7 ACERTOS: +2 pontos extras e chuva de confetes na tela
+    let pontosExtras = 0;
+    const containerBonus = document.getElementById('bonusSimuladoContainer');
+    if (containerBonus) containerBonus.innerHTML = '';
+
+    if (acertosProva > 7) {
+        pontosExtras = 2;
+        if (containerBonus) {
+            containerBonus.innerHTML = `
+                <div class="bonus-simulado-banner">
+                    <span style="font-size: 28px;">🎉</span>
+                    <div>
+                        <div style="font-size: 16px; font-weight: 800;">Desempenho Excepcional (${acertosProva} Acertos)!</div>
+                        <div style="font-size: 13.5px; color: #ffecb3;">Você acertou mais de 7 questões no simulado e faturou <strong>+2 PONTOS EXTRAS</strong> de bônus!</div>
+                    </div>
+                </div>
+            `;
+        }
+        dispararConfetes();
+        mostrarToastCanto('Super Bônus!', `Mais de 7 acertos (${acertosProva}/10)! +2 pontos extras concedidos!`, 'success', 5000);
+    }
+
+    let pontosBase = (acertosProva * 2) * multiplicadorAtual;
+    let pontosFinais = parseFloat((pontosBase + pontosExtras).toFixed(1));
 
     usuarioLogado.pontos += pontosFinais;
+    usuarioLogado.pontos = parseFloat(usuarioLogado.pontos.toFixed(1)); 
     usuarioLogado.totalAcertos += acertosProva;
     usuarioLogado.totalQuestoes += dadosProvaSimulada.length;
-    atualizarBanco(usuarioLogado);
+    usuarioLogado.melhorSimuladoAcertos = Math.max(usuarioLogado.melhorSimuladoAcertos || 0, acertosProva);
     
-    document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
-    carregarRank(); atualizarDesempenho(); 
+    atualizarBanco(usuarioLogado);
+    if (typeof verificarConquistas === 'function') verificarConquistas();
+    
+    document.getElementById('pontosDisplay').textContent = `${usuarioLogado.pontos} pts`;
+    carregarRank(); 
+    atualizarDesempenho(); 
 
     document.getElementById('res-acertos').textContent = acertosProva;
     document.getElementById('res-erros').textContent = dadosProvaSimulada.length - acertosProva;
-    document.getElementById('res-pontos').textContent = `+${pontosFinais}`;
+    document.getElementById('res-pontos').textContent = pontosExtras > 0 ? `+${pontosFinais} (+2 bônus)` : `+${pontosFinais}`;
     document.getElementById('res-multiplicador').textContent = `(x${multiplicadorAtual.toFixed(1)})`;
 
     let htmlGabarito = '';
@@ -802,9 +2115,73 @@ function finalizarSimulado() {
         temasUnicos.forEach(tema => listaTemas.innerHTML += `<li>🔍 <strong>Estudar:</strong> ${tema}</li>`);
     }
 }
-function voltarParaListaProvas() { 
-    document.getElementById('area-resultados').classList.add('hidden'); 
-    document.getElementById('lista-provas').classList.remove('hidden'); 
+
+// MOTOR DE CONFETES EM TELA CHEIA (SEM BIBLIOTECAS EXTERNAS)
+function dispararConfetes() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const particles = [];
+    const cores = ['#007bff', '#00d2ff', '#ffc107', '#ff5722', '#4CAF50', '#e040fb', '#ffffff', '#ffd700'];
+    const totalParticles = 120;
+    
+    for (let i = 0; i < totalParticles; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * (canvas.height * 0.3) - 50,
+            r: Math.random() * 6 + 4,
+            color: cores[Math.floor(Math.random() * cores.length)],
+            tilt: Math.floor(Math.random() * 10) - 10,
+            tiltAngleIncremental: (Math.random() * 0.08) + 0.05,
+            tiltAngle: 0,
+            vy: Math.random() * 3 + 2.5,
+            vx: Math.random() * 3 - 1.5
+        });
+    }
+    
+    let animationFrame;
+    const startTime = Date.now();
+    const duration = 4000; // 4 segundos de celebração
+    
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const elapsed = Date.now() - startTime;
+        const opacity = Math.max(0, 1 - (elapsed / duration));
+        
+        particles.forEach(p => {
+            p.tiltAngle += p.tiltAngleIncremental;
+            p.y += p.vy;
+            p.x += Math.sin(p.tiltAngle) * 2 + p.vx;
+            p.tilt = Math.sin(p.tiltAngle) * 14;
+            
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.lineWidth = p.r / 2;
+            ctx.moveTo(p.x + p.tilt + p.r, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+            ctx.lineTo(p.x + p.r, p.y + p.tilt + p.r);
+            ctx.lineTo(p.x + p.r, p.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        });
+        
+        if (elapsed < duration) {
+            animationFrame = requestAnimationFrame(draw);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            cancelAnimationFrame(animationFrame);
+        }
+    }
+    
+    draw();
 }
 
 // ==========================================
@@ -861,6 +2238,9 @@ async function enviarMensagemIA() {
         const prompt = `Você é um tutor de estudos para o Provão Paulista. 
 Regra 1: Você NUNCA deve dar a resposta direta de uma questão.
 Regra 2: Você deve apenas auxiliar, dar dicas, explicar conceitos e guiar o aluno para encontrar a resposta.
+Regra 3: NÃO use emojis ou asteriscos (*) nas suas respostas. 
+Regra 4: Dê respostas curtas e diretas, mas suficientes para compreensão.
+Regra 5: No final de cada resposta, sugira um site, livro, vídeo ou filme para explicar a dúvida melhor.
 Mensagem do aluno: ${msgTexto}`;
 
         if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando... (tentando conectar)</i>';
@@ -893,29 +2273,223 @@ if(document.getElementById('inputChatIA')){
     });
 }
 
-// --- IA DE TCC (Direta, Sem Loop de Perguntas e com Conquistas) ---
+// ==========================================
+// SISTEMA DE METAS & CONQUISTAS (MULTIDISCIPLINAR COM PONTOS POR DIFICULDADE)
+// ==========================================
 const conquistasConfig = [
-    { id: 'caminho', nome: 'Caminho Inicial', meta: 10, pts: 10, icone: '🏅' },
-    { id: 'bronze', nome: 'Medalha de Bronze', meta: 100, pts: 70, icone: '🥉' },
-    { id: 'prata', nome: 'Medalha de Prata', meta: 150, pts: 105, icone: '🥈' },
-    { id: 'ouro', nome: 'Medalha de Ouro', meta: 200, pts: 180, icone: '🥇' },
-    { id: 'diamantina', nome: 'Medalha de Diamantina', meta: 300, pts: 270, icone: '💎' }
+    {
+        id: 'pomodoro_primeiro',
+        nome: 'Primeiro Foco',
+        desc: 'Complete 25 minutos de estudo concentrado usando o Pomodoro.',
+        categoria: 'Pomodoro',
+        icone: '🍅',
+        dificuldade: 'Fácil',
+        pts: 15,
+        progresso: (u) => Math.min(Math.floor(((u.tempoEstudadoSegundos || 0) / (25 * 60)) * 100), 100),
+        statusTexto: (u) => `${Math.floor((u.tempoEstudadoSegundos || 0) / 60)}/25 min`,
+        checar: (u) => (u.tempoEstudadoSegundos || 0) >= 25 * 60
+    },
+    {
+        id: 'simulado_iniciante',
+        nome: 'Primeiro Simulado',
+        desc: 'Complete sua primeira bateria de simulado do Provão Paulista.',
+        categoria: 'Simulados',
+        icone: '📝',
+        dificuldade: 'Fácil',
+        pts: 15,
+        progresso: (u) => Math.min(Math.floor(((u.totalQuestoes || 0) / 10) * 100), 100),
+        statusTexto: (u) => `${Math.min(u.totalQuestoes || 0, 10)}/10 questões`,
+        checar: (u) => (u.totalQuestoes || 0) >= 10
+    },
+    {
+        id: 'tcc_orientacao',
+        nome: 'Projeto Definido',
+        desc: 'Defina seu curso e tema de TCC e troque pelo menos 5 mensagens com a IA.',
+        categoria: 'TCC',
+        icone: '💡',
+        dificuldade: 'Fácil',
+        pts: 15,
+        progresso: (u) => {
+            let pts = 0;
+            if (u.curso) pts += 25;
+            if (u.temaTCC) pts += 25;
+            pts += Math.min(((u.mensagensTCC || 0) / 5) * 50, 50);
+            return Math.floor(pts);
+        },
+        statusTexto: (u) => `${u.mensagensTCC || 0}/5 msgs`,
+        checar: (u) => (u.mensagensTCC || 0) >= 5 && !!u.curso && !!u.temaTCC
+    },
+    {
+        id: 'ofensiva_3dias',
+        nome: 'Hábito de Ferro',
+        desc: 'Mantenha 3 dias consecutivos de ofensiva de estudos ativa.',
+        categoria: 'Constância',
+        icone: '🔥',
+        dificuldade: 'Médio',
+        pts: 30,
+        progresso: (u) => Math.min(Math.floor(((u.sequencia || 0) / 3) * 100), 100),
+        statusTexto: (u) => `${u.sequencia || 0}/3 dias`,
+        checar: (u) => (u.sequencia || 0) >= 3
+    },
+    {
+        id: 'pomodoro_1hora',
+        nome: 'Mestre da Disciplina',
+        desc: 'Acumule 60 minutos (1 hora) de estudo concentrado no Pomodoro.',
+        categoria: 'Pomodoro',
+        icone: '⏳',
+        dificuldade: 'Médio',
+        pts: 30,
+        progresso: (u) => Math.min(Math.floor(((u.tempoEstudadoSegundos || 0) / 3600) * 100), 100),
+        statusTexto: (u) => `${Math.floor((u.tempoEstudadoSegundos || 0) / 60)}/60 min`,
+        checar: (u) => (u.tempoEstudadoSegundos || 0) >= 3600
+    },
+    {
+        id: 'simulado_ouro',
+        nome: 'Nota de Ouro',
+        desc: 'Acerte mais de 7 questões em um simulado do Provão Paulista.',
+        categoria: 'Simulados',
+        icone: '🎯',
+        dificuldade: 'Difícil',
+        pts: 50,
+        progresso: (u) => {
+            const melhor = u.melhorSimuladoAcertos || 0;
+            return Math.min(Math.floor((melhor / 8) * 100), 100);
+        },
+        statusTexto: (u) => `${u.melhorSimuladoAcertos || 0}/8 acertos`,
+        checar: (u) => (u.melhorSimuladoAcertos || 0) >= 8
+    },
+    {
+        id: 'tcc_avancado',
+        nome: 'Pesquisador de Ponta',
+        desc: 'Troque 25 mensagens aprofundadas com a IA orientadora de TCC.',
+        categoria: 'TCC',
+        icone: '🎓',
+        dificuldade: 'Difícil',
+        pts: 50,
+        progresso: (u) => Math.min(Math.floor(((u.mensagensTCC || 0) / 25) * 100), 100),
+        statusTexto: (u) => `${u.mensagensTCC || 0}/25 msgs`,
+        checar: (u) => (u.mensagensTCC || 0) >= 25
+    },
+    {
+        id: 'pomodoro_maratona',
+        nome: 'Maratonista dos Estudos',
+        desc: 'Alcance 120 minutos (2 horas) de estudo focado com o Pomodoro.',
+        categoria: 'Pomodoro',
+        icone: '👑',
+        dificuldade: 'Lendário',
+        pts: 90,
+        progresso: (u) => Math.min(Math.floor(((u.tempoEstudadoSegundos || 0) / 7200) * 100), 100),
+        statusTexto: (u) => `${Math.floor((u.tempoEstudadoSegundos || 0) / 60)}/120 min`,
+        checar: (u) => (u.tempoEstudadoSegundos || 0) >= 7200
+    },
+    {
+        id: 'ofensiva_lenda',
+        nome: 'Lenda da Constância',
+        desc: 'Mantenha 7 dias consecutivos de ofensiva sem quebrar o ritmo!',
+        categoria: 'Constância',
+        icone: '⚡',
+        dificuldade: 'Lendário',
+        pts: 120,
+        progresso: (u) => Math.min(Math.floor(((u.sequencia || 0) / 7) * 100), 100),
+        statusTexto: (u) => `${u.sequencia || 0}/7 dias`,
+        checar: (u) => (u.sequencia || 0) >= 7
+    }
 ];
 
+// --- IA DE TCC (WORKSTATION ELEGANTE) ---
 function iniciarChatTCC() {
-    if(document.getElementById('msgHojeTCC')) {
-        document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje;
+    if (document.getElementById('msgHojeTCC')) {
+        document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje || 0;
     }
+    if (document.getElementById('tccBadgeCurso')) {
+        document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso || 'Não definido';
+    }
+    if (document.getElementById('tccBadgeTema')) {
+        document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC || 'Não definido';
+    }
+
     const chatBox = document.getElementById('chatBoxTCC');
+    if (!chatBox) return;
+
     if (chatBox.innerHTML.trim() === '') {
         if (!usuarioLogado.curso) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Para começarmos, qual é o seu curso?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Para personalizarmos suas orientações, qual é o seu curso técnico ou área de estudo?</div>`;
         } else if (!usuarioLogado.temaTCC) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Já sei que você cursa ${usuarioLogado.curso}. O que você planeja fazer para o seu TCC?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Já vi que você cursa ${usuarioLogado.curso}. Qual ideia ou problema você gostaria de investigar no seu projeto?</div>`;
         } else {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Posso te ajudar com ideias de temas, estruturação de capítulos, formatação ABNT e orientações de pesquisa para o seu TCC em ${usuarioLogado.curso} sobre "${usuarioLogado.temaTCC}". Como posso ajudar hoje?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Estou pronta para auxiliar com metodologia, normas ABNT, objetivos e escrita para seu TCC em <strong>${usuarioLogado.curso}</strong> sobre "<em>${usuarioLogado.temaTCC}</em>". Como posso te ajudar hoje?</div>`;
         }
     }
+}
+
+function aplicarPromptRapidoTCC(texto) {
+    const input = document.getElementById('inputChatTCC');
+    if (input) {
+        input.value = texto;
+        input.focus();
+    }
+}
+
+function abrirModalTccConfig() {
+    const modal = document.getElementById('modal-tcc-config');
+    if (!modal) return;
+    const inputCurso = document.getElementById('inputTccConfigCurso');
+    const inputTema = document.getElementById('inputTccConfigTema');
+    if (inputCurso) inputCurso.value = usuarioLogado.curso || '';
+    if (inputTema) inputTema.value = usuarioLogado.temaTCC || '';
+    modal.classList.remove('hidden');
+}
+
+function fecharModalTccConfig() {
+    const modal = document.getElementById('modal-tcc-config');
+    if (modal) modal.classList.add('hidden');
+}
+
+function salvarConfigTcc() {
+    const inputCurso = document.getElementById('inputTccConfigCurso');
+    const inputTema = document.getElementById('inputTccConfigTema');
+    if (!inputCurso || !inputTema) return;
+
+    const curso = inputCurso.value.trim();
+    const tema = inputTema.value.trim();
+
+    if (!curso) {
+        mostrarToastCanto('Atenção', 'Por favor, informe seu curso para continuar.', 'warning');
+        return;
+    }
+
+    usuarioLogado.curso = curso;
+    usuarioLogado.temaTCC = tema || 'Projeto em definição';
+    atualizarBanco(usuarioLogado);
+
+    if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
+    if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
+
+    const chatBox = document.getElementById('chatBoxTCC');
+    if (chatBox) {
+        chatBox.innerHTML += `<div class="msg ia">✅ Dados atualizados com sucesso! Anotei que seu curso é <strong>${usuarioLogado.curso}</strong> e seu tema foco é "<strong>${usuarioLogado.temaTCC}</strong>". O que você gostaria de estruturar agora?</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    fecharModalTccConfig();
+    mostrarToastCanto('TCC Configurado', 'Curso e tema atualizados com sucesso!', 'success');
+    verificarConquistas();
+}
+
+function filtrarIdeiasTCC(area, btn) {
+    const botoes = document.querySelectorAll('.tcc-filtro-btn');
+    botoes.forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const cards = document.querySelectorAll('.ideia-card-moderno');
+    cards.forEach(card => {
+        const cardArea = card.getAttribute('data-area');
+        if (area === 'todos' || cardArea === area) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 
 async function enviarMensagemTCC() {
@@ -925,12 +2499,12 @@ async function enviarMensagemTCC() {
     
     if (!msgTexto) return;
 
-    if (usuarioLogado.mensagensTCCHoje >= 10) {
-        alert("Você atingiu o limite de 10 mensagens de TCC por dia. Volte amanhã para continuar!");
+    if ((usuarioLogado.mensagensTCCHoje || 0) >= 10) {
+        mostrarToastCanto("Limite Atingido", "Você atingiu o limite de 10 mensagens de TCC por hoje. Volte amanhã para continuar!", "warning", 4500);
         return;
     }
 
-    chatBox.innerHTML += `<div class="msg user">${input.value}</div>`;
+    chatBox.innerHTML += `<div class="msg user">${escapeHtml(msgTexto)}</div>`;
     input.value = ''; 
     chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -938,8 +2512,10 @@ async function enviarMensagemTCC() {
     if (!usuarioLogado.curso) {
         usuarioLogado.curso = msgTexto;
         atualizarBanco(usuarioLogado);
-        chatBox.innerHTML += `<div class="msg ia">Perfeito, anotado que seu curso é ${usuarioLogado.curso}! E o que você planeja fazer para o seu TCC? (Pode ser uma ideia geral)</div>`;
+        if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
+        chatBox.innerHTML += `<div class="msg ia">Perfeito, anotado que seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong>! E o que você planeja fazer para o seu TCC? (Pode ser uma ideia geral)</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
+        concluirEnvioTCC();
         return;
     }
 
@@ -947,23 +2523,25 @@ async function enviarMensagemTCC() {
     if (!usuarioLogado.temaTCC) {
         usuarioLogado.temaTCC = msgTexto;
         atualizarBanco(usuarioLogado);
-        chatBox.innerHTML += `<div class="msg ia">Excelente! Agora que sei que você faz ${usuarioLogado.curso} e quer focar em "${usuarioLogado.temaTCC}", como posso te ajudar com o seu projeto hoje?</div>`;
+        if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
+        chatBox.innerHTML += `<div class="msg ia">Excelente! Agora que sei que você faz <strong>${escapeHtml(usuarioLogado.curso)}</strong> e quer focar em "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>", como posso te ajudar com o seu projeto hoje?</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
+        concluirEnvioTCC();
         return;
     }
 
     const idLoading = "loadTCC-" + Date.now();
-    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Analisando e buscando orientações...</i></div>`;
+    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Analisando e buscando orientações acadêmicas...</i></div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        if (GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
+        if (typeof GEMINI_API_KEY === 'undefined' || GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
             if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
             chatBox.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
             return;
         }
 
-        const prompt = `Você é um orientador de TCC.
+        const prompt = `Você é um orientador de TCC do Ensino Técnico / Médio de São Paulo.
 Regra 1: Você NUNCA deve fazer o trabalho pelo aluno (nada de escrever os textos do TCC para ele), apenas orientar, dar dicas e tirar dúvidas.
 Regra 2: Você deve apenas auxiliar nos estudos.
 Regra 3: O curso do aluno é: ${usuarioLogado.curso}
@@ -989,54 +2567,52 @@ Mensagem do aluno: ${msgTexto}`;
         concluirEnvioTCC();
     } catch (error) {
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-        chatBox.innerHTML += `<div class="msg ia">❌ Erro de conexão: ${error.message}. Verifique se está rodando em um servidor local (não pelo arquivo direto).</div>`;
+        chatBox.innerHTML += `<div class="msg ia">❌ Erro de conexão: ${error.message}.</div>`;
         console.error(error);
     }
 }
 
-if(document.getElementById('inputChatTCC')){
-    document.getElementById('inputChatTCC').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') enviarMensagemTCC();
-    });
-}
-
 function concluirEnvioTCC() {
     const chatBox = document.getElementById('chatBoxTCC');
-    chatBox.scrollTop = chatBox.scrollHeight;
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
     
-    usuarioLogado.mensagensTCC++;
-    usuarioLogado.mensagensTCCHoje++;
+    usuarioLogado.mensagensTCC = (usuarioLogado.mensagensTCC || 0) + 1;
+    usuarioLogado.mensagensTCCHoje = (usuarioLogado.mensagensTCCHoje || 0) + 1;
     if(document.getElementById('msgHojeTCC')) {
         document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje;
     }
     
-    // Bônus Diamantina (300+ msgs)
-    if (usuarioLogado.mensagensTCC >= 300) {
-        usuarioLogado.pontos += 0.5;
-        document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
-        carregarRank();
+    // Bônus constante ao interagir
+    usuarioLogado.pontos += 0.5;
+    usuarioLogado.pontos = parseFloat(usuarioLogado.pontos.toFixed(1));
+    if (document.getElementById('pontosDisplay')) {
+        document.getElementById('pontosDisplay').textContent = `${usuarioLogado.pontos} pts`;
     }
+    carregarRank();
     
     atualizarBanco(usuarioLogado);
     verificarConquistas();
 }
 
 function verificarConquistas() {
-    let msgCount = usuarioLogado.mensagensTCC;
-    
+    if (!usuarioLogado.conquistas) usuarioLogado.conquistas = [];
+    let desbloqueouNova = false;
+
     conquistasConfig.forEach(conq => {
-        if (msgCount >= conq.meta && !usuarioLogado.conquistas.includes(conq.id)) {
+        if (!usuarioLogado.conquistas.includes(conq.id) && conq.checar(usuarioLogado)) {
             usuarioLogado.conquistas.push(conq.id);
             usuarioLogado.pontos += conq.pts;
-            atualizarBanco(usuarioLogado);
+            usuarioLogado.pontos = parseFloat(usuarioLogado.pontos.toFixed(1));
+            desbloqueouNova = true;
             
-            document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
-            carregarRank();
-            
+            if (document.getElementById('pontosDisplay')) {
+                document.getElementById('pontosDisplay').textContent = `${usuarioLogado.pontos} pts`;
+            }
+
             // Pop-up Toast da Conquista
-            if(document.getElementById('toast-nome')){
-                document.getElementById('toast-nome').textContent = conq.nome;
-                document.getElementById('toast-pontos').textContent = `+${conq.pts} pts`;
+            if (document.getElementById('toast-nome')) {
+                document.getElementById('toast-nome').textContent = `${conq.icone} ${conq.nome}`;
+                document.getElementById('toast-pontos').textContent = `+${conq.pts} pts (${conq.dificuldade})`;
                 
                 const toast = document.getElementById('toast-conquista');
                 toast.classList.remove('hidden');
@@ -1045,35 +2621,60 @@ function verificarConquistas() {
                 setTimeout(() => { 
                     toast.classList.remove('show');
                     setTimeout(() => { toast.classList.add('hidden'); }, 500);
-                }, 4000);
+                }, 4500);
             }
+            
+            mostrarToastCanto('🏆 Conquista Desbloqueada!', `${conq.nome} (+${conq.pts} pts • ${conq.dificuldade})`, 'success', 5000);
         }
     });
+
+    if (desbloqueouNova) {
+        atualizarBanco(usuarioLogado);
+        carregarRank();
+        if (typeof atualizarDesempenho === 'function') atualizarDesempenho();
+    }
+    
     renderizarConquistas();
 }
 
 function renderizarConquistas() {
-    let msgCount = usuarioLogado.mensagensTCC || 0;
-    let painel = document.getElementById('lista-conquistas-ui');
-    if(!painel) return;
+    const painel = document.getElementById('lista-conquistas-ui');
+    if (!painel) return;
     
     let html = '';
     conquistasConfig.forEach(conq => {
-        let porcentagem = Math.min((msgCount / conq.meta) * 100, 100);
-        let desbloqueado = usuarioLogado.conquistas && usuarioLogado.conquistas.includes(conq.id);
+        const pct = conq.progresso(usuarioLogado);
+        const desbloqueado = usuarioLogado.conquistas && usuarioLogado.conquistas.includes(conq.id);
+        const statusTexto = conq.statusTexto(usuarioLogado);
         
+        let difClass = 'badge-facil';
+        if (conq.dificuldade === 'Médio') difClass = 'badge-medio';
+        else if (conq.dificuldade === 'Difícil') difClass = 'badge-dificil';
+        else if (conq.dificuldade === 'Lendário') difClass = 'badge-lendario';
+
         html += `
-            <div class="conquista-item" style="opacity: ${desbloqueado ? '1' : '0.6'}; margin-bottom: 15px;">
-                <div class="conquista-header" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 5px;">
-                    <span>${conq.icone} ${conq.nome}</span>
-                    <span style="color:var(--accent-color);">${Math.floor(porcentagem)}%</span>
+            <div class="conquista-card ${desbloqueado ? 'desbloqueada' : ''}">
+                <div class="conquista-top-row">
+                    <div class="conquista-title-group">
+                        <span style="font-size: 18px;">${conq.icone}</span>
+                        <span class="conquista-nome">${conq.nome}</span>
+                    </div>
+                    <div class="conquista-badges">
+                        <span class="badge-dif ${difClass}">${conq.dificuldade}</span>
+                        <span class="badge-pontos">+${conq.pts} pts</span>
+                    </div>
                 </div>
-                <div class="progress-bar-bg" style="width: 100%; height: 10px; background: var(--bg-main); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color);">
-                    <div class="progress-bar-fill" style="height: 100%; background: var(--accent-color); transition: width 0.5s; width: ${porcentagem}%;"></div>
+                <div class="conquista-desc">${conq.desc}</div>
+                <div class="conquista-progress-wrap">
+                    <div class="conquista-progress-bg">
+                        <div class="conquista-progress-fill" style="width: ${pct}%;"></div>
+                    </div>
+                    <span class="conquista-pct">${desbloqueado ? '✅ 100%' : `${pct}%`}</span>
                 </div>
-                <p style="font-size:11px; margin-top:3px; color:var(--text-muted);">
-                    ${desbloqueado ? '✅ Desbloqueado' : `Troque ${conq.meta} msgs c/ a IA (${msgCount}/${conq.meta})`}
-                </p>
+                <div style="font-size: 11px; color: ${desbloqueado ? '#4CAF50' : 'var(--text-muted)'}; margin-top: 4px; display: flex; justify-content: space-between;">
+                    <span>${desbloqueado ? '✨ Conquista concluída!' : statusTexto}</span>
+                    <span>${conq.categoria}</span>
+                </div>
             </div>
         `;
     });
@@ -1083,36 +2684,226 @@ function renderizarConquistas() {
 // ==========================================
 // FUNÇÕES DE ADMINISTRAÇÃO (PROFESSOR)
 // ==========================================
-function salvarConteudo(e) {
-    e.preventDefault();
-    // Descobre qual matéria está selecionada no menu
-    let materiaBtn = document.querySelector('.materia-btn.active');
-    let materiaAtiva = materiaBtn ? materiaBtn.innerText : 'Geral';
-    let arquivoInput = document.getElementById('profArquivo');
-    
-    let salvar = (arquivoBase64, nomeArquivo) => {
-        let novoConteudo = {
-            id: Date.now(), materia: materiaAtiva,
-            titulo: document.getElementById('profTitulo').value,
-            texto: document.getElementById('profTexto').value,
-            link: document.getElementById('profLink').value,
-            video: document.getElementById('profVideo').value,
-            arquivo: arquivoBase64, nomeArquivo: nomeArquivo
+function perguntarConfirmacao(titulo, mensagem, { textoOk = 'Confirmar', perigo = false } = {}) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('modal-confirmacao');
+        const tituloEl = document.getElementById('confirm-titulo');
+        const mensagemEl = document.getElementById('confirm-mensagem');
+        const btnOk = document.getElementById('confirm-ok');
+        const btnCancelar = document.getElementById('confirm-cancelar');
+        if (!modal || !btnOk || !btnCancelar) {
+            resolve(window.confirm(mensagem));
+            return;
+        }
+
+        tituloEl.textContent = titulo;
+        mensagemEl.textContent = mensagem;
+        btnOk.textContent = textoOk;
+        btnOk.classList.toggle('btn-confirm-danger', !!perigo);
+        modal.classList.remove('hidden');
+
+        const fechar = (valor) => {
+            modal.classList.add('hidden');
+            btnOk.onclick = null;
+            btnCancelar.onclick = null;
+            modal.onclick = null;
+            resolve(valor);
         };
-        let conteudos = JSON.parse(localStorage.getItem('bd_conteudos')) || [];
-        conteudos.push(novoConteudo);
-        localStorage.setItem('bd_conteudos', JSON.stringify(conteudos));
-        mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
-        e.target.reset();
-        carregarMateria(materiaAtiva); // Atualiza a tela na hora
+
+        btnOk.onclick = () => fechar(true);
+        btnCancelar.onclick = () => fechar(false);
+        modal.onclick = (ev) => {
+            if (ev.target === modal) fechar(false);
+        };
+    });
+}
+
+function atualizarTituloPainelProfessor(editando) {
+    const titulo = document.getElementById('tituloPainelProfessor');
+    const btnSalvar = document.getElementById('btnSalvarConteudo');
+    const btnCancelar = document.getElementById('btnCancelarEdicao');
+    if (titulo) titulo.textContent = editando ? '✏️ Editar publicação' : '👨‍🏫 Publicar Nova Aula';
+    if (btnSalvar) btnSalvar.textContent = editando ? 'Salvar alterações' : 'Salvar Conteúdo';
+    if (btnCancelar) btnCancelar.style.display = editando ? 'inline-flex' : 'none';
+}
+
+function cancelarEdicaoConteudo() {
+    const form = document.getElementById('formPublicarConteudo');
+    const idCampo = document.getElementById('profEditandoId');
+    if (form) form.reset();
+    if (idCampo) idCampo.value = '';
+    atualizarTituloPainelProfessor(false);
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    const selectMateria = document.getElementById('profMateria');
+    if (selectMateria && materiaBtn) selectMateria.value = materiaBtn.innerText;
+}
+
+function iniciarEdicaoConteudo(id) {
+    const item = obterConteudosLocais().find(c => String(c.id) === String(id));
+    if (!item) return;
+
+    document.getElementById('profEditandoId').value = item.id;
+    document.getElementById('profMateria').value = item.materia || 'Geral';
+    document.getElementById('profTitulo').value = item.titulo || '';
+    document.getElementById('profTexto').value = item.texto || '';
+    document.getElementById('profLink').value = item.link || '';
+    document.getElementById('profVideo').value = item.video || '';
+    document.getElementById('profArquivo').value = '';
+    atualizarTituloPainelProfessor(true);
+
+    const painel = document.getElementById('painelProfessorConteudo');
+    if (painel) painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function pedirApagarConteudo(id) {
+    const confirmado = await perguntarConfirmacao(
+        'Apagar publicação?',
+        'Tem certeza de que deseja apagar esta matéria? Essa ação não poderá ser desfeita.',
+        { textoOk: 'Apagar', perigo: true }
+    );
+    if (!confirmado) return;
+
+    const restantes = obterConteudosLocais().filter(c => String(c.id) !== String(id));
+    salvarConteudosLocais(restantes);
+
+    if (window.API && typeof window.API.excluirConteudo === 'function') {
+        window.API.excluirConteudo(id).catch(err => {
+            console.warn('[StudySP] Falha ao apagar aula no servidor:', err);
+        });
+    }
+
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    carregarMateria(materiaBtn ? materiaBtn.innerText : 'Português');
+    mostrarToastCanto('Publicação apagada', 'O conteúdo foi removido com sucesso.', 'success');
+}
+
+async function pedirMoverMateria(id, novaMateria) {
+    if (!novaMateria) return;
+    const confirmado = await perguntarConfirmacao(
+        'Mover publicação?',
+        `Tem certeza de que deseja mover esta matéria para ${novaMateria}?`,
+        { textoOk: 'Mover' }
+    );
+    if (!confirmado) {
+        const materiaBtn = document.querySelector('.materia-btn.active');
+        carregarMateria(materiaBtn ? materiaBtn.innerText : 'Português');
+        return;
+    }
+
+    const conteudos = obterConteudosLocais();
+    const idx = conteudos.findIndex(c => String(c.id) === String(id));
+    if (idx === -1) return;
+
+    conteudos[idx].materia = novaMateria;
+    conteudos[idx].editado = true;
+    conteudos[idx].dataHora = new Date().toLocaleString();
+    salvarConteudosLocais(conteudos);
+    persistirConteudoServidor(conteudos[idx]);
+
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    carregarMateria(materiaBtn ? materiaBtn.innerText : 'Português');
+    mostrarToastCanto('Matéria movida', `Publicação movida para ${novaMateria}.`, 'success');
+}
+
+function moverConteudo(id, direcao) {
+    const materiaBtn = document.querySelector('.materia-btn.active');
+    const materiaNome = materiaBtn ? materiaBtn.innerText : 'Português';
+    const todos = obterConteudosLocais();
+    const daMateria = ordenarConteudos(todos.filter(c => c.materia && c.materia.toLowerCase() === materiaNome.toLowerCase()));
+    const pos = daMateria.findIndex(c => String(c.id) === String(id));
+    const destino = pos + direcao;
+    if (pos === -1 || destino < 0 || destino >= daMateria.length) return;
+
+    const atual = daMateria[pos];
+    const vizinho = daMateria[destino];
+    const ordemAtual = ordemConteudo(atual);
+    atual.ordem = ordemConteudo(vizinho);
+    vizinho.ordem = ordemAtual;
+
+    const idxAtual = todos.findIndex(c => String(c.id) === String(atual.id));
+    const idxVizinho = todos.findIndex(c => String(c.id) === String(vizinho.id));
+    if (idxAtual !== -1) todos[idxAtual] = atual;
+    if (idxVizinho !== -1) todos[idxVizinho] = vizinho;
+
+    salvarConteudosLocais(todos);
+    persistirConteudoServidor(atual);
+    persistirConteudoServidor(vizinho);
+    carregarMateria(materiaNome);
+}
+
+async function salvarConteudo(e) {
+    e.preventDefault();
+    const idEditando = document.getElementById('profEditandoId').value;
+    const materiaAtiva = document.getElementById('profMateria').value
+        || (document.querySelector('.materia-btn.active') ? document.querySelector('.materia-btn.active').innerText : 'Geral');
+    const arquivoInput = document.getElementById('profArquivo');
+
+    if (idEditando) {
+        const confirmado = await perguntarConfirmacao(
+            'Salvar alterações?',
+            'Tem certeza de que deseja salvar as alterações desta publicação?',
+            { textoOk: 'Salvar' }
+        );
+        if (!confirmado) return;
+    }
+
+    const aplicarSalvamento = (arquivoBase64, nomeArquivo) => {
+        const conteudos = obterConteudosLocais();
+        const agora = new Date().toLocaleString();
+
+        if (idEditando) {
+            const idx = conteudos.findIndex(c => String(c.id) === String(idEditando));
+            if (idx === -1) return;
+            const atual = conteudos[idx];
+            atual.materia = materiaAtiva;
+            atual.titulo = document.getElementById('profTitulo').value;
+            atual.texto = document.getElementById('profTexto').value;
+            atual.link = document.getElementById('profLink').value;
+            atual.video = document.getElementById('profVideo').value;
+            atual.dataHora = agora;
+            atual.editado = true;
+            if (arquivoBase64) {
+                atual.arquivo = arquivoBase64;
+                atual.nomeArquivo = nomeArquivo;
+            }
+            conteudos[idx] = atual;
+            salvarConteudosLocais(conteudos);
+            persistirConteudoServidor(atual);
+            mostrarToastCanto('Conteúdo atualizado', `Alterações salvas em ${materiaAtiva}.`, 'success');
+        } else {
+            const novoConteudo = {
+                id: Date.now(),
+                ordem: Date.now(),
+                materia: materiaAtiva,
+                titulo: document.getElementById('profTitulo').value,
+                texto: document.getElementById('profTexto').value,
+                link: document.getElementById('profLink').value,
+                video: document.getElementById('profVideo').value,
+                arquivo: arquivoBase64,
+                nomeArquivo: nomeArquivo,
+                dataHora: agora,
+                editado: false,
+                profNome: usuarioLogado.nome,
+                profFoto: usuarioLogado.foto || null,
+                profRM: usuarioLogado.rm || null
+            };
+            conteudos.push(novoConteudo);
+            salvarConteudosLocais(conteudos);
+            persistirConteudoServidor(novoConteudo);
+            mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
+        }
+
+        cancelarEdicaoConteudo();
+        carregarMateria(materiaAtiva);
     };
 
-    // Lógica para transformar arquivo em Base64 (salvar localmente)
     if (arquivoInput.files.length > 0) {
-        let reader = new FileReader();
-        reader.onload = function(evt) { salvar(evt.target.result, arquivoInput.files[0].name); };
+        const reader = new FileReader();
+        reader.onload = function(evt) { aplicarSalvamento(evt.target.result, arquivoInput.files[0].name); };
         reader.readAsDataURL(arquivoInput.files[0]);
-    } else { salvar(null, null); }
+    } else {
+        aplicarSalvamento(null, null);
+    }
 }
 
 function salvarQuestao(e) {
@@ -1135,10 +2926,283 @@ function salvarQuestao(e) {
     localStorage.setItem('bd_simulados', JSON.stringify(simulados));
     
     // Injeta a nova questão na variável da prova atual
+    questoesProfessor.push(novaQuestao);
     dadosProvaSimulada.push(novaQuestao);
+
+    // Envia para o servidor para persistir para todos os alunos em qualquer navegador
+    if (window.API && typeof window.API.salvarSimulado === 'function') {
+        window.API.salvarSimulado(novaQuestao).catch(err => {
+            console.warn('[StudySP] Falha ao enviar simulado para o servidor:', err);
+        });
+    }
     
     mostrarToastCanto('Questão Cadastrada', 'Questão adicionada ao banco de Simulados com sucesso!', 'success');
     e.target.reset();
+}
+
+// ==========================================
+// BANCO DETALHADO DE ESTRUTURA DOS TCCS (18 PROJETOS)
+// ==========================================
+const tccIdeiasDetalhes = {
+    'ds_1': {
+        curso: 'Desenvolvimento de Sistemas',
+        autor: 'João Silva',
+        titulo: 'App de Mobilidade Escolar Compartilhada',
+        tema: 'Roteirização Inteligente e Carona Solidária para Comunidades Escolares',
+        problema: 'Falta de integração e segurança no deslocamento de estudantes de bairros afastados até a escola técnica, resultando em altos índices de atrasos matutinos e evasão escolar no primeiro módulo.',
+        objetivo: 'Desenvolver um aplicativo mobile seguro que conecta responsáveis e estudantes de trajetos comuns, possibilitando grupos de caminhada monitorada e caronas solidárias verificadas pela secretaria escolar.',
+        metodologia: 'Levantamento de requisitos com 120 pais e alunos, prototipagem navegável no Figma, backend desenvolvido em Node.js com banco PostgreSQL e mapas integrados via Leaflet/OpenStreetMap com criptografia ponta a ponta.',
+        resultados: 'Projeto-piloto com 85 famílias ativas no município, reduzindo atrasos em 38% e aumentando a sensação de segurança comunitária para mais de 90% dos usuários cadastrados.'
+    },
+    'ds_2': {
+        curso: 'Desenvolvimento de Sistemas',
+        autor: 'Maria Fernanda',
+        titulo: 'IA para Triagem e Orientação de Currículos de Jovens Aprendizes',
+        tema: 'Inteligência Artificial e Processamento de Linguagem Natural na Inclusão Produtiva',
+        problema: 'Estudantes do Ensino Médio enfrentam extrema dificuldade para estruturar seus primeiros currículos com palavras-chave e competências adequadas aos sistemas automatizados (ATS) dos processos seletivos.',
+        objetivo: 'Construir uma ferramenta web inteligente que avalia currículos enviados em PDF, destaca lacunas formativas e sugere cursos gratuitos alinhados à BNCC e ao perfil das vagas ofertadas no CIEE.',
+        metodologia: 'Processamento de texto em Python (spaCy e NLTK), integração com API LLM para feedback personalizado, interface web responsiva em HTML5/CSS3/Vanilla JS e hospedagem em nuvem.',
+        resultados: 'Validação com 160 jovens do ensino técnico, alcançando taxa de aprovação para entrevistas 42% superior ao grupo de controle que utilizou modelos de currículo tradicionais.'
+    },
+    'ds_3': {
+        curso: 'Desenvolvimento de Sistemas',
+        autor: 'Pedro Santos',
+        titulo: 'Sistema Integrado de Gestão de Laboratórios e Equipamentos Escolares',
+        tema: 'Sistemas Web para Otimização de Infraestrutura e Recursos Pedagógicos',
+        problema: 'Desorganização e frequentes conflitos no agendamento de laboratórios de informática, kits de robótica e projetores, decorrentes de controles feitos em cadernos físicos de papel.',
+        objetivo: 'Implementar um sistema web dinâmico de reserva de ambientes com controle de permissões por perfil (gestor, docente e monitor), acompanhamento de manutenções e inventário patrimonial por QR Code.',
+        metodologia: 'Arquitetura MVC com PHP 8 e MySQL, autenticação JWT, geração automatizada de etiquetas QR Code para equipamentos e módulo de relatórios de uso em PDF.',
+        resultados: 'Implantação na unidade escolar, zerando duplicidades de reserva e reduzindo em 65% o tempo ocioso dos laboratórios de informática.'
+    },
+    'jur_1': {
+        curso: 'Serviços Jurídicos',
+        autor: 'Ana Luísa',
+        titulo: 'Cartilha Interativa dos Direitos do Consumidor Jovem no E-Commerce',
+        tema: 'Educação Jurídica e Proteção do Consumidor nas Compras Digitais',
+        problema: 'Aumento expressivo de compras por impulso em redes sociais (TikTok e Instagram) por menores de idade, gerando endividamento precoce e vulnerabilidade a golpes sem compreensão do Código de Defesa do Consumidor.',
+        objetivo: 'Produzir uma cartilha jurídica interativa e linguagem acessível detalhando direitos de arrependimento (art. 49 do CDC), prazos para troca de produtos com defeito e identificação de publicidade enganosa.',
+        metodologia: 'Pesquisa legislativa no CDC e jurisprudências recentes do TJ-SP sobre golpes via PIX, aplicação de questionário diagnóstico com 200 jovens e desenvolvimento de infográficos visuais.',
+        resultados: 'Distribuição digital do guia para mais de 1.400 estudantes, elevando a taxa de acerto em testes sobre direitos básicos do consumidor de 31% para 89%.'
+    },
+    'jur_2': {
+        curso: 'Serviços Jurídicos',
+        autor: 'Carlos Almeida',
+        titulo: 'Impactos e Conformidade da LGPD no Tratamento de Dados de Menores nas Escolas',
+        tema: 'Lei Geral de Proteção de Dados (Lei nº 13.709/2018) na Gestão Escolar',
+        problema: 'Escolas armazenam e compartilham rotineiramente fotos de eventos, notas e laudos psicológicos de crianças e adolescentes sem formulários adequados de consentimento específico dos responsáveis legais.',
+        objetivo: 'Elaborar um modelo prático de Governança de Privacidade em conformidade com o Artigo 14 da LGPD, fornecendo minutas de termos de consentimento e plano de resposta a incidentes para escolas públicas.',
+        metodologia: 'Estudo de caso exploratório em duas unidades de ensino, análise dogmática da lei e consultas a pareceres da Autoridade Nacional de Proteção de Dados (ANPD).',
+        resultados: 'Adoção da minuta contratual e da cartilha de boas práticas pela equipe gestora da escola, estabelecendo protocolo seguro de veiculação de imagens pedagógicas.'
+    },
+    'jur_3': {
+        curso: 'Serviços Jurídicos',
+        autor: 'Beatriz Costa',
+        titulo: 'Guia de Mediação Comunitária e Justiça Restaurativa no Ambiente Escolar',
+        tema: 'Meios Adequados de Solução de Conflitos e Prevenção à Violência Escolar',
+        problema: 'A aplicação exclusiva de medidas punitivas tradicionais (suspensão e advertência) não tem sido eficaz para resolver desavenças interpessoais e casos de cyberbullying entre estudantes.',
+        objetivo: 'Estruturar um roteiro metodológico para implantação de Círculos Restaurativos e formação de comissões de alunos mediadores, respaldado na Lei de Mediação (Lei nº 13.140/2015).',
+        metodologia: 'Revisão bibliográfica sobre Justiça Restaurativa, realização de oficinas práticas com dinâmicas de Comunicação Não-Violenta (CNV) e acompanhamento simulado de conflitos típicos da rotina escolar.',
+        resultados: 'Redução de 55% nos encaminhamentos de ocorrências disciplinares graves à direção e capacitação de 18 estudantes como mediadores voluntários.'
+    },
+    'log_1': {
+        curso: 'Logística',
+        autor: 'Lucas Oliveira',
+        titulo: 'Otimização de Rotas no Transporte Escolar Municipal',
+        tema: 'Pesquisa Operacional, Roteirização de Frotas e Sustentabilidade',
+        problema: 'Rotas desorganizadas de vans e micro-ônibus escolares causavam atrasos sistemáticos na chegada às aulas, aumento abusivo do consumo de diesel e emissão excessiva de poluentes.',
+        objetivo: 'Mapear todos os pontos de embarque e aplicar técnicas de roteirização baseadas no Problema do Caixeiro Viajante (TSP) para desenhar itinerários mais curtos e eficientes.',
+        metodologia: 'Coleta de dados georreferenciados de 210 estudantes via GPS, modelagem computacional no software QGIS e análise comparativa de quilometragem e consumo médio de combustível.',
+        resultados: 'Diminuição de 19% nos custos operacionais de combustível e ganho de 22 minutos diários no tempo médio de permanência dos alunos dentro do veículo.'
+    },
+    'log_2': {
+        curso: 'Logística',
+        autor: 'Rafael Souza',
+        titulo: 'Gestão Sustentável e Controle PEPS/FIFO no Estoque da Merenda Escolar',
+        tema: 'Gestão de Suprimentos Perecíveis e Combate ao Desperdício de Alimentos',
+        problema: 'Perdas frequentes de hortifrutigranjeiros e laticínios da alimentação escolar em decorrência de estocagem incorreta e falta de método padronizado de rotação de estoque.',
+        objetivo: 'Implantar o método PEPS (Primeiro que Entra, Primeiro que Sai) integrado a uma matriz de curva ABC para priorizar itens de alta sensibilidade e curto prazo de validade.',
+        metodologia: 'Diagnóstico in loco nos depósitos de 4 escolas, redesenho do layout das despensas, elaboração de fichas técnicas de controle diário e capacitação prática dos colaboradores.',
+        resultados: 'Eliminação de 88% do descarte de alimentos por vencimento e aproveitamento integral das compras provenientes da agricultura familiar sustentável.'
+    },
+    'log_3': {
+        curso: 'Logística',
+        autor: 'Juliana Mendes',
+        titulo: 'Logística Reversa para Descarte Adequado de E-Waste na Comunidade Escolar',
+        tema: 'Logística Reversa, Economia Circular e Destinação de Resíduos Sólidos',
+        problema: 'Inexistência de pontos de coleta acessíveis para baterias, celulares antigos e cabos quebrados, levando ao descarte no lixo comum e contaminação do solo por metais pesados.',
+        objetivo: 'Desenvolver a modelagem completa de uma cadeia reversa para resíduos eletrônicos, integrando postos de coleta voluntária na escola a cooperativas recicladoras certificadas.',
+        metodologia: 'Mapeamento de stakeholders, dimensionamento da capacidade de estocagem temporária, análise de custo-benefício de frete compartilhado e palestras de conscientização ecológica.',
+        resultados: 'Coleta de mais de 1.100 kg de componentes eletrônicos em três meses de campanha, com certificação oficial de destinação e reciclagem sustentável.'
+    },
+    'agro_1': {
+        curso: 'Agropecuária',
+        autor: 'Marcos Vinícius',
+        titulo: 'Horta Hidropônica Automatizada de Baixo Custo para Alimentação Escolar',
+        tema: 'Agricultura 4.0, Hidroponia NFT e Eficiência no Uso da Água',
+        problema: 'Dificuldade de manter hortaliças frescas durante todo o ano letivo devido a períodos severos de estiagem, solo arenoso e falta de mão de obra para manutenção diária.',
+        objetivo: 'Construir um protótipo de cultivo hidropônico NFT (Nutrient Film Technique) com automação simples via microcontrolador para controle de bombeamento e oxigenação da solução nutritiva.',
+        metodologia: 'Montagem estrutural em perfis de PVC reaproveitados, calibração de sensores de pH e condutividade elétrica, e monitoramento semanal do desenvolvimento de mudas de alface e rúcula.',
+        resultados: 'Produção 30% mais rápida comparada ao canteiro de terra tradicional, com economia hídrica superior a 85% e fornecimento semanal de verduras frescas para o refeitório.'
+    },
+    'agro_2': {
+        curso: 'Agropecuária',
+        autor: 'Fernanda Lima',
+        titulo: 'Bioinseticidas Caseiros à Base de Nim e Calda Bordalesa em Hortas Urbanas',
+        tema: 'Controle Biológico e Manejo Agroecológico de Pragas e Doenças',
+        problema: 'Contaminação de alimentos e risco de intoxicação por produtores familiares ao utilizarem agrotóxicos sintéticos de alta toxicidade em hortas periurbanas.',
+        objetivo: 'Avaliar a eficiência agronômica do extrato aquoso de folhas de Nim (Azadirachta indica) e da calda bordalesa no combate a pulgões e fungos foliares.',
+        metodologia: 'Delineamento em blocos casualizados com 4 tratamentos e 5 repetições em canteiros de couve manteiga e tomateiro, com contagem seriada de insetos antes e após pulverizações.',
+        resultados: 'Eficácia de combate a pragas de 84% sem qualquer resíduo tóxico na hortaliça colhida, gerando economia de 70% nos custos de insumos agrícolas.'
+    },
+    'agro_3': {
+        curso: 'Agropecuária',
+        autor: 'Thiago Ribeiro',
+        titulo: 'Sistema Integrado de Captação Pluvial e Irrigação Localizada por Gravidade',
+        tema: 'Manejo e Conservação de Recursos Hídricos na Produção Agropecuária',
+        problema: 'Gastos elevados na conta de água e perda de plantios durante períodos de estiagem prolongada nas escolas agrícolas do interior do estado.',
+        objetivo: 'Projetar e instalar um sistema de captação de água das calhas de galpões agrícolas com filtragem mecânica em camadas e irrigação por gotejamento acionada pela gravidade.',
+        metodologia: 'Cálculo do índice pluviométrico regional, dimensionamento de cisterna de alvenaria impermeabilizada e testes de vazão e uniformidade de gotejadores autocompensantes.',
+        resultados: 'Armazenamento de 15.000 litros de água pluvial durante o período chuvoso, mantendo a área experimental 100% autossuficiente em irrigação durante o inverno.'
+    },
+    'vet_1': {
+        curso: 'Veterinária',
+        autor: 'Mariana Castro',
+        titulo: 'Plataforma Digital de Adoção Responsável com Matchmaking Comportamental',
+        tema: 'Bem-Estar Animal, Guarda Responsável e Controle Populacional de Zoonoses',
+        problema: 'Altas taxas de abandono e devolução de cães resgatados decorrentes de expectativas irreais dos tutores em relação ao porte, nível de energia e necessidades do animal.',
+        objetivo: 'Criar uma aplicação web de triagem e adoção que utiliza questionário comportamental para conectar o perfil do adotante ao cão ou gato mais compatível do canil municipal.',
+        metodologia: 'Avaliação etológica dos animais abrigados em parceria com médicos veterinários, desenvolvimento do formulário de triagem e teste piloto com duas ONGs de proteção.',
+        resultados: '72 adoções intermediadas em 4 meses, com registro de zero devoluções após 90 dias de acompanhamento pós-adoção.'
+    },
+    'vet_2': {
+        curso: 'Veterinária',
+        autor: 'Diego Rocha',
+        titulo: 'Manual de Primeiros Socorros para Animais de Estimação: Condutas Pré-Clínicas',
+        tema: 'Medicina Veterinária Intensiva e Capacitação Comunitária em Emergências Pets',
+        problema: 'Muitos animais vêm a óbito antes do atendimento médico veterinário por ações errôneas dos tutores diante de quadros de engasgo, envenenamento ou atropelamento.',
+        objetivo: 'Elaborar um guia técnico e ilustrado com condutas emergenciais baseadas em evidências científicas para estabilização segura de cães e gatos em situações críticas.',
+        metodologia: 'Revisão bibliográfica com foco no protocolo RECOVER de ressuscitação cardiorrespiratória, produção de infográficos anatômicos e validação do conteúdo com médicos veterinários intensivistas.',
+        resultados: 'Mais de 800 cartilhas impressas e digitais distribuídas no município, com realização de 3 workshops práticos que capacitaram mais de 150 tutores.'
+    },
+    'vet_3': {
+        curso: 'Veterinária',
+        autor: 'Letícia Martins',
+        titulo: 'Manejo Nutricional e Preventivo da Doença Renal Crônica em Caninos Idosos',
+        tema: 'Nutrição Clínica, Nefrologia e Geriatria em Medicina de Pequenos Animais',
+        problema: 'A Doença Renal Crônica (DRC) é uma das principais causas de mortalidade em cães idosos, frequentemente diagnosticada em fases tardias sem suporte dietético adequado.',
+        objetivo: 'Avaliar os parâmetros nutricionais ideais (fósforo controlado, teor proteico de alto valor biológico e ácidos graxos ômega-3) para desacelerar a progressão da nefropatia geriátrica.',
+        metodologia: 'Acompanhamento clínico de prontuários de 25 cães geriátricos em ambulatório-escola, correlacionando o tipo de alimentação com parâmetros séricos de ureia, creatinina e escore corporal.',
+        resultados: 'Constatação de retardo de 40% na progressão do estágio clínico em animais que receberam dieta específica rica em ômega-3 e restrição calibrada de fósforo.'
+    },
+    'adm_1': {
+        curso: 'Administração',
+        autor: 'Gabriel Nogueira',
+        titulo: 'Plano de Negócios e Viabilidade Financeira para Brechó Online Sustentável',
+        tema: 'Empreendedorismo, Economia Circular e Análise de Viabilidade Econômica',
+        problema: 'O impacto ambiental severo da indústria têxtil (Fast Fashion) aliado à falta de planejamento gerencial e financeiro que leva à mortalidade precoce de novos microbrechós.',
+        objetivo: 'Estruturar um Plano de Negócios completo segundo a metodologia SEBRAE, compreendendo plano de marketing, análise de concorrência, estudo operacional e fluxo de caixa projetado.',
+        metodologia: 'Pesquisa quantitativa com 250 consumidores da classe C, modelagem Canvas, projeção de Demonstrativo de Resultados (DRE) para 36 meses e cálculo de Ponto de Equilíbrio e TIR.',
+        resultados: 'Comprovação da viabilidade financeira com Payback de 10 meses e margem líquida projetada de 24%, permitindo o lançamento real da startup na cidade.'
+    },
+    'adm_2': {
+        curso: 'Administração',
+        autor: 'Camila Ferreira',
+        titulo: 'Estratégias de Marketing Digital e Tráfego Pago para Micro e Pequenas Empresas',
+        tema: 'Marketing Digital de Performance e Transformação Comercial de Negócios Locais',
+        problema: 'Comércios familiares de bairro perderam volume de vendas no pós-pandemia por desconhecerem ferramentas de posicionamento online no Google e redes sociais.',
+        objetivo: 'Desenvolver e testar um modelo prático de atração e fidelização de clientes locais através do Google Meu Negócio, Meta Ads e atendimento estruturado via WhatsApp Business.',
+        metodologia: 'Estudo de caso com três pequenas empresas da região (padaria, pet shop e oficina), estruturação de campanhas geolocalizadas em raio de 3 km e métricas de Custo por Lead (CPL).',
+        resultados: 'Aumento médio de 48% nas mensagens de orçamento recebidas e retorno sobre investimento publicitário (ROAS) de 4,5x nos primeiros 60 dias.'
+    },
+    'adm_3': {
+        curso: 'Administração',
+        autor: 'Rodrigo Alves',
+        titulo: 'Educação Financeira Juvenil: Método 50-30-20 e Investimentos no Tesouro Direto',
+        tema: 'Finanças Pessoais, Orçamento Familiar e Educação Econômica na Juventude',
+        problema: 'Jovens aprendizes e estagiários frequentemente contraem dívidas no cartão de crédito logo nos primeiros meses de trabalho devido ao desconhecimento de noções elementares de finanças.',
+        objetivo: 'Elaborar uma metodologia dinâmica de gestão financeira com foco na regra 50-30-20 e introdução prática a títulos de renda fixa pública (Tesouro Selic) para formação de reserva de emergência.',
+        metodologia: 'Aplicação de pesquisa diagnóstica de hábitos financeiros com 190 estudantes da 3ª série do EM, realização de oficinas interativas e fornecimento de planilha orçamentária automatizada.',
+        resultados: '91% dos alunos participantes constituíram sua primeira reserva financeira e mais de 35% realizaram seu primeiro aporte em títulos públicos ou CDBs de liquidez diária.'
+    }
+};
+
+function abrirDetalheTCC(id) {
+    const dados = tccIdeiasDetalhes[id];
+    if (!dados) return;
+
+    if (document.getElementById('tccModalCursoBadge')) document.getElementById('tccModalCursoBadge').textContent = dados.curso;
+    if (document.getElementById('tccModalTitulo')) document.getElementById('tccModalTitulo').textContent = dados.titulo;
+    if (document.getElementById('tccModalAutor')) document.getElementById('tccModalAutor').textContent = `Autor(a): ${dados.autor}`;
+    if (document.getElementById('tccModalTema')) document.getElementById('tccModalTema').textContent = dados.tema;
+    if (document.getElementById('tccModalProblema')) document.getElementById('tccModalProblema').textContent = dados.problema;
+    if (document.getElementById('tccModalObjetivo')) document.getElementById('tccModalObjetivo').textContent = dados.objetivo;
+    if (document.getElementById('tccModalMetodologia')) document.getElementById('tccModalMetodologia').textContent = dados.metodologia;
+    if (document.getElementById('tccModalResultados')) document.getElementById('tccModalResultados').textContent = dados.resultados;
+
+    const modal = document.getElementById('modal-detalhe-tcc');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function fecharModalDetalheTCC() {
+    const modal = document.getElementById('modal-detalhe-tcc');
+    if (modal) modal.classList.add('hidden');
+}
+
+// Fechamento dos novos modais ao clicar no overlay escuro
+window.addEventListener('click', function(e) {
+    const modalPerfil = document.getElementById('modal-meu-perfil');
+    if (modalPerfil && e.target === modalPerfil) {
+        modalPerfil.classList.add('hidden');
+    }
+    const modalTCC = document.getElementById('modal-detalhe-tcc');
+    if (modalTCC && e.target === modalTCC) {
+        modalTCC.classList.add('hidden');
+    }
+    const modalPomodoroInfo = document.getElementById('modal-pomodoro-info');
+    if (modalPomodoroInfo && e.target === modalPomodoroInfo) {
+        modalPomodoroInfo.classList.add('hidden');
+    }
+    const modalTccConfig = document.getElementById('modal-tcc-config');
+    if (modalTccConfig && e.target === modalTccConfig) {
+        modalTccConfig.classList.add('hidden');
+    }
+});
+
+// ==========================================
+// SINCRONIZAÇÃO EM SEGUNDO PLANO COM O SERVIDOR
+// ==========================================
+async function sincronizarComServidor() {
+    if (!usuarioLogado || !usuarioLogado.rm) return;
+    try {
+        if (window.API && typeof window.API.buscarUsuario === 'function') {
+            const remoto = await window.API.buscarUsuario(usuarioLogado.rm);
+            if (remoto && remoto.rm) {
+                // Atualiza dados locais com a versão mais recente do banco de dados
+                Object.assign(usuarioLogado, remoto);
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+                carregarDadosPerfil();
+                carregarRank();
+                if (typeof atualizarDesempenho === 'function') atualizarDesempenho();
+                if (typeof renderizarConquistas === 'function') renderizarConquistas();
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Sincronização inicial com o servidor indisponível:', err);
+    }
+}
+
+async function carregarQuestoesDoServidor() {
+    try {
+        if (window.API && typeof window.API.buscarSimulados === 'function') {
+            const questoesServidor = await window.API.buscarSimulados();
+            if (Array.isArray(questoesServidor) && questoesServidor.length > 0) {
+                questoesProfessor = questoesServidor;
+                localStorage.setItem('bd_simulados', JSON.stringify(questoesServidor));
+            }
+        }
+    } catch (err) {
+        console.warn('[StudySP] Simulados do servidor indisponíveis, mantendo locais:', err);
+    }
 }
 
 // Inicialização Final (Roda ao carregar a página)
@@ -1147,3 +3211,6 @@ carregarRank();
 calcularMultiplicador(); 
 atualizarDesempenho(); 
 renderizarConquistas();
+tornarMiniTimerArrastavel();
+sincronizarComServidor();
+carregarQuestoesDoServidor();
