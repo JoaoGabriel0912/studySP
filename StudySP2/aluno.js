@@ -2189,30 +2189,98 @@ function dispararConfetes() {
 // ==========================================
 
 // --- IA DE ESTUDOS (Provão) ---
-const GEMINI_API_KEY = "AQ.Ab8RN6KRVw_lx0p9oQsFv-YhJlFnOqscPc1IQIVO5-7AqoT4lA"; // Substitua pela sua chave de API do Gemini
+// Preferência: backend /api/gemini (chave no .env).
+// Fallback: chamada direta ao Gemini (para quando o servidor não estiver rodando).
+const GEMINI_API_KEY = "AQ.Ab8RN6JZ-O_xUzXVgD-ATLOYSlQce7v9zmMxoBToeVcaIgPEog";
+const GEMINI_MODEL = "gemini-3.8-flash";
 
-// Função auxiliar: espera N milissegundos
 function esperar(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-// Função auxiliar: chama a API Gemini com retry automático
+async function chamarGeminiDireto(prompt) {
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY
+            },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        }
+    );
+    const data = await response.json();
+    if (!response.ok || data.error) {
+        return {
+            ok: false,
+            error: data.error ? data.error.message : `HTTP ${response.status}`,
+            text: null,
+            data
+        };
+    }
+    const text = data.candidates
+        && data.candidates[0]
+        && data.candidates[0].content
+        && data.candidates[0].content.parts
+        && data.candidates[0].content.parts[0]
+        && data.candidates[0].content.parts[0].text;
+    return { ok: true, error: null, text: text || "", data };
+}
+
 async function chamarGemini(prompt, tentativas = 3) {
     for (let i = 0; i < tentativas; i++) {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await response.json();
-
-        // Erro de sobrecarga (503) → tenta de novo após espera
-        if (data.error && data.error.message && data.error.message.includes("high demand")) {
-            if (i < tentativas - 1) {
-                await esperar(3000 * (i + 1)); // espera 3s, 6s, 9s...
-                continue;
+        // 1) Tenta pelo backend, se disponível
+        if (window.StudySP_API && typeof window.StudySP_API.gemini === "function") {
+            const data = await window.StudySP_API.gemini(prompt);
+            if (data && data.success && data.text) {
+                return { ok: true, error: null, text: data.text, data };
+            }
+            // Se o servidor respondeu com erro de API (não rede), usa essa mensagem
+            if (data && data.error && !data.networkError) {
+                const msgErro = String(data.error);
+                if (msgErro.includes("high demand") && i < tentativas - 1) {
+                    await esperar(3000 * (i + 1));
+                    continue;
+                }
+                // Se a chave do servidor falhar, tenta direto no front
             }
         }
-        return { response, data };
+
+        // 2) Fallback direto no navegador
+        try {
+            const direto = await chamarGeminiDireto(prompt);
+            if (direto.ok) return direto;
+            if (direto.error && direto.error.includes("high demand") && i < tentativas - 1) {
+                await esperar(3000 * (i + 1));
+                continue;
+            }
+            return direto;
+        } catch (err) {
+            if (i < tentativas - 1) {
+                await esperar(3000 * (i + 1));
+                continue;
+            }
+            return {
+                ok: false,
+                error: err.message || "Falha de conexão com a IA",
+                text: null,
+                data: null
+            };
+        }
     }
+}
+
+function montarHistoricoChatIA(chatEl, excluirId) {
+    if (!chatEl) return '';
+    const linhas = [];
+    chatEl.querySelectorAll('.msg').forEach(msg => {
+        if (excluirId && msg.id === excluirId) return;
+        const texto = (msg.innerText || msg.textContent || '').trim();
+        if (!texto || texto.includes('Pensando...')) return;
+        const quem = msg.classList.contains('user') ? 'Aluno' : 'Tutor';
+        linhas.push(`${quem}: ${texto}`);
+    });
+    // Mantém só as últimas mensagens para não estourar o contexto
+    return linhas.slice(-12).join('\n');
 }
 
 async function enviarMensagemIA() {
@@ -2229,35 +2297,57 @@ async function enviarMensagemIA() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        if (GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
-            if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatMessages.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
-            return;
-        }
+        const historico = montarHistoricoChatIA(chatMessages, idLoading);
+        const prompt = `Você é um Tutor de Estudos do Provão Paulista. Seu objetivo é ajudar o aluno a aprender com clareza e sem desgaste.
 
-        const prompt = `Você é um tutor de estudos para o Provão Paulista. 
-Regra 1: Você NUNCA deve dar a resposta direta de uma questão.
-Regra 2: Você deve apenas auxiliar, dar dicas, explicar conceitos e guiar o aluno para encontrar a resposta.
-Regra 3: NÃO use emojis ou asteriscos (*) nas suas respostas. 
-Regra 4: Dê respostas curtas e diretas, mas suficientes para compreensão.
-Regra 5: No final de cada resposta, sugira um site, livro, vídeo ou filme para explicar a dúvida melhor.
-Mensagem do aluno: ${msgTexto}`;
+PERSONALIDADE E ESTILO:
+- Paciente, encorajador, didático e direto.
+- Linguagem clara e objetiva. NÃO use emojis nem asteriscos (*) nas respostas.
+- SEMPRE seja conciso: no máximo 5 a 8 linhas curtas, salvo se o aluno pedir "mais detalhes" ou "mais completo".
+
+COMO DECIDIR O MODO DE RESPOSTA:
+
+MODO EXPLICATIVO (use quando o aluno pedir conteúdo, biografia, resumo, definição, contexto histórico, fórmula, conceito, "me explica", "o que foi", "quem foi", "fale sobre"):
+- Entregue a informação de forma CURTA e útil: só o essencial (quem foi, o que fez, por que importa).
+- Prefira 1 parágrafo curto ou 3 a 5 tópicos bem objetivos. Evite textos longos e enciclopédicos.
+- Pode terminar com UMA pergunta leve (ex.: "Quer que eu aprofunde algum ponto?"), sem obrigar descoberta passo a passo.
+- NÃO transforme biografias, resumos ou explicações em jogo de perguntas.
+- Só alongue se o aluno pedir explicitamente mais detalhes.
+
+MODO SOCRÁTICO (use SOMENTE quando o aluno colar uma questão/exercício ou pedir a resposta/alternativa correta):
+1. Se ele só colar a questão, pergunte primeiro onde travou ou o que entendeu do enunciado.
+2. Explique um passo por vez e peça que o aluno aplique antes de avançar.
+3. Se errar, aponte onde a lógica desviou (correção construtiva).
+4. Se pedir para "resolver", crie um exemplo análogo parecido (números/contexto diferentes), resolva esse exemplo e peça que aplique a mesma lógica na questão original.
+5. NUNCA dê a resposta final nem indique a alternativa correta.
+
+EXEMPLOS:
+
+Aluno: "Fale a biografia de Machado de Assis"
+Você: "Machado de Assis (1839-1908) foi um dos maiores escritores brasileiros, fundador da ABL. Nasceu no Rio de Janeiro, em família pobre, e destacou-se com obras como Dom Casmurro, Memórias Póstumas de Brás Cubas e Quincas Borba. É marca do Realismo no Brasil, com ironia e análise psicológica. Quer que eu foque em alguma obra ou fase da vida dele?"
+
+Aluno: "Qual a resposta: Um carro a 20 m/s freia a 4 m/s². Qual a distância até parar?"
+Você: "Vamos organizar os dados primeiro: velocidade inicial (v0) = 20 m/s e aceleração (a) = -4 m/s² (negativa pois está freando). Se o carro vai parar, qual será a velocidade final (v) dele? E qual fórmula você conhece que relaciona esses dados sem precisar do tempo?"
+
+HISTÓRICO DA CONVERSA:
+${historico || '(início da conversa)'}
+
+Mensagem atual do aluno: ${msgTexto}
+
+Responda agora apenas como o Tutor, escolhendo o modo certo para este pedido.`;
 
         if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando... (tentando conectar)</i>';
         const resultado = await chamarGemini(prompt);
-        const { response, data } = resultado;
 
-        if (!response.ok || data.error) {
-            const msgErro = data.error ? data.error.message : `HTTP ${response.status}`;
+        if (!resultado.ok) {
             if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatMessages.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${msgErro}</div>`;
-            console.error('Erro da API:', data);
+            chatMessages.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${resultado.error}</div>`;
+            console.error('Erro da API:', resultado.data || resultado.error);
             return;
         }
 
-        const resposta = data.candidates[0].content.parts[0].text;
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-        chatMessages.innerHTML += `<div class="msg ia">${resposta.replace(/\n/g, "<br>")}</div>`;
+        chatMessages.innerHTML += `<div class="msg ia">${resultado.text.replace(/\n/g, "<br>")}</div>`;
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
     } catch (error) {
@@ -2535,35 +2625,57 @@ async function enviarMensagemTCC() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        if (typeof GEMINI_API_KEY === 'undefined' || GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
-            if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatBox.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
-            return;
-        }
+        const historico = montarHistoricoChatIA(chatBox, idLoading);
+        const prompt = `Você é um Co-orientador Acadêmico de TCC (Ensino Técnico / Médio de São Paulo). Seu objetivo é garantir rigor metodológico, estrutura lógica e pensamento crítico, atuando como orientador e revisor, nunca como escritor fantasma.
 
-        const prompt = `Você é um orientador de TCC do Ensino Técnico / Médio de São Paulo.
-Regra 1: Você NUNCA deve fazer o trabalho pelo aluno (nada de escrever os textos do TCC para ele), apenas orientar, dar dicas e tirar dúvidas.
-Regra 2: Você deve apenas auxiliar nos estudos.
-Regra 3: O curso do aluno é: ${usuarioLogado.curso}
-Regra 4: O aluno planeja fazer o TCC sobre: ${usuarioLogado.temaTCC}
-Regra 5: Use as informações do curso e a ideia do TCC como referência para responder e dar exemplos, sempre focando em ajudar com o TCC.
-Mensagem do aluno: ${msgTexto}`;
+CONTEXTO DO ALUNO:
+- Curso: ${usuarioLogado.curso}
+- Tema/foco do TCC: ${usuarioLogado.temaTCC}
+
+PERSONALIDADE E ESTILO:
+- Analítico, metódico, objetivo e questionador.
+- Estruturado em tópicos, linguagem formal mas acessível.
+- NÃO use emojis nas respostas.
+
+REGRAS OBRIGATÓRIAS:
+1. Foco no Esqueleto: Crie estruturas de capítulos, sumários e roteiros do que deve conter em cada parágrafo, mas deixe a redação para o aluno.
+2. Delimitação: Quando o tema for amplo, faça perguntas para forçar o recorte (público-alvo, local, período e metodologia).
+3. Revisão Crítica: Avalie textos enviados apontando falhas de coesão, clareza ou tom coloquial. Dê exemplos curtos de como reescrever uma frase e peça para o aluno ajustar o restante.
+4. Fontes Reais: Sugira palavras-chave para busca (Google Acadêmico/SciELO) e autores clássicos, instruindo o aluno a validar a fonte primária.
+5. Use o histórico da conversa para manter continuidade e não repetir orientações já dadas.
+
+PROIBIÇÕES ESTRITAS (NUNCA FAÇA):
+- NUNCA escreva parágrafos inéditos completos (introdução, desenvolvimento ou conclusão) pelo aluno.
+- NUNCA invente citações, dados ou referências bibliográficas.
+- NUNCA decida o tema ou problema de pesquisa pelo aluno.
+
+EXEMPLO DE COMPORTAMENTO:
+Aluno: "Escreva a justificativa do meu TCC sobre impacto do home office na saúde mental de programadores."
+Você: "Não posso redigir o texto por você, mas vamos estruturar sua justificativa. Responda com suas palavras a estes 3 pontos para montarmos o rascunho:
+1. Relevância Social: Por que empresas e sociedade precisam olhar para isso hoje?
+2. Relevância Acadêmica: O que sua pesquisa aborda que outros estudos deixaram passar?
+3. Motivação: Por que esse recorte é importante para sua área?
+Me envie um rascunho simples com essas respostas e eu te ajudo a lapidar para o padrão acadêmico."
+
+HISTÓRICO DA CONVERSA:
+${historico || '(início da conversa)'}
+
+Mensagem atual do aluno: ${msgTexto}
+
+Responda agora apenas como o Co-orientador, seguindo todas as regras acima.`;
 
         if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Analisando... (tentando conectar)</i>';
         const resultado = await chamarGemini(prompt);
-        const { response, data } = resultado;
 
-        if (!response.ok || data.error) {
-            const msgErro = data.error ? data.error.message : `HTTP ${response.status}`;
+        if (!resultado.ok) {
             if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatBox.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${msgErro}</div>`;
-            console.error('Erro da API:', data);
+            chatBox.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${resultado.error}</div>`;
+            console.error('Erro da API:', resultado.data || resultado.error);
             return;
         }
 
-        const resposta = data.candidates[0].content.parts[0].text;
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-        chatBox.innerHTML += `<div class="msg ia">${resposta.replace(/\n/g, "<br>")}</div>`;
+        chatBox.innerHTML += `<div class="msg ia">${resultado.text.replace(/\n/g, "<br>")}</div>`;
         concluirEnvioTCC();
     } catch (error) {
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
