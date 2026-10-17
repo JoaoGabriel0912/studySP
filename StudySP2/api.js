@@ -136,6 +136,12 @@
             });
         },
 
+        async excluirConteudo(id) {
+            return await apiFetch(`/conteudos/${encodeURIComponent(id)}`, {
+                method: 'DELETE'
+            });
+        },
+
         // --- SIMULADOS (QUESTÕES DOS PROFESSORES) ---
         async buscarSimulados() {
             const res = await apiFetch('/simulados');
@@ -153,6 +159,14 @@
         // --- VERIFICAÇÃO DE SAÚDE ---
         async status() {
             return await apiFetch('/status');
+        },
+
+        // --- IA GEMINI (via backend) ---
+        async gemini(prompt) {
+            return await apiFetch('/gemini', {
+                method: 'POST',
+                body: { prompt }
+            });
         }
     };
 

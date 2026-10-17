@@ -159,6 +159,14 @@
         // --- VERIFICAÇÃO DE SAÚDE ---
         async status() {
             return await apiFetch('/status');
+        },
+
+        // --- IA GEMINI (via backend) ---
+        async gemini(prompt) {
+            return await apiFetch('/gemini', {
+                method: 'POST',
+                body: { prompt }
+            });
         }
     };
 
