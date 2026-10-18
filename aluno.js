@@ -2276,6 +2276,7 @@ function dispararConfetes() {
 const GEMINI_API_KEY = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.apiKey) || "";
 const GEMINI_MODEL = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.model) || "gemini-flash-lite-latest";
 
+// Função auxiliar: espera N milissegundos
 function esperar(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 async function chamarGeminiDireto(prompt) {
@@ -2317,59 +2318,22 @@ async function chamarGeminiDireto(prompt) {
 
 async function chamarGemini(prompt, tentativas = 3) {
     for (let i = 0; i < tentativas; i++) {
-        // 1) Tenta pelo backend, se disponível
-        if (window.StudySP_API && typeof window.StudySP_API.gemini === "function") {
-            const data = await window.StudySP_API.gemini(prompt);
-            if (data && data.success && data.text) {
-                return { ok: true, error: null, text: data.text, data };
-            }
-            // Se o servidor respondeu com erro de API (não rede), usa essa mensagem
-            if (data && data.error && !data.networkError) {
-                const msgErro = String(data.error);
-                if (msgErro.includes("high demand") && i < tentativas - 1) {
-                    await esperar(3000 * (i + 1));
-                    continue;
-                }
-                // Se a chave do servidor falhar, tenta direto no front
-            }
-        }
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
 
-        // 2) Fallback direto no navegador
-        try {
-            const direto = await chamarGeminiDireto(prompt);
-            if (direto.ok) return direto;
-            if (direto.error && direto.error.includes("high demand") && i < tentativas - 1) {
-                await esperar(3000 * (i + 1));
-                continue;
-            }
-            return direto;
-        } catch (err) {
+        // Erro de sobrecarga (503) → tenta de novo após espera
+        if (data.error && data.error.message && data.error.message.includes("high demand")) {
             if (i < tentativas - 1) {
-                await esperar(3000 * (i + 1));
+                await esperar(3000 * (i + 1)); // espera 3s, 6s, 9s...
                 continue;
             }
-            return {
-                ok: false,
-                error: err.message || "Falha de conexão com a IA",
-                text: null,
-                data: null
-            };
         }
+        return { response, data };
     }
-}
-
-function montarHistoricoChatIA(chatEl, excluirId) {
-    if (!chatEl) return '';
-    const linhas = [];
-    chatEl.querySelectorAll('.msg').forEach(msg => {
-        if (excluirId && msg.id === excluirId) return;
-        const texto = (msg.innerText || msg.textContent || '').trim();
-        if (!texto || texto.includes('Pensando...')) return;
-        const quem = msg.classList.contains('user') ? 'Aluno' : 'Tutor';
-        linhas.push(`${quem}: ${texto}`);
-    });
-    // Mantém só as últimas mensagens para não estourar o contexto
-    return linhas.slice(-12).join('\n');
 }
 
 async function enviarMensagemIA() {
@@ -2420,16 +2384,19 @@ Responda agora estritamente como o Agente Tutor Pedagógico:`;
 
         if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando...</i>';
         const resultado = await chamarGemini(prompt);
+        const { response, data } = resultado;
 
-        if (!resultado.ok) {
+        if (!response.ok || data.error) {
+            const msgErro = data.error ? data.error.message : `HTTP ${response.status}`;
             if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatMessages.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${resultado.error}</div>`;
-            console.error('Erro da API:', resultado.data || resultado.error);
+            chatMessages.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${msgErro}</div>`;
+            console.error('Erro da API:', data);
             return;
         }
 
+        const resposta = data.candidates[0].content.parts[0].text;
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-        chatMessages.innerHTML += `<div class="msg ia">${resultado.text.replace(/\n/g, "<br>")}</div>`;
+        chatMessages.innerHTML += `<div class="msg ia">${resposta.replace(/\n/g, "<br>")}</div>`;
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
     } catch (error) {
@@ -2764,16 +2731,19 @@ Responda agora estritamente como o Agente Co-orientador Metodológico:`;
 
         if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando...</i>';
         const resultado = await chamarGemini(prompt);
+        const { response, data } = resultado;
 
-        if (!resultado.ok) {
+        if (!response.ok || data.error) {
+            const msgErro = data.error ? data.error.message : `HTTP ${response.status}`;
             if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatBox.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${resultado.error}</div>`;
-            console.error('Erro da API:', resultado.data || resultado.error);
+            chatBox.innerHTML += `<div class="msg ia">❌ Erro da API Gemini: ${msgErro}</div>`;
+            console.error('Erro da API:', data);
             return;
         }
 
+        const resposta = data.candidates[0].content.parts[0].text;
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-        chatBox.innerHTML += `<div class="msg ia">${resultado.text.replace(/\n/g, "<br>")}</div>`;
+        chatBox.innerHTML += `<div class="msg ia">${resposta.replace(/\n/g, "<br>")}</div>`;
         concluirEnvioTCC();
     } catch (error) {
         if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
