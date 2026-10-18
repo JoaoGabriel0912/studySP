@@ -6,12 +6,12 @@ const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
 if (!usuarioLogado) {
     window.location.href = 'login.html';
 } else {
-    // 1. Libera os painéis secretos se for Professor
+    // 1. Libera os botões de criação se for Professor
     if (usuarioLogado.perfil === 'Professor') {
-        const pConteudo = document.getElementById('painelProfessorConteudo');
-        const pSimulado = document.getElementById('painelProfessorSimulado');
-        if(pConteudo) pConteudo.style.display = 'block';
-        if(pSimulado) pSimulado.style.display = 'block';
+        const btnConteudo = document.getElementById('btnAbrirModalConteudo');
+        const btnSimulado = document.getElementById('btnAbrirModalSimulado');
+        if(btnConteudo) { btnConteudo.style.display = 'inline-flex'; }
+        if(btnSimulado) { btnSimulado.style.display = 'inline-flex'; }
     }
 
     // 2. Coloca o nome e email na tela (Isso que estava faltando!)
@@ -76,9 +76,9 @@ if (!usuarioLogado) {
     }
     // ------------------------------------------
     
-    // 4. Atualiza os textos de pontos na tela
+    // 4. Atualiza os textos de pontos na tela (com 1 casa decimal sem arredondamento desnecessário)
     if(document.getElementById('pontosDisplay')) {
-        document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
+        document.getElementById('pontosDisplay').textContent = `${Number(usuarioLogado.pontos || 0).toFixed(1)} pts`;
     }
     if(document.getElementById('userStreak')) {
         document.getElementById('userStreak').textContent = `${usuarioLogado.sequencia} Dias de Ofensiva`;
@@ -507,7 +507,7 @@ function renderizarRankComAlunos(alunos) {
                         <div class="podio-avatar" style="${avatarStyle}">👤</div>
                         <div class="podio-posicao">${pos.rank}º</div>
                         <div class="podio-nome">${pos.aluno.nome.split(' ')[0]}</div>
-                        <div class="podio-pontos">${Math.floor(pos.aluno.pontos)} pts</div>
+                        <div class="podio-pontos">${Number(pos.aluno.pontos || 0).toFixed(1)} pts</div>
                         <button class="btn-ver-perfil" onclick="mostrarPerfilRank('${pos.aluno.rm}')">Ver Perfil</button>
                     </div>
                 `;
@@ -532,13 +532,14 @@ function renderizarRankComAlunos(alunos) {
             let isVoce = aluno.rm === usuarioLogado.rm ? " (Você)" : "";
             let bgStyle = isVoce ? 'background-color: rgba(0, 123, 255, 0.1); border-radius: 5px;' : '';
             let avatarStyle = aluno.foto ? `background-image: url(${aluno.foto}); color: transparent; background-size: cover; background-position: center;` : ``;
+            let pontosFormatados = Number(aluno.pontos || 0).toFixed(1);
             htmlRank += `
                 <div class="rank-item" style="${bgStyle}">
                     <span class="posicao">#${index + 1}</span>
                     <div class="avatar-circle" style="width:30px; height:30px; font-size:14px; ${avatarStyle}">👤</div>
                     <div class="rank-info">
                         <span class="rank-nome">${aluno.nome}${isVoce}</span>
-                        <span class="rank-stats">🔥 ${aluno.sequencia} Dias | ⭐ ${Math.floor(aluno.pontos)} pts</span>
+                        <span class="rank-stats">🔥 ${aluno.sequencia} Dias | ⭐ ${pontosFormatados} pts</span>
                     </div>
                     <button onclick="mostrarPerfilRank('${aluno.rm}')" style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-weight:bold;">Ver</button>
                 </div>
@@ -598,8 +599,22 @@ async function mostrarPerfilRank(rmDestino) {
         document.getElementById('modal-perfil-nome').textContent = alunoAlvo.nome;
         document.getElementById('modal-perfil-role').textContent = alunoAlvo.perfil || 'Aluno';
         document.getElementById('modal-perfil-cidade').textContent = alunoAlvo.cidade || 'Não informada';
-        document.getElementById('modal-perfil-pontos').textContent = Math.floor(alunoAlvo.pontos || 0) + ' pts';
+        if (document.getElementById('modal-perfil-idade')) {
+            document.getElementById('modal-perfil-idade').textContent = alunoAlvo.idade ? `${alunoAlvo.idade} anos` : 'Não informada';
+        }
+        document.getElementById('modal-perfil-pontos').textContent = Number(alunoAlvo.pontos || 0).toFixed(1) + ' pts';
         document.getElementById('modal-perfil-ofensiva').textContent = (alunoAlvo.sequencia || 0) + ' Dias';
+        
+        const acertos = alunoAlvo.totalAcertos || 0;
+        const totalQ = alunoAlvo.totalQuestoes || 0;
+        const erros = Math.max(0, totalQ - acertos);
+        if (document.getElementById('modal-perfil-acertos')) {
+            document.getElementById('modal-perfil-acertos').textContent = acertos;
+        }
+        if (document.getElementById('modal-perfil-erros')) {
+            document.getElementById('modal-perfil-erros').textContent = erros;
+        }
+
         document.getElementById('modal-perfil-bio').textContent = `"${alunoAlvo.bio || 'Este utilizador ainda não escreveu uma biografia.'}"`;
         
         // Lógica para mostrar a foto ou o emoji padrão
@@ -665,6 +680,17 @@ const LISTA_MATERIAS = ['Português', 'Inglês', 'Matemática', 'Física', 'Quí
 
 function ehProfessor() {
     return !!(usuarioLogado && usuarioLogado.perfil === 'Professor');
+}
+
+function extrairYoutubeId(urlOuId) {
+    if (!urlOuId) return null;
+    const str = String(urlOuId).trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(str)) {
+        return str;
+    }
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = str.match(regExp);
+    return (match && match[1]) ? match[1] : str;
 }
 
 function escapeHtml(texto) {
@@ -783,10 +809,11 @@ function renderizarConteudosNaTela(filtrados, materiaNome) {
         
         htmlCard += `</div>`; 
 
-        if (item.video) {
+        const videoId = extrairYoutubeId(item.video);
+        if (videoId) {
             htmlCard += `
                 <div style="margin:20px auto 0 auto; width: 60%; position:relative; padding-bottom:33.75%; height:0; overflow:hidden; border-radius:10px; border: 1px solid var(--border-color);">
-                    <iframe src="https://www.youtube.com/embed/${escapeHtml(item.video)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                    <iframe src="https://www.youtube.com/embed/${escapeHtml(videoId)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                 </div>
             `;
         }
@@ -2082,6 +2109,11 @@ function cancelarSimulado() {
     document.getElementById('lista-provas').classList.remove('hidden'); 
 }
 
+function voltarParaListaProvas() {
+    cancelarSimulado();
+}
+window.voltarParaListaProvas = voltarParaListaProvas;
+
 function carregarQuestaoNoEcra() {
     let questao = dadosProvaSimulada[indiceQuestaoAtual];
     let pontosQuestao = (questao.pontos !== undefined && questao.pontos !== null) ? Number(questao.pontos) : 2;
@@ -2536,27 +2568,46 @@ const conquistasConfig = [
 ];
 
 // --- IA DE TCC (WORKSTATION ELEGANTE) ---
+function tccValorInvalido(valor) {
+    if (!valor) return true;
+    const limpo = String(valor).trim().toLowerCase();
+    return (
+        limpo === '' ||
+        limpo === 'não definido' ||
+        limpo === 'nao definido' ||
+        limpo === 'não sei' ||
+        limpo === 'nao sei' ||
+        limpo === 'indefinido' ||
+        limpo === 'projeto em definição' ||
+        limpo === 'nenhum'
+    );
+}
+
 function iniciarChatTCC() {
     if (document.getElementById('msgHojeTCC')) {
         document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje || 0;
     }
-    if (document.getElementById('tccBadgeCurso')) {
-        document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso || 'Não definido';
+    const badgeCurso = document.getElementById('tccBadgeCurso');
+    const badgeTema = document.getElementById('tccBadgeTema');
+    
+    if (badgeCurso) {
+        badgeCurso.textContent = tccValorInvalido(usuarioLogado.curso) ? 'Não definido' : usuarioLogado.curso;
     }
-    if (document.getElementById('tccBadgeTema')) {
-        document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC || 'Não definido';
+    if (badgeTema) {
+        badgeTema.textContent = tccValorInvalido(usuarioLogado.temaTCC) ? 'Não definido' : usuarioLogado.temaTCC;
     }
 
     const chatBox = document.getElementById('chatBoxTCC');
     if (!chatBox) return;
 
     if (chatBox.innerHTML.trim() === '') {
-        if (!usuarioLogado.curso) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Para personalizarmos suas orientações, qual é o seu curso técnico ou área de estudo?</div>`;
-        } else if (!usuarioLogado.temaTCC) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Já vi que você cursa ${usuarioLogado.curso}. Qual ideia ou problema você gostaria de investigar no seu projeto?</div>`;
+        const cursoDefinido = !tccValorInvalido(usuarioLogado.curso);
+        const temaDefinido = !tccValorInvalido(usuarioLogado.temaTCC);
+
+        if (cursoDefinido && temaDefinido) {
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Estou pronta para auxiliar com metodologia, normas ABNT, objetivos e escrita para seu TCC em <strong>${escapeHtml(usuarioLogado.curso)}</strong> sobre "<em>${escapeHtml(usuarioLogado.temaTCC)}</em>". O que você gostaria de estruturar hoje?</div>`;
         } else {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Estou pronta para auxiliar com metodologia, normas ABNT, objetivos e escrita para seu TCC em <strong>${usuarioLogado.curso}</strong> sobre "<em>${usuarioLogado.temaTCC}</em>". Como posso te ajudar hoje?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua orientadora acadêmica de TCC. Envie sua primeira mensagem, dúvida ou ideia para começarmos!</div>`;
         }
     }
 }
@@ -2601,8 +2652,8 @@ function abrirModalTccConfig() {
     if (!modal) return;
     const inputCurso = document.getElementById('inputTccConfigCurso');
     const inputTema = document.getElementById('inputTccConfigTema');
-    if (inputCurso) inputCurso.value = usuarioLogado.curso || '';
-    if (inputTema) inputTema.value = usuarioLogado.temaTCC || '';
+    if (inputCurso) inputCurso.value = tccValorInvalido(usuarioLogado.curso) ? '' : usuarioLogado.curso;
+    if (inputTema) inputTema.value = tccValorInvalido(usuarioLogado.temaTCC) ? '' : usuarioLogado.temaTCC;
     modal.classList.remove('hidden');
 }
 
@@ -2626,6 +2677,7 @@ function salvarConfigTcc() {
 
     usuarioLogado.curso = curso;
     usuarioLogado.temaTCC = tema || 'Projeto em definição';
+    usuarioLogado.esperandoDefinicaoTCC = false;
     atualizarBanco(usuarioLogado);
 
     if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
@@ -2633,7 +2685,7 @@ function salvarConfigTcc() {
 
     const chatBox = document.getElementById('chatBoxTCC');
     if (chatBox) {
-        chatBox.innerHTML += `<div class="msg ia">✅ Dados atualizados com sucesso! Anotei que seu curso é <strong>${usuarioLogado.curso}</strong> e seu tema foco é "<strong>${usuarioLogado.temaTCC}</strong>". O que você gostaria de estruturar agora?</div>`;
+        chatBox.innerHTML += `<div class="msg ia">✅ Dados atualizados com sucesso! Anotei que seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong> e seu tema foco é "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>". O que você gostaria de estruturar agora?</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -2674,24 +2726,35 @@ async function enviarMensagemTCC() {
     input.value = ''; 
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Etapa 1: Perguntar o curso se não tiver
-    if (!usuarioLogado.curso) {
-        usuarioLogado.curso = msgTexto;
+    const precisaDefinir = tccValorInvalido(usuarioLogado.curso) || tccValorInvalido(usuarioLogado.temaTCC);
+
+    // Se estiver aguardando resposta sobre o curso e projeto:
+    if (usuarioLogado.esperandoDefinicaoTCC) {
+        const partes = msgTexto.split(/ - | e | e o tema: |;|,/i);
+        let novoCurso = msgTexto;
+        let novoTema = 'Projeto em definição';
+        if (partes.length >= 2 && partes[0].trim() && partes[1].trim()) {
+            novoCurso = partes[0].trim();
+            novoTema = partes.slice(1).join(' - ').trim();
+        }
+        usuarioLogado.curso = novoCurso;
+        usuarioLogado.temaTCC = novoTema;
+        usuarioLogado.esperandoDefinicaoTCC = false;
         atualizarBanco(usuarioLogado);
+
         if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
-        chatBox.innerHTML += `<div class="msg ia">Perfeito, anotado que seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong>! E o que você planeja fazer para o seu TCC? (Pode ser uma ideia geral)</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
+
+        chatBox.innerHTML += `<div class="msg ia">Excelente! Atualizei suas informações lá em cima no painel: seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong> e seu projeto é "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>". A partir de agora nossas orientações serão totalmente personalizadas. Como posso te orientar hoje?</div>`;
         concluirEnvioTCC();
         return;
     }
 
-    // Etapa 2: Perguntar o tema do TCC se não tiver
-    if (!usuarioLogado.temaTCC) {
-        usuarioLogado.temaTCC = msgTexto;
+    // Se o usuário ainda não definiu curso e projeto: espera a 1ª mensagem e pergunta
+    if (precisaDefinir) {
+        usuarioLogado.esperandoDefinicaoTCC = true;
         atualizarBanco(usuarioLogado);
-        if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
-        chatBox.innerHTML += `<div class="msg ia">Excelente! Agora que sei que você faz <strong>${escapeHtml(usuarioLogado.curso)}</strong> e quer focar em "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>", como posso te ajudar com o seu projeto hoje?</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.innerHTML += `<div class="msg ia">Olá! Para que eu possa te fornecer orientações precisas, normas ABNT e metodologias ideais: <strong>qual é o seu curso e qual é a ideia ou tema do seu projeto de TCC?</strong><br><small style="opacity:0.8;">(Você pode responder aqui ou clicar em '✏️ Editar Tema' no painel acima)</small></div>`;
         concluirEnvioTCC();
         return;
     }
@@ -2898,13 +2961,29 @@ function perguntarConfirmacao(titulo, mensagem, { textoOk = 'Confirmar', perigo 
     });
 }
 
+function abrirModalPublicarConteudo() {
+    const modal = document.getElementById('modal-publicar-conteudo');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (!document.getElementById('profEditandoId')?.value) {
+            const materiaBtn = document.querySelector('.materia-btn.active');
+            const selectMateria = document.getElementById('profMateria');
+            if (selectMateria && materiaBtn) selectMateria.value = materiaBtn.innerText;
+        }
+    }
+}
+
+function fecharModalPublicarConteudo() {
+    const modal = document.getElementById('modal-publicar-conteudo');
+    if (modal) modal.classList.add('hidden');
+    cancelarEdicaoConteudo();
+}
+
 function atualizarTituloPainelProfessor(editando) {
-    const titulo = document.getElementById('tituloPainelProfessor');
+    const titulo = document.getElementById('tituloModalPublicarConteudo') || document.getElementById('tituloPainelProfessor');
     const btnSalvar = document.getElementById('btnSalvarConteudo');
-    const btnCancelar = document.getElementById('btnCancelarEdicao');
-    if (titulo) titulo.textContent = editando ? '✏️ Editar publicação' : '👨‍🏫 Publicar Nova Aula';
-    if (btnSalvar) btnSalvar.textContent = editando ? 'Salvar alterações' : 'Salvar Conteúdo';
-    if (btnCancelar) btnCancelar.style.display = editando ? 'inline-flex' : 'none';
+    if (titulo) titulo.textContent = editando ? '✏️ Editar Publicação' : '👨‍🏫 Publicar Nova Aula';
+    if (btnSalvar) btnSalvar.textContent = editando ? 'Salvar Alterações' : 'Salvar Conteúdo';
 }
 
 function cancelarEdicaoConteudo() {
@@ -2931,8 +3010,7 @@ function iniciarEdicaoConteudo(id) {
     document.getElementById('profArquivo').value = '';
     atualizarTituloPainelProfessor(true);
 
-    const painel = document.getElementById('painelProfessorConteudo');
-    if (painel) painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    abrirModalPublicarConteudo();
 }
 
 async function pedirApagarConteudo(id) {
@@ -3216,16 +3294,40 @@ async function gerarQuestoesPorQuantidade() {
     }
 }
 
+function abrirModalCriarSimulado() {
+    const modal = document.getElementById('modal-criar-simulado');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (!document.getElementById('profSimuladoEditandoId')?.value) {
+            cancelarEdicaoSimulado();
+        }
+    }
+}
+
+function fecharModalCriarSimulado() {
+    const modal = document.getElementById('modal-criar-simulado');
+    if (modal) modal.classList.add('hidden');
+    cancelarEdicaoSimulado();
+}
+
 function cancelarEdicaoSimulado() {
-    document.getElementById('profSimuladoEditandoId').value = '';
-    document.getElementById('profSimuladoNome').value = '';
-    document.getElementById('profSimuladoSerie').value = '1º Ano';
-    if (usuarioLogado) document.getElementById('profSimuladoAutor').value = usuarioLogado.nome || '';
-    document.getElementById('containerQuestoesDinamicas').innerHTML = '';
-    document.getElementById('tituloPainelSimulado').textContent = '📝 Criar Novo Simulado Completo';
-    document.getElementById('btnSalvarSimuladoCompleto').textContent = '💾 Publicar Simulado Completo';
-    document.getElementById('btnCancelarEdicaoSimulado').style.display = 'none';
-    adicionarBlocoQuestao();
+    const idEl = document.getElementById('profSimuladoEditandoId');
+    if (idEl) idEl.value = '';
+    const nomeEl = document.getElementById('profSimuladoNome');
+    if (nomeEl) nomeEl.value = '';
+    const serieEl = document.getElementById('profSimuladoSerie');
+    if (serieEl) serieEl.value = '1º Ano';
+    const autorEl = document.getElementById('profSimuladoAutor');
+    if (autorEl && usuarioLogado) autorEl.value = usuarioLogado.nome || '';
+    const container = document.getElementById('containerQuestoesDinamicas');
+    if (container) {
+        container.innerHTML = '';
+        adicionarBlocoQuestao();
+    }
+    const titulo = document.getElementById('tituloModalSimulado') || document.getElementById('tituloPainelSimulado');
+    if (titulo) titulo.textContent = '📝 Criar Novo Simulado Completo';
+    const btnSalvar = document.getElementById('btnSalvarSimuladoCompleto');
+    if (btnSalvar) btnSalvar.textContent = '💾 Publicar Simulado Completo';
 }
 
 function iniciarEdicaoSimulado(id) {
@@ -3238,9 +3340,10 @@ function iniciarEdicaoSimulado(id) {
     document.getElementById('profSimuladoSerie').value = sim.serie || '1º Ano';
     document.getElementById('profSimuladoAutor').value = sim.autor || (usuarioLogado ? usuarioLogado.nome : '');
     
-    document.getElementById('tituloPainelSimulado').textContent = '✏️ Editar Simulado';
-    document.getElementById('btnSalvarSimuladoCompleto').textContent = '💾 Salvar Alterações no Simulado';
-    document.getElementById('btnCancelarEdicaoSimulado').style.display = 'inline-block';
+    const titulo = document.getElementById('tituloModalSimulado') || document.getElementById('tituloPainelSimulado');
+    if (titulo) titulo.textContent = '✏️ Editar Simulado';
+    const btnSalvar = document.getElementById('btnSalvarSimuladoCompleto');
+    if (btnSalvar) btnSalvar.textContent = '💾 Salvar Alterações no Simulado';
 
     const container = document.getElementById('containerQuestoesDinamicas');
     container.innerHTML = '';
@@ -3250,11 +3353,7 @@ function iniciarEdicaoSimulado(id) {
         adicionarBlocoQuestao();
     }
 
-    const painel = document.getElementById('painelProfessorSimulado');
-    if (painel) {
-        painel.style.display = 'block';
-        painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    abrirModalCriarSimulado();
 }
 
 async function pedirExcluirSimulado(id) {
@@ -3659,6 +3758,14 @@ window.addEventListener('click', function(e) {
     const modalTccConfig = document.getElementById('modal-tcc-config');
     if (modalTccConfig && e.target === modalTccConfig) {
         modalTccConfig.classList.add('hidden');
+    }
+    const modalPubConteudo = document.getElementById('modal-publicar-conteudo');
+    if (modalPubConteudo && e.target === modalPubConteudo) {
+        modalPubConteudo.classList.add('hidden');
+    }
+    const modalCriarSim = document.getElementById('modal-criar-simulado');
+    if (modalCriarSim && e.target === modalCriarSim) {
+        modalCriarSim.classList.add('hidden');
     }
 });
 

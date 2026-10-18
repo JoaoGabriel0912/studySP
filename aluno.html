@@ -195,50 +195,15 @@
 
         <section id="secao-estudar" class="secao-conteudo hidden">
 
-            <div class="secao-header-title">
-                <h2 id="titulo-secao-estudar">📚 Material de Estudos</h2>
-                <p class="secao-subtitle" id="subtitulo-secao-estudar">Acesse as aulas e conteúdos organizados por disciplina</p>
-            </div>
-
-            <!-- PAINEL SECRETO DO PROFESSOR: ADICIONAR CONTEÚDO -->
-            <div id="painelProfessorConteudo"
-                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
-                <h3 id="tituloPainelProfessor" style="color: var(--primary-color); margin-bottom: 15px;">👨‍🏫 Publicar Nova Aula</h3>
-                <form id="formPublicarConteudo" onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                    <input type="hidden" id="profEditandoId" value="">
-                    <select id="profMateria" class="prof-field">
-                        <option value="Português">Português</option>
-                        <option value="Inglês">Inglês</option>
-                        <option value="Matemática">Matemática</option>
-                        <option value="Física">Física</option>
-                        <option value="Química">Química</option>
-                        <option value="Biologia">Biologia</option>
-                        <option value="História">História</option>
-                        <option value="Geografia">Geografia</option>
-                        <option value="Filosofia">Filosofia</option>
-                        <option value="Sociologia">Sociologia</option>
-                        <option value="Redação">Redação</option>
-                    </select>
-                    <input type="text" id="profTitulo" class="prof-field" placeholder="Título do Conteúdo" required>
-                    <textarea id="profTexto" class="prof-field" rows="3" placeholder="Texto explicativo ou resumo da matéria..." required></textarea>
-
-                    <div style="display: flex; gap: 10px;">
-                        <input type="url" id="profLink" class="prof-field" placeholder="Link externo (opcional)" style="flex:1;">
-                        <input type="text" id="profVideo" class="prof-field" placeholder="ID do Vídeo YouTube (ex: dQw4w9WgXcQ)" style="flex:1;">
-                    </div>
-
-                    <label style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">Anexar Arquivo (PDF ou
-                        Imagem):</label>
-                    <input type="file" id="profArquivo" class="prof-field">
-
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" id="btnSalvarConteudo"
-                            style="flex:1; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Salvar
-                            Conteúdo</button>
-                        <button type="button" id="btnCancelarEdicao" class="btn-acao-pub" onclick="cancelarEdicaoConteudo()"
-                            style="display: none; margin-top: 5px; padding: 10px 14px;">Cancelar edição</button>
-                    </div>
-                </form>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="secao-header-title" style="margin-bottom: 0;">
+                    <h2 id="titulo-secao-estudar">📚 Material de Estudos</h2>
+                    <p class="secao-subtitle" id="subtitulo-secao-estudar">Acesse as aulas e conteúdos organizados por disciplina</p>
+                </div>
+                <!-- Botão Flutuante de Publicação para Professor -->
+                <button id="btnAbrirModalConteudo" class="btn btn-save" onclick="abrirModalPublicarConteudo()" style="display: none; padding: 10px 18px; font-size: 13.5px; border-radius: 8px; font-weight: 700; gap: 8px; align-items: center;">
+                    ➕ Publicar Nova Aula
+                </button>
             </div>
             <nav class="barra-materias">
                 <button class="materia-btn active" onclick="carregarMateria('Português')">Português</button>
@@ -302,64 +267,15 @@
 
         <section id="secao-simulados" class="secao-conteudo hidden">
 
-            <!-- PAINEL SECRETO DO PROFESSOR: CRIAR SIMULADO COMPLETO -->
-            <div id="painelProfessorSimulado"
-                style="display: none; background: var(--bg-card); padding: 22px; border-radius: 12px; margin-bottom: 25px; border: 1.5px solid var(--primary-color); box-shadow: 0 4px 20px rgba(0, 123, 255, 0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-                    <div>
-                        <h3 id="tituloPainelSimulado" style="color: var(--primary-color); margin: 0; font-size: 19px;">📝 Criar Novo Simulado Completo</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Crie simulados personalizados com múltiplas questões, pontuação por questão e série de destino.</p>
-                    </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div class="secao-header-title" style="margin-bottom: 0;">
+                    <h2>📝 Simulados</h2>
+                    <p class="secao-subtitle">Treine com as edições do Provão Paulista e simulados preparados pelos professores</p>
                 </div>
-
-                <form id="formCriarSimuladoCompleto" onsubmit="salvarSimuladoCompleto(event)" style="display: flex; flex-direction: column; gap: 14px;">
-                    <input type="hidden" id="profSimuladoEditandoId" value="">
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-                        <div>
-                            <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Título do Simulado *</label>
-                            <input type="text" id="profSimuladoNome" class="prof-field" placeholder="Ex: Simulado Especial de Termodinâmica" required style="width: 100%;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Série Destinada *</label>
-                            <select id="profSimuladoSerie" class="prof-field" required style="width: 100%;">
-                                <option value="1º Ano">1º Ano do Ensino Médio</option>
-                                <option value="2º Ano">2º Ano do Ensino Médio</option>
-                                <option value="3º Ano">3º Ano do Ensino Médio</option>
-                                <option value="Todas as Séries">Todas as Séries</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Nome do Professor *</label>
-                            <input type="text" id="profSimuladoAutor" class="prof-field" placeholder="Seu Nome / Disciplina" required style="width: 100%;">
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 14px;">
-                        <h4 style="color: var(--primary-color); margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                            <span>❓ Questões do Simulado</span>
-                            <span id="badgeContadorQuestoes" style="background: rgba(0, 123, 255, 0.15); color: var(--primary-color); font-size: 12px; padding: 2px 8px; border-radius: 12px;">0 questões</span>
-                        </h4>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" class="btn" onclick="adicionarBlocoQuestao()" style="padding: 6px 12px; font-size: 12.5px; background: var(--primary-color); color: #fff; border-radius: 6px; font-weight: 600;">+ Adicionar Questão</button>
-                            <button type="button" class="btn" onclick="gerarQuestoesPorQuantidade()" style="padding: 6px 12px; font-size: 12.5px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">Definir Quantidade...</button>
-                        </div>
-                    </div>
-
-                    <!-- Container dinâmico com os formulários de cada questão -->
-                    <div id="containerQuestoesDinamicas" style="display: flex; flex-direction: column; gap: 14px; max-height: 480px; overflow-y: auto; padding-right: 4px;">
-                        <!-- Inserido dinamicamente via JS -->
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button type="submit" id="btnSalvarSimuladoCompleto"
-                            style="flex: 1; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px;">
-                            💾 Publicar Simulado Completo
-                        </button>
-                        <button type="button" id="btnCancelarEdicaoSimulado" class="btn-acao-pub" onclick="cancelarEdicaoSimulado()"
-                            style="display: none; padding: 12px 18px; border-radius: 8px;">Cancelar Edição</button>
-                    </div>
-                </form>
+                <!-- Botão Flutuante de Criação de Simulado para Professor -->
+                <button id="btnAbrirModalSimulado" class="btn btn-save" onclick="abrirModalCriarSimulado()" style="display: none; padding: 10px 18px; font-size: 13.5px; border-radius: 8px; font-weight: 700; gap: 8px; align-items: center;">
+                    ➕ Criar Novo Simulado
+                </button>
             </div>
 
             <div id="lista-provas" class="simulados-container">
@@ -697,31 +613,61 @@
                 <h3 id="modal-perfil-nome">Nome do Aluno</h3>
                 <span class="modal-perfil-role" id="modal-perfil-role">Aluno</span>
             </div>
-            <div class="modal-body">
-                <div class="modal-info-item">
-                    <span class="info-icon">📍</span>
-                    <div class="info-text">
-                        <strong>Cidade</strong>
-                        <span id="modal-perfil-cidade">São Paulo</span>
+            <div class="modal-body" style="padding: 16px 20px 20px; gap: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">📍</span>
+                        <div class="info-text">
+                            <strong>Cidade</strong>
+                            <span id="modal-perfil-cidade" style="font-size: 13px;">São Paulo</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">🎂</span>
+                        <div class="info-text">
+                            <strong>Idade</strong>
+                            <span id="modal-perfil-idade" style="font-size: 13px;">-</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="info-icon">⭐</span>
-                    <div class="info-text">
-                        <strong>Pontuação</strong>
-                        <span id="modal-perfil-pontos">150 pts</span>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">⭐</span>
+                        <div class="info-text">
+                            <strong>Pontuação</strong>
+                            <span id="modal-perfil-pontos" style="font-size: 13px;">0.0 pts</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">🔥</span>
+                        <div class="info-text">
+                            <strong>Ofensiva</strong>
+                            <span id="modal-perfil-ofensiva" style="font-size: 13px;">0 Dias</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="info-icon">🔥</span>
-                    <div class="info-text">
-                        <strong>Ofensiva</strong>
-                        <span id="modal-perfil-ofensiva">5 Dias</span>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px; background: rgba(76, 175, 80, 0.08); border-color: rgba(76, 175, 80, 0.3);">
+                        <span class="info-icon" style="font-size: 18px;">✅</span>
+                        <div class="info-text">
+                            <strong style="color: #4CAF50;">Acertos</strong>
+                            <span id="modal-perfil-acertos" style="color: #4CAF50; font-size: 13px;">0</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px; background: rgba(244, 67, 54, 0.08); border-color: rgba(244, 67, 54, 0.3);">
+                        <span class="info-icon" style="font-size: 18px;">❌</span>
+                        <div class="info-text">
+                            <strong style="color: #F44336;">Erros</strong>
+                            <span id="modal-perfil-erros" style="color: #F44336; font-size: 13px;">0</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-bio">
+
+                <div class="modal-bio" style="margin-top: 2px; padding: 10px 12px;">
                     <strong>📝 Biografia:</strong>
-                    <p id="modal-perfil-bio">Lorem ipsum dolor sit amet...</p>
+                    <p id="modal-perfil-bio" style="margin: 0; font-size: 12px; max-height: 48px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">Lorem ipsum dolor sit amet...</p>
                 </div>
             </div>
         </div>
@@ -903,7 +849,8 @@
             </div>
             <div class="pomodoro-info-body" style="gap: 10px; margin-top: 10px;">
                 <div class="info-block" style="padding: 12px;">
-                    <p style="font-size: 13px; line-height: 1.5;">O <strong>Método Pomodoro</strong> alterna <strong>25 min de foco total</strong> com <strong>5 min de pausa</strong> para recarregar o cérebro e eliminar a procrastinação.</p>
+                    <p style="font-size: 13px; line-height: 1.5; margin-bottom: 8px;"><strong>Origem:</strong> Criada no final dos anos 1980 pelo italiano <strong>Francesco Cirillo</strong> durante seus estudos universitários, a técnica recebeu o nome <em>Pomodoro</em> ("tomate" em italiano) por conta de um timer de cozinha mecânico em formato de tomate que ele utilizava para gerenciar suas sessões de leitura concentrada.</p>
+                    <p style="font-size: 13px; line-height: 1.5; margin: 0;">O <strong>Método Pomodoro</strong> alterna <strong>25 min de foco total</strong> com <strong>5 min de pausa</strong> para recarregar o cérebro, prevenir a fadiga mental e eliminar a procrastinação.</p>
                 </div>
                 <div class="info-block highlight" style="padding: 12px;">
                     <h4 style="font-size: 14px; margin-bottom: 6px;">🚀 Multiplicador de Pontos</h4>
@@ -918,6 +865,124 @@
                 </div>
             </div>
             <button type="button" class="btn btn-save" style="width: 100%; margin-top: 14px; padding: 10px; font-size: 14px;" onclick="fecharModalPomodoroInfo()">Entendido!</button>
+        </div>
+    </div>
+
+    <!-- Modal Professor: Publicar Conteúdo de Aula -->
+    <div id="modal-publicar-conteudo" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 620px; width: 92%; max-height: 90vh; overflow-y: auto; padding: 25px; border: 1.5px solid var(--primary-color);">
+            <button class="modal-close" onclick="fecharModalPublicarConteudo()">&times;</button>
+            <h3 id="tituloModalPublicarConteudo" style="color: var(--primary-color); margin-bottom: 6px; font-size: 20px;">👨‍🏫 Publicar Nova Aula</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Disponibilize resumos, links, vídeos do YouTube e arquivos de apoio para seus alunos.</p>
+
+            <form id="formPublicarConteudo" onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="hidden" id="profEditandoId" value="">
+                <div>
+                    <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Disciplina / Matéria *</label>
+                    <select id="profMateria" class="prof-field" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);" required>
+                        <option value="Português">Português</option>
+                        <option value="Inglês">Inglês</option>
+                        <option value="Matemática">Matemática</option>
+                        <option value="Física">Física</option>
+                        <option value="Química">Química</option>
+                        <option value="Biologia">Biologia</option>
+                        <option value="História">História</option>
+                        <option value="Geografia">Geografia</option>
+                        <option value="Filosofia">Filosofia</option>
+                        <option value="Sociologia">Sociologia</option>
+                        <option value="Redação">Redação</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Título do Conteúdo *</label>
+                    <input type="text" id="profTitulo" class="prof-field" placeholder="Ex: Funções Trigonométricas no Provão" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                </div>
+
+                <div>
+                    <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Texto Explicativo / Resumo *</label>
+                    <textarea id="profTexto" class="prof-field" rows="4" placeholder="Escreva o resumo, dicas essenciais e orientações de estudo..." required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Link Externo (Opcional)</label>
+                        <input type="url" id="profLink" class="prof-field" placeholder="https://..." style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 12.5px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Vídeo YouTube (Link ou ID)</label>
+                        <input type="text" id="profVideo" class="prof-field" placeholder="URL ou ID do vídeo" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 12.5px;">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Anexar Arquivo (PDF ou Imagem):</label>
+                    <input type="file" id="profArquivo" class="prof-field" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 12px;">
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" id="btnSalvarConteudo" class="btn btn-save" style="flex: 1; padding: 12px; font-size: 14px;">Salvar Conteúdo</button>
+                    <button type="button" id="btnCancelarEdicao" class="btn-acao-pub" onclick="fecharModalPublicarConteudo()" style="padding: 12px 16px; border-radius: 8px;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Professor: Criar Novo Simulado Completo -->
+    <div id="modal-criar-simulado" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 780px; width: 94%; max-height: 90vh; overflow-y: auto; padding: 25px; border: 1.5px solid var(--primary-color);">
+            <button class="modal-close" onclick="fecharModalCriarSimulado()">&times;</button>
+            <div style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <h3 id="tituloModalSimulado" style="color: var(--primary-color); margin: 0; font-size: 21px;">📝 Criar Novo Simulado Completo</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Monte avaliações com múltiplas questões, pontuação personalizada e série de destino.</p>
+            </div>
+
+            <form id="formCriarSimuladoCompleto" onsubmit="salvarSimuladoCompleto(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="profSimuladoEditandoId" value="">
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px;">
+                    <div>
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Título do Simulado *</label>
+                        <input type="text" id="profSimuladoNome" class="prof-field" placeholder="Ex: Simulado Especial de Termodinâmica" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                    </div>
+                    <div>
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Série Destinada *</label>
+                        <select id="profSimuladoSerie" class="prof-field" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                            <option value="1º Ano">1º Ano do Ensino Médio</option>
+                            <option value="2º Ano">2º Ano do Ensino Médio</option>
+                            <option value="3º Ano">3º Ano do Ensino Médio</option>
+                            <option value="Todas as Séries">Todas as Séries</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Nome do Professor *</label>
+                        <input type="text" id="profSimuladoAutor" class="prof-field" placeholder="Seu Nome / Disciplina" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                    <h4 style="color: var(--primary-color); margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <span>❓ Questões do Simulado</span>
+                        <span id="badgeContadorQuestoes" style="background: rgba(0, 123, 255, 0.15); color: var(--primary-color); font-size: 12px; padding: 2px 8px; border-radius: 12px;">0 questões</span>
+                    </h4>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn" onclick="adicionarBlocoQuestao()" style="padding: 6px 12px; font-size: 12.5px; background: var(--primary-color); color: #fff; border-radius: 6px; font-weight: 600;">+ Adicionar Questão</button>
+                        <button type="button" class="btn" onclick="gerarQuestoesPorQuantidade()" style="padding: 6px 12px; font-size: 12.5px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">Definir Quantidade...</button>
+                    </div>
+                </div>
+
+                <!-- Container dinâmico com os formulários de cada questão -->
+                <div id="containerQuestoesDinamicas" style="display: flex; flex-direction: column; gap: 14px; max-height: 480px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Inserido dinamicamente via JS -->
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" id="btnSalvarSimuladoCompleto" style="flex: 1; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px;">
+                        💾 Publicar Simulado Completo
+                    </button>
+                    <button type="button" id="btnCancelarEdicaoSimulado" class="btn-acao-pub" onclick="fecharModalCriarSimulado()" style="padding: 12px 18px; border-radius: 8px;">Cancelar</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -958,8 +1023,8 @@
     </div>
 
     <script src="gemini-config.js"></script>
-    <script src="api.js?v=20261015f"></script>
-    <script src="aluno.js?v=20261015f"></script>
+    <script src="api.js?v=20261018c"></script>
+    <script src="aluno.js?v=20261018c"></script>
 </body>
 
 </html>

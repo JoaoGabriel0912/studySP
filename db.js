@@ -437,6 +437,8 @@ async function salvarSimulado(simulado) {
         salvarJson(db);
     }
     return simulado;
+}
+
 async function excluirSimulado(id) {
     const idStr = String(id);
 
