@@ -220,16 +220,27 @@ router.get('/simulados', async (req, res) => {
 
 router.post('/simulados', async (req, res) => {
     try {
-        const questao = req.body;
-        if (!questao.pergunta || !Array.isArray(questao.opcoes)) {
-            return res.status(400).json({ success: false, error: 'Pergunta e opções são obrigatórias.' });
+        const item = req.body;
+        if (!item || (!item.pergunta && !Array.isArray(item.questoes))) {
+            return res.status(400).json({ success: false, error: 'Dados do simulado são obrigatórios.' });
         }
-        questao.id = questao.id || Date.now();
-        const salvo = await db.salvarSimulado(questao);
+        item.id = item.id || Date.now();
+        const salvo = await db.salvarSimulado(item);
         res.status(201).json({ success: true, simulado: salvo });
     } catch (err) {
         console.error('Erro na rota POST /simulados:', err);
         res.status(500).json({ success: false, error: 'Erro ao salvar simulado: ' + err.message });
+    }
+});
+
+router.delete('/simulados/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.excluirSimulado(id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro na rota DELETE /simulados/:id:', err);
+        res.status(500).json({ success: false, error: 'Erro ao excluir simulado: ' + err.message });
     }
 });
 
@@ -249,7 +260,7 @@ router.post('/gemini', async (req, res) => {
             });
         }
 
-        const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+        const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
         let lastError = null;

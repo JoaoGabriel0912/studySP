@@ -1071,16 +1071,45 @@ body.dark-theme .tema-card {
     position: fixed;
     bottom: 96px;
     right: 28px;
-    width: 360px;
-    height: 460px;
+    width: 380px;
+    height: 500px;
+    min-width: 300px;
+    max-width: 800px;
+    min-height: 350px;
+    max-height: 85vh;
     background: var(--bg-card);
-    border-radius: 14px;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+    border-radius: 18px !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.45);
     display: flex;
     flex-direction: column;
     z-index: 1000;
-    border: 1px solid rgba(0, 123, 255, 0.25);
-    overflow: hidden;
+    border: 1px solid rgba(0, 123, 255, 0.35);
+    overflow: hidden !important;
+    resize: both;
+}
+
+/* Indicador visual e cursor de redimensionamento na borda superior-esquerda */
+.chat-resize-handle {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    cursor: nwse-resize;
+    z-index: 1050;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 15px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, color 0.2s;
+    user-select: none;
+}
+
+.chat-resize-handle:hover {
+    color: #ffffff;
+    transform: scale(1.2);
 }
 
 body.dark-theme .chat-ia-modal { background: #0d1726; }
@@ -1289,6 +1318,78 @@ body.dark-theme .card-destaque {
     font-weight: 700;
     color: var(--primary-color);
     transition: color 0.2s;
+}
+
+/* Simulados dos Professores */
+.prova-card-prof {
+    border-top: 4px solid var(--accent-color) !important;
+}
+
+.prova-prof-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin: 6px 0;
+}
+
+.prova-prof-badge-pontos {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffb300;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+}
+
+.prova-prof-acoes {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.btn-prof-simulado-acao {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    transition: all 0.2s;
+}
+
+.btn-prof-simulado-acao:hover {
+    background: rgba(0, 123, 255, 0.1);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-prof-simulado-acao.btn-del:hover {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: #f44336;
+    color: #f44336;
+}
+
+.bloco-questao-editor {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.bloco-questao-editor:hover {
+    border-color: rgba(0, 123, 255, 0.4);
 }
 
 .prova-card:hover .btn-iniciar-prova { color: var(--accent-color); }
@@ -2050,30 +2151,30 @@ body.dark-theme .modal-info-item { background: rgba(0,0,0,0.2); }
 
 .pomodoro-info-btn {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 36px;
-    height: 36px;
+    top: 18px;
+    right: 18px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: rgba(0, 123, 255, 0.12);
-    border: 2px solid var(--primary-color);
+    border: 1.5px solid var(--primary-color);
     color: var(--primary-color);
-    font-size: 18px;
-    font-weight: 900;
+    font-size: 14px;
+    font-weight: 800;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 10px rgba(0, 123, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
     z-index: 5;
 }
 
 .pomodoro-info-btn:hover {
     background: var(--primary-color);
     color: #ffffff;
-    transform: scale(1.1) rotate(10deg);
-    box-shadow: 0 4px 18px rgba(0, 123, 255, 0.5);
+    transform: scale(1.1);
+    box-shadow: 0 3px 12px rgba(0, 123, 255, 0.4);
 }
 
 /* Modal Pomodoro Info */
@@ -2379,335 +2480,490 @@ body.dark-theme .modal-info-item { background: rgba(0,0,0,0.2); }
 }
 
 /* ================================================
-   ABA TCC REFORMULADA (WORKSTATION ELEGANTE)
+   ABA TCC REFORMULADA: WORKSTATION LIMPA & MODERNA
    ================================================ */
-.tcc-workspace {
+.tcc-workspace-clean {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
     width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
-.tcc-hero-card {
-    background: linear-gradient(135deg, rgba(0, 123, 255, 0.15) 0%, rgba(13, 23, 38, 0.8) 100%);
-    border: 1px solid rgba(0, 123, 255, 0.3);
+/* Cabeçalho Executivo */
+.tcc-header-clean {
+    background: linear-gradient(135deg, rgba(13, 23, 40, 0.95) 0%, rgba(18, 30, 52, 0.9) 100%);
+    border: 1px solid rgba(0, 123, 255, 0.25);
     border-radius: 16px;
-    padding: 22px 26px;
+    padding: 24px 28px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 20px;
     flex-wrap: wrap;
-    gap: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-.tcc-hero-left h2 {
-    font-size: 24px;
-    color: #ffffff;
+.tcc-header-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--accent-color);
     margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
-.tcc-hero-left p {
-    font-size: 14px;
+.tcc-header-info h2 {
+    font-size: 22px;
+    color: #ffffff;
+    margin: 0 0 6px 0;
+    font-weight: 800;
+}
+
+.tcc-header-info p {
+    font-size: 13.5px;
     color: #94a3b8;
     margin: 0;
 }
 
-.tcc-hero-stats {
+.tcc-header-meta {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
 }
 
-.tcc-stat-pill {
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(0, 123, 255, 0.25);
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 13px;
-    color: #e8edf5;
+.tcc-meta-badge {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 14px;
+    border-radius: 10px;
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.tcc-stat-pill strong {
-    color: var(--accent-color);
+.tcc-meta-badge .meta-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
 }
 
-.btn-tcc-editar-tema {
-    background: rgba(0, 123, 255, 0.2);
+.tcc-meta-badge strong {
+    font-size: 13px;
+    color: #e2e8f0;
+}
+
+.btn-tcc-clean-edit {
+    background: rgba(0, 123, 255, 0.15);
     border: 1px solid var(--primary-color);
     color: #ffffff;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.btn-tcc-editar-tema:hover {
+.btn-tcc-clean-edit:hover {
     background: var(--primary-color);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
 }
 
-.tcc-grid-columns {
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 20px;
-    align-items: start;
+/* Abas de Navegação */
+.tcc-nav-tabs {
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
 }
 
-@media (max-width: 980px) {
-    .tcc-grid-columns {
-        grid-template-columns: 1fr;
-    }
+.tcc-nav-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    font-weight: 700;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.tcc-chat-card {
+.tcc-nav-tab:hover {
+    color: var(--text-main);
+}
+
+.tcc-nav-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Painéis de Conteúdo */
+.tcc-tab-panel {
+    display: block;
+}
+
+.tcc-tab-panel.hidden {
+    display: none !important;
+}
+
+/* Container do Chat Limpo */
+.tcc-chat-clean-container {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    padding: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-.tcc-chat-card-header {
+.tcc-chat-clean-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 14px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
-.tcc-quick-prompts {
+.agent-profile {
     display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.agent-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(0, 123, 255, 0.15);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.agent-profile h4 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text-main);
+}
+
+.agent-status {
+    font-size: 12px;
+    color: #10b981;
+}
+
+.agent-guideline {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
+
+/* Chips de Atalhos */
+.tcc-quick-chips-clean {
+    display: flex;
+    align-items: center;
     gap: 8px;
     overflow-x: auto;
-    padding-bottom: 10px;
-    margin-bottom: 12px;
+    padding: 6px 0 16px 0;
     scrollbar-width: none;
 }
 
-.tcc-prompt-chip {
-    background: rgba(0, 123, 255, 0.1);
-    border: 1px solid rgba(0, 123, 255, 0.25);
-    color: var(--accent-color);
-    padding: 5px 12px;
-    border-radius: 20px;
+.chip-label {
     font-size: 12px;
-    white-space: nowrap;
-    cursor: pointer;
+    color: var(--text-muted);
     font-weight: 600;
+    white-space: nowrap;
+}
+
+.tcc-chip {
+    background: rgba(0, 123, 255, 0.08);
+    border: 1px solid rgba(0, 123, 255, 0.2);
+    color: var(--accent-color);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
     transition: all 0.2s;
 }
 
-.tcc-prompt-chip:hover {
+.tcc-chip:hover {
     background: var(--primary-color);
     color: #ffffff;
     transform: translateY(-1px);
 }
 
-.tcc-chat-card .tcc-chat-box {
-    height: 380px;
+/* Caixa de Mensagens */
+.tcc-chat-box-clean {
+    height: 420px;
     background: var(--bg-main);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 14px;
+    padding: 20px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
-.tcc-chat-card .msg {
-    max-width: 85%;
-    padding: 12px 16px;
+.tcc-chat-box-clean .msg {
+    max-width: 82%;
+    padding: 14px 18px;
     border-radius: 14px;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 14.5px;
+    line-height: 1.6;
     word-break: break-word;
 }
 
-.tcc-chat-card .msg.ia {
+.tcc-chat-box-clean .msg.ia {
     align-self: flex-start;
-    background: #111e33;
-    border: 1px solid rgba(0, 123, 255, 0.2);
-    color: #e8edf5;
-    border-bottom-left-radius: 3px;
+    background: #0f172a;
+    border: 1px solid rgba(0, 123, 255, 0.25);
+    color: #e2e8f0;
+    border-bottom-left-radius: 4px;
 }
 
-.tcc-chat-card .msg.user {
+.tcc-chat-box-clean .msg.user {
     align-self: flex-end;
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     color: #ffffff;
-    border-bottom-right-radius: 3px;
+    border-bottom-right-radius: 4px;
 }
 
-.tcc-chat-card .chat-input {
+/* Barra de Envio */
+.tcc-input-bar-clean {
     display: flex;
-    gap: 10px;
-    margin-top: 14px;
+    gap: 12px;
+    margin-top: 16px;
 }
 
-.tcc-chat-card .chat-input input {
+.tcc-input-bar-clean input {
     flex: 1;
     background: var(--bg-main);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 12px 16px;
+    border-radius: 12px;
+    padding: 14px 18px;
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 14.5px;
     outline: none;
-    transition: border 0.2s;
+    transition: all 0.2s;
 }
 
-.tcc-chat-card .chat-input input:focus {
+.tcc-input-bar-clean input:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
-.tcc-side-panel {
+.btn-tcc-send {
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-tcc-send:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+/* Painel das 5 Etapas (Compacto e Elegante) */
+.tcc-etapas-clean-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.etapa-card-clean {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.etapa-card-clean:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.etapa-step-badge {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--primary-color);
+    background: rgba(0, 123, 255, 0.12);
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    width: fit-content;
+    letter-spacing: 0.5px;
+}
+
+.etapa-card-clean h4 {
+    font-size: 14px;
+    color: var(--text-main);
+    margin: 0;
+    font-weight: 700;
+}
+
+.etapa-card-clean p {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin: 0;
+}
+
+.btn-etapa-prompt {
+    background: rgba(0, 123, 255, 0.08);
+    border: 1px solid rgba(0, 123, 255, 0.25);
+    color: var(--accent-color);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.btn-etapa-prompt:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+}
+
+/* Painel de Projetos Limpo */
+.tcc-projetos-clean-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-/* Card Etapas do TCC */
-.tcc-etapas-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.tcc-etapas-card h3 {
-    font-size: 16px;
-    color: var(--primary-color);
-    margin-bottom: 14px;
+.tcc-filtros-ideias-clean {
     display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.tcc-etapa-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 10px;
-    background: var(--bg-main);
-    border: 1px solid var(--border-color);
-    margin-bottom: 8px;
-    font-size: 13px;
-}
-
-.tcc-etapa-num {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: rgba(0, 123, 255, 0.2);
-    color: var(--primary-color);
-    font-weight: 800;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tcc-etapa-item.ativa .tcc-etapa-num {
-    background: var(--primary-color);
-    color: #ffffff;
-}
-
-/* Card Inspirações & Ideias */
-.tcc-inspiracoes-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.tcc-inspiracoes-card h3 {
-    font-size: 16px;
-    color: var(--primary-color);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.tcc-filtros-ideias {
-    display: flex;
-    gap: 6px;
+    gap: 10px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
 }
 
 .tcc-filtro-btn {
-    background: var(--bg-main);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
+    padding: 8px 18px;
+    border-radius: 24px;
     color: var(--text-muted);
-    font-size: 11.5px;
-    padding: 4px 10px;
-    border-radius: 16px;
-    cursor: pointer;
+    font-size: 13.5px;
     font-weight: 600;
-    transition: all 0.2s;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.tcc-filtro-btn.active,
 .tcc-filtro-btn:hover {
-    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.tcc-filtro-btn.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: #ffffff;
     border-color: var(--primary-color);
+    box-shadow: 0 4px 15px var(--primary-glow);
+    font-weight: 700;
 }
 
-.tcc-grid-ideias-moderna {
+.tcc-grid-projetos-clean {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    max-height: 340px;
-    overflow-y: auto;
-    padding-right: 4px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
 }
 
-.ideia-card-moderno {
-    background: var(--bg-main);
+.ideia-card-clean {
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 18px 20px;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ideia-card-clean:hover {
+    border-color: var(--primary-color);
+    background: rgba(0, 123, 255, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ideia-card-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.ideia-card-moderno:hover {
-    border-color: var(--primary-color);
-    background: rgba(0, 123, 255, 0.08);
+.ideia-curso-tag {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent-color);
+    background: rgba(0, 123, 255, 0.1);
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.ideia-arrow {
+    color: var(--primary-color);
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+
+.ideia-card-clean:hover .ideia-arrow {
     transform: translateX(4px);
 }
 
-.ideia-card-info h4 {
-    font-size: 13.5px;
+.ideia-card-clean h4 {
+    font-size: 15px;
     color: var(--text-main);
-    margin-bottom: 4px;
-    font-weight: 700;
+    margin: 0;
 }
 
-.ideia-card-info span {
-    font-size: 11.5px;
+.ideia-card-clean p {
+    font-size: 13px;
     color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
 }

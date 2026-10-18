@@ -437,6 +437,24 @@ async function salvarSimulado(simulado) {
         salvarJson(db);
     }
     return simulado;
+async function excluirSimulado(id) {
+    const idStr = String(id);
+
+    if (dbEngine === 'postgres' && pgPool) {
+        await pgPool.query('DELETE FROM simulados WHERE id = $1', [idStr]);
+    } else if (dbEngine === 'sqlite' && sqliteDb) {
+        await new Promise((resolve, reject) => {
+            sqliteDb.run('DELETE FROM simulados WHERE id = ?', [idStr], (err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+    } else {
+        const db = lerJson();
+        db.simulados = (db.simulados || []).filter(s => String(s.id) !== idStr);
+        salvarJson(db);
+    }
+    return true;
 }
 
 function getEngineName() {
@@ -458,6 +476,7 @@ module.exports = {
     excluirConteudo,
     buscarSimulados,
     salvarSimulado,
+    excluirSimulado,
     getEngineName,
     getLastError
 };
