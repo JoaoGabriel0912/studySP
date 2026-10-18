@@ -220,16 +220,92 @@ router.get('/simulados', async (req, res) => {
 
 router.post('/simulados', async (req, res) => {
     try {
-        const questao = req.body;
-        if (!questao.pergunta || !Array.isArray(questao.opcoes)) {
-            return res.status(400).json({ success: false, error: 'Pergunta e opções são obrigatórias.' });
+        const item = req.body;
+        if (!item || (!item.pergunta && !Array.isArray(item.questoes))) {
+            return res.status(400).json({ success: false, error: 'Dados do simulado são obrigatórios.' });
         }
-        questao.id = questao.id || Date.now();
-        const salvo = await db.salvarSimulado(questao);
+        item.id = item.id || Date.now();
+        const salvo = await db.salvarSimulado(item);
         res.status(201).json({ success: true, simulado: salvo });
     } catch (err) {
         console.error('Erro na rota POST /simulados:', err);
         res.status(500).json({ success: false, error: 'Erro ao salvar simulado: ' + err.message });
+    }
+});
+
+router.delete('/simulados/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.excluirSimulado(id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro na rota DELETE /simulados/:id:', err);
+        res.status(500).json({ success: false, error: 'Erro ao excluir simulado: ' + err.message });
+    }
+});
+
+// Proxy da IA Gemini (a chave fica só no servidor)
+router.post('/gemini', async (req, res) => {
+    try {
+        const prompt = req.body && req.body.prompt;
+        if (!prompt || typeof prompt !== 'string') {
+            return res.status(400).json({ success: false, error: 'Prompt é obrigatório.' });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({
+                success: false,
+                error: 'GEMINI_API_KEY não configurada no servidor (.env).'
+            });
+        }
+
+        const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+        let lastError = null;
+        for (let i = 0; i < 3; i++) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error && data.error.message && data.error.message.includes('high demand') && i < 2) {
+                await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+                lastError = data;
+                continue;
+            }
+
+            if (!response.ok || data.error) {
+                const msg = data.error ? data.error.message : `HTTP ${response.status}`;
+                return res.status(response.status || 500).json({ success: false, error: msg, data });
+            }
+
+            const texto = data.candidates
+                && data.candidates[0]
+                && data.candidates[0].content
+                && data.candidates[0].content.parts
+                && data.candidates[0].content.parts[0]
+                && data.candidates[0].content.parts[0].text;
+
+            return res.json({ success: true, text: texto || '', data });
+        }
+
+        return res.status(503).json({
+            success: false,
+            error: lastError && lastError.error ? lastError.error.message : 'Serviço Gemini indisponível.'
+        });
+    } catch (err) {
+        console.error('Erro na rota POST /gemini:', err);
+        res.status(500).json({ success: false, error: 'Erro ao chamar Gemini: ' + err.message });
     }
 });
 

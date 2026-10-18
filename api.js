@@ -156,6 +156,12 @@
             });
         },
 
+        async excluirSimulado(id) {
+            return await apiFetch(`/simulados/${encodeURIComponent(id)}`, {
+                method: 'DELETE'
+            });
+        },
+
         // --- VERIFICAÇÃO DE SAÚDE ---
         async status() {
             return await apiFetch('/status');

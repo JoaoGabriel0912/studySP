@@ -829,6 +829,53 @@ async function carregarMateria(materiaNome) {
 
 function toggleChatIA() { document.getElementById('chatIAModal').classList.toggle('hidden'); }
 
+// --- REDIMENSIONAMENTO DO CHAT DA IA DE ESTUDOS ---
+(function initChatIaResize() {
+    window.addEventListener('DOMContentLoaded', () => {
+        const handle = document.getElementById('chatIaResizeHandle');
+        const modal = document.getElementById('chatIAModal');
+        if (!handle || !modal) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startY = 0;
+        let startW = 0;
+        let startH = 0;
+
+        handle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startW = modal.offsetWidth;
+            startH = modal.offsetHeight;
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'nwse-resize';
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            // Como o modal está fixado em bottom e right, arrastar para cima aumenta a altura e para a esquerda aumenta a largura
+            const deltaX = startX - e.clientX;
+            const deltaY = startY - e.clientY;
+
+            const newW = Math.max(300, Math.min(800, startW + deltaX));
+            const newH = Math.max(350, Math.min(window.innerHeight * 0.85, startH + deltaY));
+
+            modal.style.width = `${newW}px`;
+            modal.style.height = `${newH}px`;
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+            }
+        });
+    });
+})();
+
 // ==========================================
 // POMODORO E MULTIPLICADOR
 // ==========================================
@@ -884,14 +931,15 @@ function calcularMultiplicador() {
     let minutosEstudados = (usuarioLogado.tempoEstudadoSegundos || 0) / 60;
     let novoMultiplicador = 1.0;
     
-    // Quando o Pomodoro é iniciado ou se o usuário já estudou na plataforma, base vai para 1.2x
-    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando) || minutosEstudados > 0) {
+    // O multiplicador extra só fica ativo quando o cronômetro Pomodoro está de fato RODANDO e em modo ESTUDO!
+    if (typeof rodando !== 'undefined' && rodando && typeof modoEstudo !== 'undefined' && modoEstudo) {
         novoMultiplicador = 1.2;
+        if (minutosEstudados >= 120) novoMultiplicador = 1.5;
+        else if (minutosEstudados >= 60) novoMultiplicador = 1.4;
+        else if (minutosEstudados >= 30) novoMultiplicador = 1.3;
+    } else {
+        novoMultiplicador = 1.0;
     }
-    
-    if (minutosEstudados >= 120) novoMultiplicador = 1.5;
-    else if (minutosEstudados >= 60) novoMultiplicador = 1.4;
-    else if (minutosEstudados >= 30) novoMultiplicador = 1.3;
 
     usuarioLogado.multiplicador = novoMultiplicador;
     atualizarBanco(usuarioLogado);
@@ -912,13 +960,7 @@ function calcularMultiplicador() {
 function iniciarPomodoro() {
     if (rodando) return;
     
-    // Ativa imediatamente o multiplicador para 1.2x em todos os pontos da plataforma
     usuarioLogado.pomodoroIniciado = true;
-    if (!usuarioLogado.multiplicador || usuarioLogado.multiplicador < 1.2) {
-        usuarioLogado.multiplicador = 1.2;
-    }
-    calcularMultiplicador();
-    if (typeof verificarConquistas === 'function') verificarConquistas();
     
     if (tempoRestante === 0) {
         let inputId = modoEstudo ? 'tempoEstudo' : 'tempoDescanso';
@@ -935,6 +977,9 @@ function iniciarPomodoro() {
     }
     
     rodando = true;
+    calcularMultiplicador();
+    if (typeof verificarConquistas === 'function') verificarConquistas();
+
     pomodoroTimer = setInterval(() => {
         if (tempoRestante > 0) {
             tempoRestante--;
@@ -951,6 +996,7 @@ function iniciarPomodoro() {
             rodando = false;
             modoEstudo = !modoEstudo; 
             tempoRestante = 0;
+            calcularMultiplicador();
             // Abre a janela flutuante no lugar do alert do navegador!
             mostrarModalPomodoroTransicao(modoEstudo ? 'estudo' : 'descanso');
         }
@@ -961,6 +1007,7 @@ function pausarPomodoro() {
     clearInterval(pomodoroTimer); 
     rodando = false; 
     document.getElementById('estadoPomodoro').textContent = "Em pausa"; 
+    calcularMultiplicador();
 }
 
 function resetarPomodoro() {
@@ -972,6 +1019,7 @@ function resetarPomodoro() {
     atualizarVisorPomodoro();
     document.getElementById('estadoPomodoro').textContent = "Aguardando";
     if(document.getElementById('clockHand')) document.getElementById('clockHand').style.transform = `rotate(0deg)`;
+    calcularMultiplicador();
 }
 
 // JANELA FLUTUANTE DE TRANSIÇÃO DO POMODORO (DESCANSO E ESTUDO)
@@ -991,7 +1039,7 @@ function mostrarModalPomodoroTransicao(tipo) {
         if (icone) icone.textContent = '☕';
         if (titulo) titulo.textContent = 'Hora do Descanso!';
         if (subtitulo) subtitulo.textContent = 'Parabéns pelo ciclo de foco concluído! Descanse os olhos, beba água e relaxe por alguns minutos.';
-        if (badge) badge.innerHTML = `<span>✨ Multiplicador ativo: <strong>${mult}x</strong> • Bônus mantido</span>`;
+        if (badge) badge.innerHTML = `<span>☕ Multiplicador em descanso: <strong>1.0x</strong> (retornará para 1.2x no foco!)</span>`;
         if (btn) btn.textContent = 'Aproveitar Descanso ☕';
     } else {
         if (icone) icone.textContent = '🎯';
@@ -1984,40 +2032,62 @@ const questoesPadrao = [
 ];
 
 let dadosProvaSimulada = [...questoesPadrao];
+let simuladoAtivoObjeto = null; // null para simulados oficiais da plataforma
 let indiceQuestaoAtual = 0; let acertosProva = 0; let errosProva = []; let tempoInicioQuestao = 0; let respostasUsuario = [];
 
-function iniciarSimulado(nomeProva) {
-    // Seleciona o conjunto de questões correto para a prova escolhida
-    const questoesDaProva = bancoQuestoes[nomeProva];
-    if (questoesDaProva) {
-        dadosProvaSimulada = [...questoesDaProva, ...questoesProfessor];
+function iniciarSimulado(nomeOuId) {
+    simuladoAtivoObjeto = null;
+    let tituloDisplay = '';
+
+    // Verifica se é um simulado criado por professor
+    const simuladosProf = obterSimuladosProfessoresLocais();
+    const simuladoProf = simuladosProf.find(s => String(s.id) === String(nomeOuId));
+
+    if (simuladoProf) {
+        simuladoAtivoObjeto = simuladoProf;
+        dadosProvaSimulada = (simuladoProf.questoes && simuladoProf.questoes.length > 0)
+            ? simuladoProf.questoes
+            : [simuladoProf]; // compatibilidade com modelo antigo
+        tituloDisplay = `${simuladoProf.nome || 'Simulado do Professor'} (${simuladoProf.serie || 'Geral'})`;
     } else {
-        dadosProvaSimulada = [...questoesPadrao];
+        // Simulado oficial da plataforma
+        const questoesDaProva = bancoQuestoes[nomeOuId];
+        if (questoesDaProva) {
+            dadosProvaSimulada = [...questoesDaProva];
+        } else {
+            dadosProvaSimulada = [...questoesPadrao];
+        }
+        tituloDisplay = `Provão Paulista — ${nomeOuId}`;
     }
 
     document.getElementById('lista-provas').classList.add('hidden');
     document.getElementById('area-resultados').classList.add('hidden');
     document.getElementById('area-resolucao').classList.remove('hidden');
-    document.getElementById('titulo-prova-atual').textContent = `Provão Paulista — ${nomeProva}`;
+    document.getElementById('titulo-prova-atual').textContent = tituloDisplay;
     indiceQuestaoAtual = 0; acertosProva = 0; errosProva = []; respostasUsuario = [];
     carregarQuestaoNoEcra();
 
     // Notificação passageira no canto informando o início
     mostrarToastCanto(
         "Simulado Iniciado",
-        `Prova: ${nomeProva}. Boa sorte e administre seu tempo com calma!`,
+        `Prova: ${tituloDisplay}. Boa sorte e administre seu tempo com calma!`,
         "info",
         3500
     );
 }
+
 function cancelarSimulado() { 
     document.getElementById('area-resolucao').classList.add('hidden'); 
     document.getElementById('area-resultados').classList.add('hidden'); 
     document.getElementById('lista-provas').classList.remove('hidden'); 
 }
+
 function carregarQuestaoNoEcra() {
     let questao = dadosProvaSimulada[indiceQuestaoAtual];
-    document.getElementById('texto-questao').textContent = `${indiceQuestaoAtual + 1}. ${questao.pergunta}`;
+    let pontosQuestao = (questao.pontos !== undefined && questao.pontos !== null) ? Number(questao.pontos) : 2;
+    let badgePontosHtml = `<span style="display: inline-block; margin-left: 10px; background: rgba(255, 193, 7, 0.18); color: #ffb300; font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">⭐ Vale ${pontosQuestao} ${pontosQuestao === 1 ? 'pt' : 'pts'}</span>`;
+
+    document.getElementById('texto-questao').innerHTML = `<strong>${indiceQuestaoAtual + 1}.</strong> ${escapeHtml(questao.pergunta)} ${badgePontosHtml}`;
     document.getElementById('progresso-simulado').textContent = `Questão ${indiceQuestaoAtual + 1} de ${dadosProvaSimulada.length}`;
     let opcoesContainer = document.getElementById('opcoes-questao');
     opcoesContainer.innerHTML = '';
@@ -2029,6 +2099,7 @@ function carregarQuestaoNoEcra() {
     });
     tempoInicioQuestao = Date.now();
 }
+
 function responderQuestao(indiceSelecionado) {
     if (((Date.now() - tempoInicioQuestao) / 1000) < 60) {
         mostrarToastCanto(
@@ -2040,45 +2111,55 @@ function responderQuestao(indiceSelecionado) {
     }
     respostasUsuario.push(indiceSelecionado);
     if (indiceSelecionado === dadosProvaSimulada[indiceQuestaoAtual].correta) acertosProva++;
-    else errosProva.push(dadosProvaSimulada[indiceQuestaoAtual].tema);
+    else errosProva.push(dadosProvaSimulada[indiceQuestaoAtual].tema || 'Conhecimento Geral');
     indiceQuestaoAtual++;
     if (indiceQuestaoAtual < dadosProvaSimulada.length) carregarQuestaoNoEcra();
     else finalizarSimulado();
 }
+
 function finalizarSimulado() {
     document.getElementById('area-resolucao').classList.add('hidden');
     document.getElementById('area-resultados').classList.remove('hidden');
     
     let multiplicadorAtual = usuarioLogado.multiplicador || 1.0;
     
-    // Garante que se o aluno usou o Pomodoro, o multiplicador base vai para 1.2 no mínimo
-    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando)) {
-        if (multiplicadorAtual < 1.2) multiplicadorAtual = 1.2;
-    }
-    
-    // BÔNUS PARA MAIS DE 7 ACERTOS: +2 pontos extras e chuva de confetes na tela
+    // Cálculo de pontuação considerando os pontos de cada questão
+    let totalPontosPossiveis = 0;
+    let pontosGanhosAcertos = 0;
+    dadosProvaSimulada.forEach((q, idx) => {
+        let val = (q.pontos !== undefined && q.pontos !== null) ? Number(q.pontos) : 2;
+        totalPontosPossiveis += val;
+        if (respostasUsuario[idx] === q.correta) {
+            pontosGanhosAcertos += val;
+        }
+    });
+
+    let taxaAcerto = dadosProvaSimulada.length > 0 ? (acertosProva / dadosProvaSimulada.length) : 0;
+    let porcentagemAcertos = Math.round(taxaAcerto * 100);
+
+    // BÔNUS PARA 70% OU MAIS DE ACERTOS: CHUVA DE CONFETES E BÔNUS DE PONTOS
     let pontosExtras = 0;
     const containerBonus = document.getElementById('bonusSimuladoContainer');
     if (containerBonus) containerBonus.innerHTML = '';
 
-    if (acertosProva > 7) {
+    if (taxaAcerto >= 0.70) {
         pontosExtras = 2;
         if (containerBonus) {
             containerBonus.innerHTML = `
-                <div class="bonus-simulado-banner">
-                    <span style="font-size: 28px;">🎉</span>
+                <div class="bonus-simulado-banner" style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(0, 123, 255, 0.2)); border: 1px solid #4CAF50; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+                    <span style="font-size: 32px;">🎉</span>
                     <div>
-                        <div style="font-size: 16px; font-weight: 800;">Desempenho Excepcional (${acertosProva} Acertos)!</div>
-                        <div style="font-size: 13.5px; color: #ffecb3;">Você acertou mais de 7 questões no simulado e faturou <strong>+2 PONTOS EXTRAS</strong> de bônus!</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #4CAF50;">Parabéns! Desempenho Excepcional (${porcentagemAcertos}% de Acertos)!</div>
+                        <div style="font-size: 13.5px; color: var(--text-main);">Você acertou 70% ou mais do simulado (${acertosProva}/${dadosProvaSimulada.length}) e conquistou <strong>+2 PONTOS EXTRAS</strong>!</div>
                     </div>
                 </div>
             `;
         }
         dispararConfetes();
-        mostrarToastCanto('Super Bônus!', `Mais de 7 acertos (${acertosProva}/10)! +2 pontos extras concedidos!`, 'success', 5000);
+        mostrarToastCanto('Excelente Desempenho! 🎉', `Você atingiu ${porcentagemAcertos}% de acertos! Chuva de confetes e bônus de pontos concedidos!`, 'success', 5000);
     }
 
-    let pontosBase = (acertosProva * 2) * multiplicadorAtual;
+    let pontosBase = pontosGanhosAcertos * multiplicadorAtual;
     let pontosFinais = parseFloat((pontosBase + pontosExtras).toFixed(1));
 
     usuarioLogado.pontos += pontosFinais;
@@ -2094,22 +2175,23 @@ function finalizarSimulado() {
     carregarRank(); 
     atualizarDesempenho(); 
 
-    document.getElementById('res-acertos').textContent = acertosProva;
+    document.getElementById('res-acertos').textContent = `${acertosProva} (${porcentagemAcertos}%)`;
     document.getElementById('res-erros').textContent = dadosProvaSimulada.length - acertosProva;
-    document.getElementById('res-pontos').textContent = pontosExtras > 0 ? `+${pontosFinais} (+2 bônus)` : `+${pontosFinais}`;
+    document.getElementById('res-pontos').textContent = pontosExtras > 0 ? `+${pontosFinais} (+2 bônus 70%)` : `+${pontosFinais}`;
     document.getElementById('res-multiplicador').textContent = `(x${multiplicadorAtual.toFixed(1)})`;
 
     let htmlGabarito = '';
     dadosProvaSimulada.forEach((q, i) => {
         let acertou = respostasUsuario[i] === q.correta;
-        htmlGabarito += `<div class="gabarito-item" style="border-left: 4px solid ${acertou ? '#4CAF50' : '#F44336'};"><strong>Questão ${i + 1}</strong>: ${acertou ? '✅' : '❌'} <br><span style="font-size: 14px;">Sua resposta: ${q.opcoes[respostasUsuario[i]]}</span><br><span style="font-size: 14px; color: var(--primary-color);">Gabarito: <strong>${q.opcoes[q.correta]}</strong></span></div>`;
+        let ptQ = (q.pontos !== undefined && q.pontos !== null) ? Number(q.pontos) : 2;
+        htmlGabarito += `<div class="gabarito-item" style="border-left: 4px solid ${acertou ? '#4CAF50' : '#F44336'}; margin-bottom: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px;"><strong>Questão ${i + 1}</strong> (${ptQ} pts): ${acertou ? '✅ Acertou' : '❌ Errou'} <br><span style="font-size: 14px;">Sua resposta: ${escapeHtml(q.opcoes[respostasUsuario[i]])}</span><br><span style="font-size: 14px; color: var(--primary-color);">Gabarito Oficial: <strong>${escapeHtml(q.opcoes[q.correta])}</strong></span></div>`;
     });
     document.getElementById('lista-gabarito').innerHTML = htmlGabarito;
     
     let listaTemas = document.getElementById('lista-temas-sugeridos');
     listaTemas.innerHTML = '';
     if (errosProva.length === 0) {
-        listaTemas.innerHTML = '<li>Parabéns! Nenhuma lacuna detectada.</li>';
+        listaTemas.innerHTML = '<li>Parabéns! Nenhuma lacuna detectada. Você gabaritou!</li>';
     } else {
         let temasUnicos = [...new Set(errosProva)];
         temasUnicos.forEach(tema => listaTemas.innerHTML += `<li>🔍 <strong>Estudar:</strong> ${tema}</li>`);
@@ -2189,12 +2271,51 @@ function dispararConfetes() {
 // ==========================================
 
 // --- IA DE ESTUDOS (Provão) ---
-const GEMINI_API_KEY = "AQ.Ab8RN6KRVw_lx0p9oQsFv-YhJlFnOqscPc1IQIVO5-7AqoT4lA"; // Substitua pela sua chave de API do Gemini
+// Chave gerenciada de forma segura localmente via gemini-config.js (ignorado pelo git)
+// aluno.js permanece 100% limpo, sem chave hardcoded, protegido contra revogação no GitHub
+const GEMINI_API_KEY = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.apiKey) || "";
+const GEMINI_MODEL = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.model) || "gemini-flash-lite-latest";
 
 // Função auxiliar: espera N milissegundos
 function esperar(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-// Função auxiliar: chama a API Gemini com retry automático
+async function chamarGeminiDireto(prompt) {
+    if (!GEMINI_API_KEY) {
+        return {
+            ok: false,
+            error: "Chave do Gemini não encontrada em gemini-config.js.",
+            text: null
+        };
+    }
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY
+            },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        }
+    );
+    const data = await response.json();
+    if (!response.ok || data.error) {
+        return {
+            ok: false,
+            error: data.error ? data.error.message : `HTTP ${response.status}`,
+            text: null,
+            data
+        };
+    }
+    const text = data.candidates
+        && data.candidates[0]
+        && data.candidates[0].content
+        && data.candidates[0].content.parts
+        && data.candidates[0].content.parts[0]
+        && data.candidates[0].content.parts[0].text;
+    return { ok: true, error: null, text: text || "", data };
+}
+
 async function chamarGemini(prompt, tentativas = 3) {
     for (let i = 0; i < tentativas; i++) {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -2229,21 +2350,39 @@ async function enviarMensagemIA() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        if (GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
-            if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatMessages.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
-            return;
-        }
+        const historico = montarHistoricoChatIA(chatMessages, idLoading);
+        const prompt = `Você é o AGENTE TUTOR PEDAGÓGICO do StudySP (Especialista no Provão Paulista e Ensino Médio/Técnico de SP).
+Sua missão: Guiar o estudante para que ele compreenda os conceitos e aprenda com autonomia, clareza e sem sobrecarga cognitiva.
 
-        const prompt = `Você é um tutor de estudos para o Provão Paulista. 
-Regra 1: Você NUNCA deve dar a resposta direta de uma questão.
-Regra 2: Você deve apenas auxiliar, dar dicas, explicar conceitos e guiar o aluno para encontrar a resposta.
-Regra 3: NÃO use emojis ou asteriscos (*) nas suas respostas. 
-Regra 4: Dê respostas curtas e diretas, mas suficientes para compreensão.
-Regra 5: No final de cada resposta, sugira um site, livro, vídeo ou filme para explicar a dúvida melhor.
-Mensagem do aluno: ${msgTexto}`;
+PERFIL E RESTRIÇÕES DO AGENTE:
+- Tom de voz: Didático, encorajador, calmo, paciente e direto ao ponto.
+- Linguagem: Português claro, correto e acessível. 
+- Formatação: NÃO use emojis exagerados, NÃO use caracteres desnecessários. Use listas numeradas ou tópicos curtos quando houver etapas.
+- Limite de extensão: Respostas objetivas de no máximo 5 a 8 linhas, exceto quando o aluno pedir explicitamente uma explicação aprofundada.
 
-        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando... (tentando conectar)</i>';
+MODOS DE OPERAÇÃO:
+
+1. MODO CONCEITUAL / EXPLICATIVO (Quando o aluno pede conceitos, fórmulas, resumos, biografias, fatos históricos ou explicações):
+- Explique o núcleo do assunto de forma cristalina em 1 parágrafo ou até 4 tópicos essenciais.
+- Relacione o conceito com o padrão cobrado nas provas do Provão Paulista / VUNESP.
+- Finalize com 1 pergunta reflexiva leve de fixação (ex.: "Quer ver um exemplo prático desse conceito em uma questão?").
+- NUNCA despeje textos enciclopédicos longos.
+
+2. MODO SOCRÁTICO (Quando o aluno traz uma questão de prova, exercício ou pede a alternativa correta):
+- REGRA DE OURO: NUNCA forneça a resposta final ou a alternativa correta de imediato.
+- Passo 1: Isole os dados e o comando principal da questão.
+- Passo 2: Faça uma pergunta direcionada para o aluno identificar a fórmula, regra ou conceito que se aplica.
+- Passo 3: Se o aluno errar, aponte onde o raciocínio divergiu sem julgamento e sugira um caminho alternativo.
+- Passo 4: Se o aluno insistir pela resposta, demonstre a resolução de um exemplo com números ou contexto diferentes, e peça para ele aplicar o mesmo método na questão dele.
+
+HISTÓRICO DA CONVERSA:
+${historico || '(início da conversa)'}
+
+MENSAGEM DO ALUNO: ${msgTexto}
+
+Responda agora estritamente como o Agente Tutor Pedagógico:`;
+
+        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando...</i>';
         const resultado = await chamarGemini(prompt);
         const { response, data } = resultado;
 
@@ -2422,7 +2561,34 @@ function iniciarChatTCC() {
     }
 }
 
+function trocarAbaTCC(abaId, btn) {
+    document.querySelectorAll('.tcc-nav-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const painelChat = document.getElementById('tccPainelChat');
+    const painelEtapas = document.getElementById('tccPainelEtapas');
+    const painelProjetos = document.getElementById('tccPainelProjetos');
+
+    if (painelChat) painelChat.classList.add('hidden');
+    if (painelEtapas) painelEtapas.classList.add('hidden');
+    if (painelProjetos) painelProjetos.classList.add('hidden');
+
+    if (abaId === 'chat' && painelChat) {
+        painelChat.classList.remove('hidden');
+    } else if (abaId === 'etapas' && painelEtapas) {
+        painelEtapas.classList.remove('hidden');
+    } else if (abaId === 'projetos' && painelProjetos) {
+        painelProjetos.classList.remove('hidden');
+    }
+}
+
 function aplicarPromptRapidoTCC(texto) {
+    // Muda para a aba do chat se estiver em etapas ou projetos
+    const tabChatBtn = document.querySelector('.tcc-nav-tab');
+    if (tabChatBtn && !tabChatBtn.classList.contains('active')) {
+        trocarAbaTCC('chat', tabChatBtn);
+    }
+
     const input = document.getElementById('inputChatTCC');
     if (input) {
         input.value = texto;
@@ -2481,7 +2647,7 @@ function filtrarIdeiasTCC(area, btn) {
     botoes.forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
-    const cards = document.querySelectorAll('.ideia-card-moderno');
+    const cards = document.querySelectorAll('.ideia-card-clean, .ideia-card-moderno');
     cards.forEach(card => {
         const cardArea = card.getAttribute('data-area');
         if (area === 'todos' || cardArea === area) {
@@ -2499,8 +2665,8 @@ async function enviarMensagemTCC() {
     
     if (!msgTexto) return;
 
-    if ((usuarioLogado.mensagensTCCHoje || 0) >= 10) {
-        mostrarToastCanto("Limite Atingido", "Você atingiu o limite de 10 mensagens de TCC por hoje. Volte amanhã para continuar!", "warning", 4500);
+    if ((usuarioLogado.mensagensTCCHoje || 0) >= 25) {
+        mostrarToastCanto("Limite Atingido", "Você atingiu o limite de 25 mensagens de TCC por hoje. Volte amanhã para continuar!", "warning", 4500);
         return;
     }
 
@@ -2531,25 +2697,39 @@ async function enviarMensagemTCC() {
     }
 
     const idLoading = "loadTCC-" + Date.now();
-    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Analisando e buscando orientações acadêmicas...</i></div>`;
+    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Pensando...</i></div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        if (typeof GEMINI_API_KEY === 'undefined' || GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
-            if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatBox.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
-            return;
-        }
+        const historico = montarHistoricoChatIA(chatBox, idLoading);
+        const prompt = `Você é o AGENTE CO-ORIENTADOR METODOLÓGICO DE TCC do StudySP.
+Sua missão: Auxiliar o estudante do ensino técnico/médio a desenvolver rigor científico, delimitação temática e raciocínio investigativo próprio no TCC.
 
-        const prompt = `Você é um orientador de TCC do Ensino Técnico / Médio de São Paulo.
-Regra 1: Você NUNCA deve fazer o trabalho pelo aluno (nada de escrever os textos do TCC para ele), apenas orientar, dar dicas e tirar dúvidas.
-Regra 2: Você deve apenas auxiliar nos estudos.
-Regra 3: O curso do aluno é: ${usuarioLogado.curso}
-Regra 4: O aluno planeja fazer o TCC sobre: ${usuarioLogado.temaTCC}
-Regra 5: Use as informações do curso e a ideia do TCC como referência para responder e dar exemplos, sempre focando em ajudar com o TCC.
-Mensagem do aluno: ${msgTexto}`;
+DADOS DO ALUNO:
+- Curso: ${usuarioLogado.curso || 'Não especificado'}
+- Tema/Ideia do TCC: ${usuarioLogado.temaTCC || 'Em definição'}
 
-        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Analisando... (tentando conectar)</i>';
+DIRETRIZES DE ATUAÇÃO E RESTRIÇÕES ESTRITAS:
+1. NUNCA REDIJA PELO ALUNO (Anti-Ghostwriting):
+   - É terminantemente proibido escrever parágrafos prontos, introduções, justificativas ou capítulos inteiros para o aluno copiar e colar.
+   - Em vez disso, forneça "Estruturas-Guia" (esqueletos) com perguntas reflexivas que o aluno deve responder por escrito.
+2. DELIMITAÇÃO E FORMULAÇÃO:
+   - Se o tema for amplo demais, ajude o aluno a recortar indicando: Problema central, Hipótese, Relevância Social e Metodologia aplicável.
+3. REVISÃO CRÍTICA ESTRUTURADA:
+   - Se o aluno enviar um parágrafo que ele mesmo escreveu: analise clareza, coesão, tom acadêmico e normas ABNT. Indique 1 sugestão pontual e devolva para ele reescrever o restante.
+4. FONTES E PESQUISA:
+   - Nunca invente citações fictícias ou dados não checados. Recomende termos de busca para bases acadêmicas confiáveis (como SciELO, Google Acadêmico e Periódicos CAPES).
+5. FORMATO DE RESPOSTA:
+   - Estrutura limpa em tópicos práticos, sem rodeios e sem excesso de texto. Limite-se a no máximo 10 a 14 linhas por intervenção para não sobrecarregar o aluno.
+
+HISTÓRICO DA CONVERSA:
+${historico || '(início da conversa)'}
+
+MENSAGEM DO ALUNO: ${msgTexto}
+
+Responda agora estritamente como o Agente Co-orientador Metodológico:`;
+
+        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando...</i>';
         const resultado = await chamarGemini(prompt);
         const { response, data } = resultado;
 
@@ -2906,38 +3086,352 @@ async function salvarConteudo(e) {
     }
 }
 
-function salvarQuestao(e) {
-    e.preventDefault();
-    let novaQuestao = {
-        id: Date.now(),
-        pergunta: document.getElementById('profPergunta').value,
-        tema: document.getElementById('profTema').value,
-        opcoes: [
-            document.getElementById('profAlt0').value,
-            document.getElementById('profAlt1').value,
-            document.getElementById('profAlt2').value,
-            document.getElementById('profAlt3').value
-        ],
-        correta: parseInt(document.getElementById('profCorreta').value)
-    };
+// ==========================================
+// SIMULADOS CRIADOS PELO PROFESSOR (SIMULADOS COMPLETOS)
+// ==========================================
+function obterSimuladosProfessoresLocais() {
+    try {
+        const raw = localStorage.getItem('bd_simulados_professores') || localStorage.getItem('bd_simulados');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            // Normaliza caso haja questões legadas salvas diretamente
+            return parsed.map(item => {
+                if (item.questoes && Array.isArray(item.questoes)) return item;
+                // Converte questão única legada em formato de simulado
+                return {
+                    id: item.id || Date.now(),
+                    nome: item.tema ? `Simulado: ${item.tema}` : 'Simulado Especial',
+                    autor: item.autor || 'Professor(a)',
+                    serie: item.serie || 'Todas as Séries',
+                    dataHora: item.dataHora || 'Recentemente',
+                    questoes: [{
+                        pergunta: item.pergunta,
+                        tema: item.tema || 'Geral',
+                        pontos: 2,
+                        opcoes: item.opcoes || [],
+                        correta: item.correta !== undefined ? item.correta : 0
+                    }]
+                };
+            });
+        }
+    } catch (e) {
+        console.warn('Erro ao ler bd_simulados_professores:', e);
+    }
+    return [];
+}
 
-    let simulados = JSON.parse(localStorage.getItem('bd_simulados')) || [];
-    simulados.push(novaQuestao);
-    localStorage.setItem('bd_simulados', JSON.stringify(simulados));
-    
-    // Injeta a nova questão na variável da prova atual
-    questoesProfessor.push(novaQuestao);
-    dadosProvaSimulada.push(novaQuestao);
+function salvarSimuladosProfessoresLocais(lista) {
+    localStorage.setItem('bd_simulados_professores', JSON.stringify(lista));
+    localStorage.setItem('bd_simulados', JSON.stringify(lista));
+}
 
-    // Envia para o servidor para persistir para todos os alunos em qualquer navegador
-    if (window.API && typeof window.API.salvarSimulado === 'function') {
-        window.API.salvarSimulado(novaQuestao).catch(err => {
-            console.warn('[StudySP] Falha ao enviar simulado para o servidor:', err);
+function adicionarBlocoQuestao(dados = null) {
+    const container = document.getElementById('containerQuestoesDinamicas');
+    if (!container) return;
+
+    const num = container.children.length + 1;
+    const bloco = document.createElement('div');
+    bloco.className = 'bloco-questao-editor';
+    bloco.dataset.index = num;
+
+    const pergunta = dados ? escapeHtml(dados.pergunta || '') : '';
+    const tema = dados ? escapeHtml(dados.tema || '') : '';
+    const pontos = dados && dados.pontos !== undefined ? dados.pontos : 2;
+    const opcoes = (dados && Array.isArray(dados.opcoes)) ? dados.opcoes : ['', '', '', ''];
+    const correta = dados && dados.correta !== undefined ? dados.correta : 0;
+
+    bloco.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+            <span style="font-weight: 700; color: var(--primary-color); font-size: 13.5px;">Questão #${num}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                    ⭐ Pontos:
+                    <input type="number" class="prof-q-pontos prof-field" value="${pontos}" min="1" max="10" step="0.5" style="width: 58px; padding: 4px 6px; font-size: 12px; text-align: center;" required>
+                </label>
+                <button type="button" onclick="removerBlocoQuestao(this)" style="background: rgba(244, 67, 54, 0.12); border: 1px solid #f44336; color: #f44336; border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer;">✕ Remover</button>
+            </div>
+        </div>
+        <textarea class="prof-field prof-q-pergunta" rows="2" placeholder="Enunciado da questão..." required style="width:100%; font-size: 13px;">${pergunta}</textarea>
+        <input type="text" class="prof-field prof-q-tema" placeholder="Tema Específico (ex: Matemática: Geometria Espacial)" value="${tema}" required style="width:100%; font-size: 12.5px;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input type="text" class="prof-field prof-q-alt0" placeholder="Alternativa A" value="${escapeHtml(opcoes[0] || '')}" required style="font-size: 12.5px;">
+            <input type="text" class="prof-field prof-q-alt1" placeholder="Alternativa B" value="${escapeHtml(opcoes[1] || '')}" required style="font-size: 12.5px;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input type="text" class="prof-field prof-q-alt2" placeholder="Alternativa C" value="${escapeHtml(opcoes[2] || '')}" required style="font-size: 12.5px;">
+            <input type="text" class="prof-field prof-q-alt3" placeholder="Alternativa D" value="${escapeHtml(opcoes[3] || '')}" required style="font-size: 12.5px;">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-main);">Gabarito Correto:</label>
+            <select class="prof-field prof-q-correta" style="padding: 4px 10px; font-size: 12px;" required>
+                <option value="0" ${correta === 0 ? 'selected' : ''}>Alternativa A</option>
+                <option value="1" ${correta === 1 ? 'selected' : ''}>Alternativa B</option>
+                <option value="2" ${correta === 2 ? 'selected' : ''}>Alternativa C</option>
+                <option value="3" ${correta === 3 ? 'selected' : ''}>Alternativa D</option>
+            </select>
+        </div>
+    `;
+
+    container.appendChild(bloco);
+    atualizarContadorQuestoes();
+}
+
+function removerBlocoQuestao(btn) {
+    const bloco = btn.closest('.bloco-questao-editor');
+    if (bloco) {
+        bloco.remove();
+        atualizarContadorQuestoes();
+    }
+}
+
+function atualizarContadorQuestoes() {
+    const container = document.getElementById('containerQuestoesDinamicas');
+    const badge = document.getElementById('badgeContadorQuestoes');
+    if (container && badge) {
+        const qtd = container.children.length;
+        badge.textContent = `${qtd} ${qtd === 1 ? 'questão' : 'questões'}`;
+        // Re-numera os blocos visuais
+        Array.from(container.children).forEach((b, idx) => {
+            const span = b.querySelector('span');
+            if (span) span.textContent = `Questão #${idx + 1}`;
         });
     }
+}
+
+async function gerarQuestoesPorQuantidade() {
+    const resp = await promptPersonalizado("Quantas questões deseja que este simulado tenha?", "Ex: 5", "5");
+    if (!resp) return;
+    const qtd = parseInt(resp);
+    if (isNaN(qtd) || qtd < 1 || qtd > 50) {
+        mostrarToastCanto('Atenção', 'Por favor, informe um número de questões entre 1 e 50.', 'warning');
+        return;
+    }
+    const container = document.getElementById('containerQuestoesDinamicas');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < qtd; i++) {
+        adicionarBlocoQuestao();
+    }
+}
+
+function cancelarEdicaoSimulado() {
+    document.getElementById('profSimuladoEditandoId').value = '';
+    document.getElementById('profSimuladoNome').value = '';
+    document.getElementById('profSimuladoSerie').value = '1º Ano';
+    if (usuarioLogado) document.getElementById('profSimuladoAutor').value = usuarioLogado.nome || '';
+    document.getElementById('containerQuestoesDinamicas').innerHTML = '';
+    document.getElementById('tituloPainelSimulado').textContent = '📝 Criar Novo Simulado Completo';
+    document.getElementById('btnSalvarSimuladoCompleto').textContent = '💾 Publicar Simulado Completo';
+    document.getElementById('btnCancelarEdicaoSimulado').style.display = 'none';
+    adicionarBlocoQuestao();
+}
+
+function iniciarEdicaoSimulado(id) {
+    const simulados = obterSimuladosProfessoresLocais();
+    const sim = simulados.find(s => String(s.id) === String(id));
+    if (!sim) return;
+
+    document.getElementById('profSimuladoEditandoId').value = sim.id;
+    document.getElementById('profSimuladoNome').value = sim.nome || '';
+    document.getElementById('profSimuladoSerie').value = sim.serie || '1º Ano';
+    document.getElementById('profSimuladoAutor').value = sim.autor || (usuarioLogado ? usuarioLogado.nome : '');
     
-    mostrarToastCanto('Questão Cadastrada', 'Questão adicionada ao banco de Simulados com sucesso!', 'success');
-    e.target.reset();
+    document.getElementById('tituloPainelSimulado').textContent = '✏️ Editar Simulado';
+    document.getElementById('btnSalvarSimuladoCompleto').textContent = '💾 Salvar Alterações no Simulado';
+    document.getElementById('btnCancelarEdicaoSimulado').style.display = 'inline-block';
+
+    const container = document.getElementById('containerQuestoesDinamicas');
+    container.innerHTML = '';
+    if (Array.isArray(sim.questoes) && sim.questoes.length > 0) {
+        sim.questoes.forEach(q => adicionarBlocoQuestao(q));
+    } else {
+        adicionarBlocoQuestao();
+    }
+
+    const painel = document.getElementById('painelProfessorSimulado');
+    if (painel) {
+        painel.style.display = 'block';
+        painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+async function pedirExcluirSimulado(id) {
+    const confirmado = await perguntarConfirmacao(
+        'Excluir Simulado?',
+        'Tem certeza de que deseja excluir este simulado? Os alunos não poderão mais realizá-lo.',
+        { textoOk: 'Excluir', perigo: true }
+    );
+    if (!confirmado) return;
+
+    const restantes = obterSimuladosProfessoresLocais().filter(s => String(s.id) !== String(id));
+    salvarSimuladosProfessoresLocais(restantes);
+
+    if (window.API && typeof window.API.excluirSimulado === 'function') {
+        window.API.excluirSimulado(id).catch(err => {
+            console.warn('[StudySP] Falha ao excluir simulado no servidor:', err);
+        });
+    }
+
+    renderizarSimuladosProfessoresNaTela();
+    mostrarToastCanto('Simulado Excluído', 'O simulado foi removido com sucesso.', 'info');
+}
+
+function salvarSimuladoCompleto(e) {
+    e.preventDefault();
+
+    const idEditando = document.getElementById('profSimuladoEditandoId').value;
+    const nome = document.getElementById('profSimuladoNome').value.trim();
+    const serie = document.getElementById('profSimuladoSerie').value;
+    const autor = document.getElementById('profSimuladoAutor').value.trim();
+
+    const container = document.getElementById('containerQuestoesDinamicas');
+    const blocos = container.querySelectorAll('.bloco-questao-editor');
+
+    if (blocos.length === 0) {
+        mostrarToastCanto('Atenção', 'Adicione pelo menos 1 questão ao simulado.', 'warning');
+        return;
+    }
+
+    const questoes = [];
+    let pontuacaoTotal = 0;
+
+    for (let i = 0; i < blocos.length; i++) {
+        const b = blocos[i];
+        const pergunta = b.querySelector('.prof-q-pergunta').value.trim();
+        const tema = b.querySelector('.prof-q-tema').value.trim();
+        const pontos = parseFloat(b.querySelector('.prof-q-pontos').value) || 2;
+        const alt0 = b.querySelector('.prof-q-alt0').value.trim();
+        const alt1 = b.querySelector('.prof-q-alt1').value.trim();
+        const alt2 = b.querySelector('.prof-q-alt2').value.trim();
+        const alt3 = b.querySelector('.prof-q-alt3').value.trim();
+        const correta = parseInt(b.querySelector('.prof-q-correta').value);
+
+        if (!pergunta || !tema || !alt0 || !alt1 || !alt2 || !alt3) {
+            mostrarToastCanto('Campos Incompletos', `Preencha todas as alternativas da Questão #${i + 1}.`, 'warning');
+            return;
+        }
+
+        pontuacaoTotal += pontos;
+        questoes.push({
+            id: Date.now() + i,
+            pergunta,
+            tema,
+            pontos,
+            opcoes: [alt0, alt1, alt2, alt3],
+            correta
+        });
+    }
+
+    const agora = new Date().toLocaleString();
+    const simulados = obterSimuladosProfessoresLocais();
+
+    if (idEditando) {
+        const idx = simulados.findIndex(s => String(s.id) === String(idEditando));
+        if (idx !== -1) {
+            simulados[idx].nome = nome;
+            simulados[idx].serie = serie;
+            simulados[idx].autor = autor;
+            simulados[idx].questoes = questoes;
+            simulados[idx].pontuacaoTotal = pontuacaoTotal;
+            simulados[idx].dataHora = `Editado em ${agora}`;
+            simulados[idx].editado = true;
+            salvarSimuladosProfessoresLocais(simulados);
+
+            if (window.API && typeof window.API.salvarSimulado === 'function') {
+                window.API.salvarSimulado(simulados[idx]).catch(err => {
+                    console.warn('[StudySP] Erro ao sincronizar simulado:', err);
+                });
+            }
+            mostrarToastCanto('Simulado Atualizado', 'As alterações foram salvas com sucesso!', 'success');
+        }
+    } else {
+        const novoSimulado = {
+            id: Date.now(),
+            nome,
+            serie,
+            autor,
+            questoes,
+            pontuacaoTotal,
+            dataHora: agora,
+            editado: false,
+            profRM: (usuarioLogado && usuarioLogado.rm) ? usuarioLogado.rm : null
+        };
+        simulados.push(novoSimulado);
+        salvarSimuladosProfessoresLocais(simulados);
+
+        if (window.API && typeof window.API.salvarSimulado === 'function') {
+            window.API.salvarSimulado(novoSimulado).catch(err => {
+                console.warn('[StudySP] Erro ao salvar simulado no servidor:', err);
+            });
+        }
+        mostrarToastCanto('Simulado Criado!', `Simulado com ${questoes.length} questões publicado com sucesso!`, 'success');
+    }
+
+    cancelarEdicaoSimulado();
+    renderizarSimuladosProfessoresNaTela();
+}
+
+function renderizarSimuladosProfessoresNaTela() {
+    const grid = document.getElementById('gridSimuladosProfessores');
+    if (!grid) return;
+
+    const simulados = obterSimuladosProfessoresLocais();
+    const isProfessor = usuarioLogado && usuarioLogado.perfil === 'Professor';
+
+    if (simulados.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 25px; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);">
+                <span style="font-size: 32px; display: block; margin-bottom: 8px;">👨‍🏫</span>
+                <strong style="color: var(--text-main); font-size: 15px;">Nenhum simulado de professor cadastrado no momento.</strong>
+                <p style="font-size: 13px; margin-top: 4px;">${isProfessor ? 'Utilize o painel acima para criar e publicar novos simulados com questões personalizadas!' : 'Assim que os professores publicarem novos simulados, eles aparecerão aqui para você treinar.'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = simulados.map(sim => {
+        const qtdQuestoes = (sim.questoes && Array.isArray(sim.questoes)) ? sim.questoes.length : 1;
+        const totalPontos = (sim.questoes && Array.isArray(sim.questoes))
+            ? sim.questoes.reduce((acc, q) => acc + (q.pontos !== undefined ? Number(q.pontos) : 2), 0)
+            : (sim.pontuacaoTotal || (qtdQuestoes * 2));
+        const serieTexto = sim.serie ? sim.serie.toUpperCase() : 'GERAL';
+        const dataPublicacao = sim.dataHora || 'Recentemente';
+        const idSeguro = String(sim.id);
+
+        let acoesProf = '';
+        if (isProfessor) {
+            acoesProf = `
+                <div class="prova-prof-acoes" onclick="event.stopPropagation()">
+                    <button type="button" class="btn-prof-simulado-acao" onclick="iniciarEdicaoSimulado('${idSeguro}')">✏️ Editar</button>
+                    <button type="button" class="btn-prof-simulado-acao btn-del" onclick="pedirExcluirSimulado('${idSeguro}')">🗑️ Excluir</button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="prova-card prova-card-prof" onclick="iniciarSimulado('${idSeguro}')">
+                <div class="prova-card-badge" style="background: rgba(255, 152, 0, 0.15); color: #ff9800; border-color: rgba(255, 152, 0, 0.3);">
+                    👨‍🏫 ${escapeHtml(sim.autor || 'Professor')}
+                </div>
+                <div class="prova-card-ano">${escapeHtml(serieTexto)}</div>
+                <h3>${escapeHtml(sim.nome || 'Simulado Especial')}</h3>
+                
+                <div class="prova-prof-meta">
+                    <span class="prova-prof-badge-pontos">⭐ ${totalPontos} Pontos Totais</span>
+                    <span>📝 ${qtdQuestoes} ${qtdQuestoes === 1 ? 'questão' : 'questões'}</span>
+                </div>
+
+                <p class="prova-card-desc" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                    🕒 Publicado em: <strong>${escapeHtml(dataPublicacao)}</strong>
+                </p>
+
+                <span class="btn-iniciar-prova">Iniciar Simulado do Professor →</span>
+                ${acoesProf}
+            </div>
+        `;
+    }).join('');
 }
 
 // ==========================================
@@ -3194,10 +3688,10 @@ async function sincronizarComServidor() {
 async function carregarQuestoesDoServidor() {
     try {
         if (window.API && typeof window.API.buscarSimulados === 'function') {
-            const questoesServidor = await window.API.buscarSimulados();
-            if (Array.isArray(questoesServidor) && questoesServidor.length > 0) {
-                questoesProfessor = questoesServidor;
-                localStorage.setItem('bd_simulados', JSON.stringify(questoesServidor));
+            const simuladosServidor = await window.API.buscarSimulados();
+            if (Array.isArray(simuladosServidor) && simuladosServidor.length > 0) {
+                salvarSimuladosProfessoresLocais(simuladosServidor);
+                renderizarSimuladosProfessoresNaTela();
             }
         }
     } catch (err) {
@@ -3212,5 +3706,9 @@ calcularMultiplicador();
 atualizarDesempenho(); 
 renderizarConquistas();
 tornarMiniTimerArrastavel();
+renderizarSimuladosProfessoresNaTela();
+if (document.getElementById('containerQuestoesDinamicas') && document.getElementById('containerQuestoesDinamicas').children.length === 0) {
+    adicionarBlocoQuestao();
+}
 sincronizarComServidor();
 carregarQuestoesDoServidor();
