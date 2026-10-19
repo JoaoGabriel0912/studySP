@@ -2303,54 +2303,68 @@ function dispararConfetes() {
 // ==========================================
 
 // --- IA DE ESTUDOS (Provão) ---
-// Chave gerenciada de forma segura localmente via gemini-config.js (ignorado pelo git)
-// aluno.js permanece 100% limpo, sem chave hardcoded, protegido contra revogação no GitHub
+// Chave gerenciada de forma segura:
+// 1º Tenta chamar o endpoint /api/gemini seguro no backend (Vercel / servidor local com GEMINI_API_KEY no .env)
+// 2º Fallback direto via gemini-config.js (caso esteja rodando estático ou offline)
 const GEMINI_API_KEY = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.apiKey) || "";
 const GEMINI_MODEL = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.model) || "gemini-flash-lite-latest";
 
 // Função auxiliar: espera N milissegundos
 function esperar(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-async function chamarGeminiDireto(prompt) {
-    if (!GEMINI_API_KEY) {
-        return {
-            ok: false,
-            error: "Chave do Gemini não encontrada em gemini-config.js.",
-            text: null
-        };
-    }
-    const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": GEMINI_API_KEY
-            },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+// Monta o histórico das últimas mensagens trocadas no chat para contexto da IA
+function montarHistoricoChatIA(chatContainer, idLoading) {
+    if (!chatContainer) return '';
+    const msgs = chatContainer.querySelectorAll('.msg');
+    const historico = [];
+    msgs.forEach(msg => {
+        if (idLoading && msg.id === idLoading) return;
+        const papel = msg.classList.contains('user') ? 'Aluno' : 'Tutor IA';
+        const texto = msg.innerText || msg.textContent || '';
+        if (texto.trim()) {
+            historico.push(`${papel}: ${texto.trim()}`);
         }
-    );
-    const data = await response.json();
-    if (!response.ok || data.error) {
-        return {
-            ok: false,
-            error: data.error ? data.error.message : `HTTP ${response.status}`,
-            text: null,
-            data
-        };
-    }
-    const text = data.candidates
-        && data.candidates[0]
-        && data.candidates[0].content
-        && data.candidates[0].content.parts
-        && data.candidates[0].content.parts[0]
-        && data.candidates[0].content.parts[0].text;
-    return { ok: true, error: null, text: text || "", data };
+    });
+    return historico.slice(-8).join('\n');
 }
 
 async function chamarGemini(prompt, tentativas = 3) {
+    // 1. Tenta via proxy backend (/api/gemini) se API estiver disponível
+    if (window.API && typeof window.API.gemini === 'function') {
+        try {
+            const res = await window.API.gemini(prompt);
+            if (res && res.success && res.text) {
+                return {
+                    response: { ok: true, status: 200 },
+                    data: {
+                        candidates: [
+                            { content: { parts: [{ text: res.text }] } }
+                        ]
+                    }
+                };
+            }
+            // Se o backend retornou erro específico da chave ou quota
+            if (res && res.error && !res.networkError) {
+                return {
+                    response: { ok: false, status: res.status || 500 },
+                    data: { error: { message: res.error } }
+                };
+            }
+        } catch (backendErr) {
+            console.warn('[StudySP] Falha ao consultar /api/gemini, tentando fallback direto:', backendErr);
+        }
+    }
+
+    // 2. Fallback direto caso o backend esteja offline e haja chave no gemini-config.js
+    if (!GEMINI_API_KEY) {
+        return {
+            response: { ok: false, status: 500 },
+            data: { error: { message: 'Configuração da IA não encontrada. Defina GEMINI_API_KEY no painel da Vercel (Environment Variables) ou no arquivo gemini-config.js local.' } }
+        };
+    }
+
     for (let i = 0; i < tentativas; i++) {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -2360,7 +2374,7 @@ async function chamarGemini(prompt, tentativas = 3) {
         // Erro de sobrecarga (503) → tenta de novo após espera
         if (data.error && data.error.message && data.error.message.includes("high demand")) {
             if (i < tentativas - 1) {
-                await esperar(3000 * (i + 1)); // espera 3s, 6s, 9s...
+                await esperar(3000 * (i + 1));
                 continue;
             }
         }
