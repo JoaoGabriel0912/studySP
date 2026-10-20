@@ -20,38 +20,49 @@
         if (localStorage.getItem('tema') === 'light') {
             document.body.classList.remove('dark-theme');
         }
+        if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth > 768) {
+            document.body.classList.add('sidebar-collapsed');
+        }
     </script>
 
+    <!-- Backdrop para fechar o menu no mobile -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
     <!-- Barra Lateral -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="logo">
-            <div class="logo-brand-icon">
+            <div class="logo-brand-icon" onclick="if(document.body.classList.contains('sidebar-collapsed')) toggleSidebar(true)" title="StudySP - Clique para expandir">
                 <span class="logo-emoji">🎓</span>
             </div>
             <div class="logo-text-wrapper">
                 <span class="logo-text">Study<span class="logo-accent">SP</span></span>
                 <span class="logo-sub"><span class="logo-live-dot"></span>PLATAFORMA DE ESTUDOS</span>
             </div>
+            <button type="button" id="sidebarCollapseBtn" class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Recolher menu lateral" aria-label="Recolher menu lateral">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
         </div>
         <nav>
-            <a href="#" class="active" id="menu-inicio">
+            <a href="#" class="active" id="menu-inicio" data-tooltip="Início">
                 <span class="nav-icon">🏠</span>
                 <span class="nav-label">Início</span>
             </a>
-            <a href="#" id="menu-estudar">
+            <a href="#" id="menu-estudar" data-tooltip="Estudar">
                 <span class="nav-icon">📚</span>
                 <span class="nav-label">Estudar</span>
             </a>
-            <a href="#" id="menu-pomodoro">
+            <a href="#" id="menu-pomodoro" data-tooltip="Pomodoro">
                 <span class="nav-icon">🍅</span>
                 <span class="nav-label">Pomodoro</span>
             </a>
-            <a href="#" id="menu-simulados">
+            <a href="#" id="menu-simulados" data-tooltip="Simulados">
                 <span class="nav-icon">📝</span>
                 <span class="nav-label">Simulados</span>
                 <span class="nav-badge">Paulistão</span>
             </a>
-            <a href="#" id="menu-tcc">
+            <a href="#" id="menu-tcc" data-tooltip="TCC (IA)">
                 <span class="nav-icon">🎓</span>
                 <span class="nav-label">TCC</span>
                 <span class="nav-badge ia-badge">IA</span>
@@ -60,7 +71,7 @@
 
         <!-- Rodapé do Menu Lateral -->
         <div class="sidebar-footer">
-            <div class="sidebar-user-card" onclick="toggleMenuConfig()" title="Abrir configurações de perfil">
+            <div class="sidebar-user-card" onclick="toggleMenuConfig()" title="Abrir configurações de perfil" data-tooltip="Meu Perfil">
                 <div class="sidebar-user-avatar" id="sidebarAvatar">👤</div>
                 <div class="sidebar-user-info">
                     <span class="sidebar-user-name" id="sidebarUserName">Aluno</span>
@@ -78,9 +89,18 @@
     <main class="main-content">
         <!-- Cabeçalho -->
         <header class="topbar">
-            <div class="streak-container" id="streakWidget" title="Sua ofensiva de estudos ativa! Mantenha a sequência diária.">
-                <span class="fire-icon">🔥</span>
-                <span class="streak-text" id="userStreak">0 Dias de Ofensiva</span>
+            <div class="topbar-left-zone">
+                <button type="button" id="sidebarToggleTopbar" class="topbar-toggle-btn" onclick="toggleSidebar()" title="Recolher / Expandir Menu Lateral (Ctrl+B)" aria-label="Alternar Menu Lateral">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="streak-container" id="streakWidget" title="Sua ofensiva de estudos ativa! Mantenha a sequência diária.">
+                    <span class="fire-icon">🔥</span>
+                    <span class="streak-text" id="userStreak">0 Dias de Ofensiva</span>
+                </div>
             </div>
 
             <!-- CENTRO: O Letreiro StudySP -->

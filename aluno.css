@@ -71,8 +71,9 @@ body {
     box-shadow: 6px 0 28px rgba(0, 0, 0, 0.55), inset -1px 0 0 rgba(0, 200, 255, 0.06);
     position: relative;
     z-index: 20;
-    transition: width 0.3s ease;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
+    flex-shrink: 0;
 }
 
 .sidebar::before {
@@ -107,6 +108,43 @@ body {
     gap: 12px;
     background: linear-gradient(180deg, rgba(0, 123, 255, 0.08) 0%, rgba(0, 0, 0, 0) 100%);
     position: relative;
+    transition: padding 0.3s ease;
+}
+
+.sidebar-collapse-btn {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(0, 123, 255, 0.14);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    color: #00c8ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+    background: rgba(0, 123, 255, 0.3);
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(0, 200, 255, 0.5);
+    border-color: rgba(0, 200, 255, 0.65);
+    transform: scale(1.06);
+}
+
+.sidebar-collapse-btn:active {
+    transform: scale(0.95);
+}
+
+.sidebar-collapse-btn svg {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn svg {
+    transform: rotate(180deg);
 }
 
 .logo-brand-icon {
@@ -390,6 +428,146 @@ body {
 }
 
 /* ================================================
+   SIDEBAR RETRÁTIL — ESTADO RECOLHIDO (DESKTOP)
+   ================================================ */
+body.sidebar-collapsed .sidebar {
+    width: 72px;
+}
+
+body.sidebar-collapsed .sidebar .logo {
+    padding: 18px 12px;
+    justify-content: center;
+    gap: 0;
+}
+
+body.sidebar-collapsed .sidebar .logo-text-wrapper {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+    margin: 0;
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn {
+    display: none;
+}
+
+body.sidebar-collapsed .logo-brand-icon {
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+body.sidebar-collapsed .logo-brand-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.6);
+}
+
+body.sidebar-collapsed .sidebar nav {
+    padding: 14px 10px;
+    align-items: center;
+    overflow-x: visible;
+}
+
+body.sidebar-collapsed .sidebar nav a {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+    gap: 0;
+    position: relative;
+}
+
+body.sidebar-collapsed .sidebar nav a .nav-icon {
+    margin: 0;
+    font-size: 19px;
+    border-radius: 10px;
+}
+
+body.sidebar-collapsed .sidebar nav a .nav-label,
+body.sidebar-collapsed .sidebar nav a .nav-badge {
+    opacity: 0;
+    width: 0;
+    display: none !important;
+}
+
+/* Tooltip flutuante nos itens da sidebar recolhida */
+body.sidebar-collapsed .sidebar nav a::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+    background: linear-gradient(135deg, #091220 0%, #050912 100%);
+    color: #f0f6fc;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(0, 200, 255, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 150, 255, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 99999;
+}
+
+body.sidebar-collapsed .sidebar nav a:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Rodapé no modo recolhido */
+body.sidebar-collapsed .sidebar-footer {
+    padding: 14px 10px;
+    align-items: center;
+}
+
+body.sidebar-collapsed .sidebar-user-card {
+    padding: 6px;
+    width: 48px;
+    height: 48px;
+    justify-content: center;
+    position: relative;
+    border-radius: 12px;
+}
+
+body.sidebar-collapsed .sidebar-user-info,
+body.sidebar-collapsed .sidebar-gear,
+body.sidebar-collapsed .sidebar-badge-study {
+    display: none !important;
+}
+
+body.sidebar-collapsed .sidebar-user-card::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+    background: linear-gradient(135deg, #091220 0%, #050912 100%);
+    color: #f0f6fc;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(0, 200, 255, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 150, 255, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 99999;
+}
+
+body.sidebar-collapsed .sidebar-user-card:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* ================================================
    TOPBAR — BARRA SUPERIOR
    ================================================ */
 .main-content {
@@ -398,6 +576,7 @@ body {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    min-width: 0;
 }
 
 .topbar {
@@ -411,6 +590,54 @@ body {
     position: relative;
     z-index: 10;
     box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Área esquerda do Topbar com Botão de Toggle */
+.topbar-left-zone {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 12;
+}
+
+.topbar-toggle-btn {
+    background: rgba(0, 123, 255, 0.14);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    color: #00c8ff;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.topbar-toggle-btn:hover {
+    background: rgba(0, 123, 255, 0.28);
+    color: #ffffff;
+    border-color: rgba(0, 200, 255, 0.65);
+    box-shadow: 0 0 16px rgba(0, 200, 255, 0.45);
+    transform: translateY(-1px);
+}
+
+.topbar-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.topbar-toggle-btn svg {
+    transition: transform 0.25s ease;
+}
+
+.topbar-toggle-btn:hover svg {
+    stroke: #ffffff;
+}
+
+/* Backdrop para mobile */
+.sidebar-backdrop {
+    display: none;
 }
 
 body.dark-theme .topbar,
@@ -2465,38 +2692,90 @@ body:not(.dark-theme) .toast-card-close:hover {
     }
 }
 
-@media (max-width: 650px) {
+@media (max-width: 768px) {
     .sidebar {
-        width: 64px;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 260px !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        box-shadow: 10px 0 35px rgba(0, 0, 0, 0.85);
     }
 
-    .sidebar .logo {
-        padding: 14px 8px;
-        justify-content: center;
+    body.sidebar-mobile-open .sidebar {
+        transform: translateX(0);
     }
 
-    .logo-text-wrapper,
-    .nav-label,
-    .nav-badge,
-    .sidebar-footer {
-        display: none !important;
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.68);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
     }
 
-    .sidebar nav {
-        padding: 10px 6px;
+    body.sidebar-mobile-open .sidebar-backdrop {
+        opacity: 1;
+        pointer-events: auto;
     }
 
-    .sidebar nav a {
-        padding: 10px;
-        justify-content: center;
+    /* No mobile, mesmo se a classe sidebar-collapsed estiver ativa, o drawer aberto permanece legível e completo */
+    body.sidebar-collapsed .sidebar {
+        width: 260px !important;
     }
 
-    .sidebar nav a .nav-icon {
-        margin: 0;
+    body.sidebar-collapsed .sidebar .logo-text-wrapper,
+    body.sidebar-collapsed .sidebar nav a .nav-label,
+    body.sidebar-collapsed .sidebar nav a .nav-badge,
+    body.sidebar-collapsed .sidebar-user-info,
+    body.sidebar-collapsed .sidebar-gear,
+    body.sidebar-collapsed .sidebar-badge-study {
+        display: flex !important;
+        opacity: 1 !important;
+        width: auto !important;
+        height: auto !important;
+        position: static !important;
+    }
+
+    body.sidebar-collapsed .sidebar nav a {
+        width: 100% !important;
+        height: auto !important;
+        padding: 10px 14px !important;
+        justify-content: flex-start !important;
+        gap: 12px !important;
+    }
+
+    body.sidebar-collapsed .sidebar-user-card {
+        width: 100% !important;
+        height: auto !important;
+        padding: 9px 12px !important;
+        justify-content: flex-start !important;
+    }
+
+    body.sidebar-collapsed .sidebar .logo {
+        padding: 22px 18px 20px !important;
+        justify-content: flex-start !important;
+        gap: 12px !important;
+    }
+
+    body.sidebar-collapsed .sidebar-collapse-btn {
+        display: flex !important;
     }
 
     .topbar {
         padding: 0 10px;
+    }
+
+    .topbar-left-zone {
+        gap: 8px;
     }
 
     .btn-conquistas {
