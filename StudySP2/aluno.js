@@ -329,14 +329,54 @@ if (usuarioLogado && usuarioLogado.perfil === 'Professor') {
     const menuEstudar = document.getElementById('menu-estudar');
     if (menuEstudar) {
         menuEstudar.innerHTML = '<span class="nav-icon">📤</span><span class="nav-label">Publicar</span>';
+        menuEstudar.setAttribute('data-tooltip', 'Publicar');
     }
 }
+
+// ==========================================
+// CONTROLE DA SIDEBAR RETRÁTIL (DESKTOP E MOBILE)
+// ==========================================
+function toggleSidebar(forcar) {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        if (typeof forcar === 'boolean') {
+            document.body.classList.toggle('sidebar-mobile-open', forcar);
+        } else {
+            document.body.classList.toggle('sidebar-mobile-open');
+        }
+    } else {
+        const isCollapsed = typeof forcar === 'boolean' 
+            ? !forcar 
+            : !document.body.classList.contains('sidebar-collapsed');
+        
+        document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+        try {
+            localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        } catch(e) {}
+    }
+}
+window.toggleSidebar = toggleSidebar;
+
+// Atalho de teclado rápido: Ctrl + B para recolher/expandir o menu
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+        const tag = (e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '');
+        if (tag === 'input' || tag === 'textarea' || (e.target && e.target.isContentEditable)) return;
+        e.preventDefault();
+        toggleSidebar();
+    }
+});
 
 document.querySelectorAll('.sidebar nav a').forEach(link => {
     link.addEventListener('click', function(e) {
         e.preventDefault();
         document.querySelectorAll('.sidebar nav a').forEach(l => l.classList.remove('active'));
         this.classList.add('active'); 
+
+        // Se estiver em dispositivo móvel, fecha automaticamente o drawer lateral ao selecionar
+        if (window.innerWidth <= 768) {
+            document.body.classList.remove('sidebar-mobile-open');
+        }
 
         document.getElementById('secao-inicio').classList.add('hidden');
         document.getElementById('secao-estudar').classList.add('hidden');
