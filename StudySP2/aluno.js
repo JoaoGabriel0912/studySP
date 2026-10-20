@@ -3575,7 +3575,7 @@ async function salvarConteudo(e) {
 
             // Retrocompatibilidade
             video: videos[0] || '',
-            link: links[0] ? (typeof links[0] === 'object' ? links[0].url : links[0]) : '';
+            link: links[0] ? (typeof links[0] === 'object' ? links[0].url : links[0]) : '',
             arquivo: arquivos[0] ? arquivos[0].arquivo : null,
             nomeArquivo: arquivos[0] ? arquivos[0].nomeArquivo : null,
 
