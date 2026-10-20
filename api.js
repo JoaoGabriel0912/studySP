@@ -20,9 +20,8 @@
 
         // 3. Se estiver rodando via Live Server do VS Code (geralmente portas 5500, 5501, etc.)
         // e o backend Node estiver rodando na porta 3000
-        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (isLocalHost && window.location.port && window.location.port !== '3000') {
-            return 'http://localhost:3000/api';
+        if (window.location.port && window.location.port !== '3000') {
+            return `${window.location.protocol}//${window.location.hostname}:3000/api`;
         }
 
         // 4. Em produção (Render, Railway, etc.), onde o backend serve o próprio frontend

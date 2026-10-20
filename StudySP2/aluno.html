@@ -195,50 +195,15 @@
 
         <section id="secao-estudar" class="secao-conteudo hidden">
 
-            <div class="secao-header-title">
-                <h2 id="titulo-secao-estudar">📚 Material de Estudos</h2>
-                <p class="secao-subtitle" id="subtitulo-secao-estudar">Acesse as aulas e conteúdos organizados por disciplina</p>
-            </div>
-
-            <!-- PAINEL SECRETO DO PROFESSOR: ADICIONAR CONTEÚDO -->
-            <div id="painelProfessorConteudo"
-                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
-                <h3 id="tituloPainelProfessor" style="color: var(--primary-color); margin-bottom: 15px;">👨‍🏫 Publicar Nova Aula</h3>
-                <form id="formPublicarConteudo" onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                    <input type="hidden" id="profEditandoId" value="">
-                    <select id="profMateria" class="prof-field">
-                        <option value="Português">Português</option>
-                        <option value="Inglês">Inglês</option>
-                        <option value="Matemática">Matemática</option>
-                        <option value="Física">Física</option>
-                        <option value="Química">Química</option>
-                        <option value="Biologia">Biologia</option>
-                        <option value="História">História</option>
-                        <option value="Geografia">Geografia</option>
-                        <option value="Filosofia">Filosofia</option>
-                        <option value="Sociologia">Sociologia</option>
-                        <option value="Redação">Redação</option>
-                    </select>
-                    <input type="text" id="profTitulo" class="prof-field" placeholder="Título do Conteúdo" required>
-                    <textarea id="profTexto" class="prof-field" rows="3" placeholder="Texto explicativo ou resumo da matéria..." required></textarea>
-
-                    <div style="display: flex; gap: 10px;">
-                        <input type="url" id="profLink" class="prof-field" placeholder="Link externo (opcional)" style="flex:1;">
-                        <input type="text" id="profVideo" class="prof-field" placeholder="ID do Vídeo YouTube (ex: dQw4w9WgXcQ)" style="flex:1;">
-                    </div>
-
-                    <label style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">Anexar Arquivo (PDF ou
-                        Imagem):</label>
-                    <input type="file" id="profArquivo" class="prof-field">
-
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" id="btnSalvarConteudo"
-                            style="flex:1; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Salvar
-                            Conteúdo</button>
-                        <button type="button" id="btnCancelarEdicao" class="btn-acao-pub" onclick="cancelarEdicaoConteudo()"
-                            style="display: none; margin-top: 5px; padding: 10px 14px;">Cancelar edição</button>
-                    </div>
-                </form>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="secao-header-title" style="margin-bottom: 0;">
+                    <h2 id="titulo-secao-estudar">📚 Material de Estudos</h2>
+                    <p class="secao-subtitle" id="subtitulo-secao-estudar">Acesse as aulas e conteúdos organizados por disciplina</p>
+                </div>
+                <!-- Botão Flutuante de Publicação para Professor -->
+                <button id="btnAbrirModalConteudo" class="btn btn-save" onclick="abrirModalPublicarConteudo()" style="display: none; padding: 10px 18px; font-size: 13.5px; border-radius: 8px; font-weight: 700; gap: 8px; align-items: center;">
+                    ➕ Publicar Nova Aula
+                </button>
             </div>
             <nav class="barra-materias">
                 <button class="materia-btn active" onclick="carregarMateria('Português')">Português</button>
@@ -256,8 +221,17 @@
             <div id="conteudo-materia" class="materia-grid"></div>
             <button class="btn-floating-chat" id="btnChatIA" onclick="toggleChatIA()">💬</button>
             <div class="chat-ia-modal hidden" id="chatIAModal">
+                <div class="chat-resize-handle" id="chatIaResizeHandle" title="Clique e arraste para redimensionar o chat">⤡</div>
+                <div class="chat-mobile-drag-bar" id="chatMobileDragBar" title="Arraste para aumentar ou diminuir no celular"></div>
                 <div class="chat-header">
-                    <h4>Assistente de Estudos</h4><button onclick="toggleChatIA()">X</button>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 17px;">🤖</span>
+                        <h4 style="margin: 0; font-size: 14.5px; font-weight: 700;">Assistente de Estudos</h4>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" id="btnExpandirChatIA" class="btn-chat-header-action" onclick="toggleExpandirChatIA()" title="Aumentar / Expandir janela">⛶</button>
+                        <button type="button" class="btn-chat-header-action" onclick="toggleChatIA()" title="Fechar">✕</button>
+                    </div>
                 </div>
                 <div class="chat-messages" id="chatMessagesIA">
                     <div class="msg ia">Olá! Estou aqui para tirar dúvidas teóricas.</div>
@@ -301,92 +275,85 @@
 
         <section id="secao-simulados" class="secao-conteudo hidden">
 
-            <!-- PAINEL SECRETO DO PROFESSOR: CRIAR QUESTÃO -->
-            <div id="painelProfessorSimulado"
-                style="display: none; background: var(--bg-card); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary-color);">
-                <h3 style="color: var(--primary-color); margin-bottom: 15px;">📝 Cadastrar Nova Questão no Simulado</h3>
-                <form onsubmit="salvarQuestao(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                    <textarea id="profPergunta" class="prof-field" rows="2" placeholder="Enunciado da Questão cobrada no Provão..."
-                        required></textarea>
-                    <input type="text" id="profTema" class="prof-field" placeholder="Tema Específico (ex: Física: Ondulatória)" required>
-
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="profAlt0" class="prof-field" placeholder="Alternativa A" required style="flex:1;">
-                        <input type="text" id="profAlt1" class="prof-field" placeholder="Alternativa B" required style="flex:1;">
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="profAlt2" class="prof-field" placeholder="Alternativa C" required style="flex:1;">
-                        <input type="text" id="profAlt3" class="prof-field" placeholder="Alternativa D" required style="flex:1;">
-                    </div>
-
-                    <select id="profCorreta" class="prof-field" required>
-                        <option value="">Selecione a Alternativa Correta...</option>
-                        <option value="0">Alternativa A</option>
-                        <option value="1">Alternativa B</option>
-                        <option value="2">Alternativa C</option>
-                        <option value="3">Alternativa D</option>
-                    </select>
-
-                    <button type="submit"
-                        style="padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">Adicionar
-                        ao Banco de Questões</button>
-                </form>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div class="secao-header-title" style="margin-bottom: 0;">
+                    <h2>📝 Simulados</h2>
+                    <p class="secao-subtitle">Treine com as edições do Provão Paulista e simulados preparados pelos professores</p>
+                </div>
+                <!-- Botão Flutuante de Criação de Simulado para Professor -->
+                <button id="btnAbrirModalSimulado" class="btn btn-save" onclick="abrirModalCriarSimulado()" style="display: none; padding: 10px 18px; font-size: 13.5px; border-radius: 8px; font-weight: 700; gap: 8px; align-items: center;">
+                    ➕ Criar Novo Simulado
+                </button>
             </div>
 
             <div id="lista-provas" class="simulados-container">
-                <div class="secao-header-title">
-                    <h2>📝 Simulados Oficiais - Provão Paulista</h2>
-                    <p class="secao-subtitle">Pratique com questões reais e recentes das edições do Provão Paulista (VUNESP / SEDUC-SP)</p>
+                <!-- Seção 1: Simulados da Plataforma -->
+                <div class="secao-simulados-bloco" style="margin-bottom: 35px;">
+                    <div class="secao-header-title" style="margin-bottom: 18px;">
+                        <h2>🏛️ Simulados da Plataforma (Provão Paulista)</h2>
+                        <p class="secao-subtitle">Edições oficiais elaboradas pela banca VUNESP / SEDUC-SP para treino do Ensino Médio</p>
+                    </div>
+                    <div class="provas-grid">
+                        <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2024')">
+                            <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                            <div class="prova-card-ano">3º ANO</div>
+                            <h3>Provão Paulista 2024</h3>
+                            <p class="prova-card-desc">Linguagens, Matemática, Ciências Humanas e da Natureza</p>
+                            <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                        </div>
+                        <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2023')">
+                            <div class="prova-card-badge">Edição 2023</div>
+                            <div class="prova-card-ano">3º ANO</div>
+                            <h3>Provão Paulista 2023</h3>
+                            <p class="prova-card-desc">Primeira edição histórica do Provão Paulista</p>
+                            <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                        </div>
+                        <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2024')">
+                            <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                            <div class="prova-card-ano">2º ANO</div>
+                            <h3>Provão Paulista 2024</h3>
+                            <p class="prova-card-desc">Conteúdos curriculares da 2ª série do Ensino Médio</p>
+                            <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                        </div>
+                        <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2023')">
+                            <div class="prova-card-badge">Edição 2023</div>
+                            <div class="prova-card-ano">2º ANO</div>
+                            <h3>Provão Paulista 2023</h3>
+                            <p class="prova-card-desc">Questões elaboradas pela banca VUNESP</p>
+                            <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                        </div>
+                        <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2024')">
+                            <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
+                            <div class="prova-card-ano">1º ANO</div>
+                            <h3>Provão Paulista 2024</h3>
+                            <p class="prova-card-desc">Fundamentos essenciais da 1ª série do Ensino Médio</p>
+                            <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                        </div>
+                        <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2023')">
+                            <div class="prova-card-badge">Edição 2023</div>
+                            <div class="prova-card-ano">1º ANO</div>
+                            <h3>Provão Paulista 2023</h3>
+                            <p class="prova-card-desc">Revisão completa das disciplinas do 1º ano</p>
+                            <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+                        </div>
+                        <div class="prova-card card-destaque" onclick="iniciarSimulado('Simulado Geral')">
+                            <div class="prova-card-badge badge-geral">🎯 Simulado Geral</div>
+                            <div class="prova-card-ano">TODAS AS SÉRIES</div>
+                            <h3>Simulado Multi-Disciplinar</h3>
+                            <p class="prova-card-desc">Mix com questões recentes de todas as áreas do conhecimento</p>
+                            <span class="btn-iniciar-prova">Iniciar Desafio Geral →</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="provas-grid">
-                    <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2024')">
-                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
-                        <div class="prova-card-ano">3º ANO</div>
-                        <h3>Provão Paulista 2024</h3>
-                        <p class="prova-card-desc">Linguagens, Matemática, Ciências Humanas e da Natureza</p>
-                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
+
+                <!-- Seção 2: Simulados dos Professores -->
+                <div class="secao-simulados-bloco">
+                    <div class="secao-header-title" style="margin-bottom: 18px;">
+                        <h2>👨‍🏫 Simulados dos Professores</h2>
+                        <p class="secao-subtitle">Avaliações e simulados exclusivos preparados pelos docentes da sua escola</p>
                     </div>
-                    <div class="prova-card" onclick="iniciarSimulado('3º Ano - 2023')">
-                        <div class="prova-card-badge">Edição 2023</div>
-                        <div class="prova-card-ano">3º ANO</div>
-                        <h3>Provão Paulista 2023</h3>
-                        <p class="prova-card-desc">Primeira edição histórica do Provão Paulista</p>
-                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
-                    </div>
-                    <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2024')">
-                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
-                        <div class="prova-card-ano">2º ANO</div>
-                        <h3>Provão Paulista 2024</h3>
-                        <p class="prova-card-desc">Conteúdos curriculares da 2ª série do Ensino Médio</p>
-                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
-                    </div>
-                    <div class="prova-card" onclick="iniciarSimulado('2º Ano - 2023')">
-                        <div class="prova-card-badge">Edição 2023</div>
-                        <div class="prova-card-ano">2º ANO</div>
-                        <h3>Provão Paulista 2023</h3>
-                        <p class="prova-card-desc">Questões elaboradas pela banca VUNESP</p>
-                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
-                    </div>
-                    <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2024')">
-                        <div class="prova-card-badge badge-recente">✨ Mais Recente</div>
-                        <div class="prova-card-ano">1º ANO</div>
-                        <h3>Provão Paulista 2024</h3>
-                        <p class="prova-card-desc">Fundamentos essenciais da 1ª série do Ensino Médio</p>
-                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
-                    </div>
-                    <div class="prova-card" onclick="iniciarSimulado('1º Ano - 2023')">
-                        <div class="prova-card-badge">Edição 2023</div>
-                        <div class="prova-card-ano">1º ANO</div>
-                        <h3>Provão Paulista 2023</h3>
-                        <p class="prova-card-desc">Revisão completa das disciplinas do 1º ano</p>
-                        <span class="btn-iniciar-prova">Iniciar Simulado →</span>
-                    </div>
-                    <div class="prova-card card-destaque" onclick="iniciarSimulado('Simulado Geral')">
-                        <div class="prova-card-badge badge-geral">🎯 Simulado Geral</div>
-                        <div class="prova-card-ano">TODAS AS SÉRIES</div>
-                        <h3>Simulado Multi-Disciplinar</h3>
-                        <p class="prova-card-desc">Mix com questões recentes de todas as áreas do conhecimento</p>
-                        <span class="btn-iniciar-prova">Iniciar Desafio Geral →</span>
+                    <div id="gridSimuladosProfessores" class="provas-grid">
+                        <!-- Gerado dinamicamente via JS -->
                     </div>
                 </div>
             </div>
@@ -419,183 +386,214 @@
             </div>
         </section>
 
-        <!-- SEÇÃO REFORMULADA: WORKSTATION DO TCC -->
+        <!-- SEÇÃO TCC: WORKSTATION LIMPA E PROFISSIONAL -->
         <section id="secao-tcc" class="secao-conteudo hidden">
-            <div class="tcc-workspace">
-                <!-- Banner de Topo com Metas e Curso -->
-                <div class="tcc-hero-card">
-                    <div class="tcc-hero-left">
-                        <h2>🎓 Mentoria de TCC com IA</h2>
-                        <p>Auxílio metodológico, sugestões de tema, normas ABNT e inspiração em projetos premiados.</p>
+            <div class="tcc-workspace-clean">
+                
+                <!-- Cabeçalho Executivo do TCC -->
+                <div class="tcc-header-clean">
+                    <div class="tcc-header-info">
+                        <div class="tcc-header-tag">ASSISTENTE ACADÊMICO</div>
+                        <h2>Orientação Metodológica de TCC</h2>
+                        <p>Planeje seu tema, estruture hipóteses, aplique normas ABNT e consulte referências práticas.</p>
                     </div>
-                    <div class="tcc-hero-stats">
-                        <div class="tcc-stat-pill" title="Curso cadastrado para o TCC">
-                            <span>🏫</span>
-                            <span>Curso: <strong id="tccBadgeCurso">Não definido</strong></span>
+                    
+                    <div class="tcc-header-meta">
+                        <div class="tcc-meta-badge" title="Curso técnico ou área">
+                            <span class="meta-label">CURSO</span>
+                            <strong id="tccBadgeCurso">Não definido</strong>
                         </div>
-                        <div class="tcc-stat-pill" title="Tema do seu projeto de TCC">
-                            <span>📌</span>
-                            <span>Tema: <strong id="tccBadgeTema">Não definido</strong></span>
+                        <div class="tcc-meta-badge" title="Tema registrado do TCC">
+                            <span class="meta-label">TEMA ATUAL</span>
+                            <strong id="tccBadgeTema">Não definido</strong>
                         </div>
-                        <div class="tcc-stat-pill" title="Limite de mensagens diárias com a IA orientadora">
-                            <span>💬</span>
-                            <span>Hoje: <strong id="msgHojeTCC">0</strong>/10</span>
+                        <div class="tcc-meta-badge" title="Consultas disponíveis hoje">
+                            <span class="meta-label">CONSULTAS HOJE</span>
+                            <strong><span id="msgHojeTCC">0</span> / 25</strong>
                         </div>
-                        <button type="button" class="btn-tcc-editar-tema" onclick="abrirModalTccConfig()">✏️ Ajustar Tema</button>
+                        <button type="button" class="btn-tcc-clean-edit" onclick="abrirModalTccConfig()">✏️ Editar Tema</button>
                     </div>
                 </div>
 
-                <!-- Grid em 2 Colunas: IA Orientadora à esquerda e Painel de Apoio à direita -->
-                <div class="tcc-grid-columns">
-                    <!-- Coluna Principal: Chat com IA -->
-                    <div class="tcc-chat-card">
-                        <div class="tcc-chat-card-header">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 20px;">🤖</span>
+                <!-- Barra de Navegação Interna da Seção (Abas) -->
+                <div class="tcc-nav-tabs">
+                    <button type="button" class="tcc-nav-tab active" onclick="trocarAbaTCC('chat', this)">
+                        💬 Chat com Co-orientador
+                    </button>
+                    <button type="button" class="tcc-nav-tab" onclick="trocarAbaTCC('etapas', this)">
+                        🗺️ Roteiro das 5 Etapas
+                    </button>
+                    <button type="button" class="tcc-nav-tab" onclick="trocarAbaTCC('projetos', this)">
+                        💡 Inspirações & Projetos
+                    </button>
+                </div>
+
+                <!-- Painel 1: Chat do Co-orientador IA (Foco Total) -->
+                <div id="tccPainelChat" class="tcc-tab-panel active">
+                    <div class="tcc-chat-clean-container">
+                        <div class="tcc-chat-clean-top">
+                            <div class="agent-profile">
+                                <div class="agent-avatar">🎓</div>
                                 <div>
-                                    <h4 style="margin: 0; color: var(--primary-color); font-size: 15px;">IA Orientadora do TCC</h4>
-                                    <span style="font-size: 11.5px; color: #4CAF50;">● Pronta para te orientar (sem fazer por você)</span>
+                                    <h4>Agente Co-orientador de TCC</h4>
+                                    <span class="agent-status">● Suporte a ABNT, Metodologia e Estruturação</span>
                                 </div>
                             </div>
-                            <span style="font-size: 12px; color: var(--text-muted);">Modelo Educacional Especializado</span>
-                        </div>
-
-                        <!-- Chips de Perguntas Rápidas (1 clique para perguntar) -->
-                        <div class="tcc-quick-prompts">
-                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Preciso de 3 ideias inovadoras de temas para meu TCC neste curso.')">💡 Ideias de Temas</span>
-                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Como estruturar a Justificativa e a Relevância Social do meu projeto?')">📝 Fazer Justificativa</span>
-                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Como formular o Problema de Pesquisa e a Hipótese do TCC?')">❓ Problema & Hipótese</span>
-                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Quais são as principais normas ABNT para citações diretas e indiretas?')">📚 Normas ABNT</span>
-                            <span class="tcc-prompt-chip" onclick="aplicarPromptRapidoTCC('Dicas de Metodologia: como planejar os passos práticos da pesquisa?')">🔬 Metodologia</span>
+                            <span class="agent-guideline">Orientação investigativa ativa (Sem geração de textos prontos)</span>
                         </div>
 
                         <!-- Caixa de Mensagens -->
-                        <div class="tcc-chat-box" id="chatBoxTCC">
+                        <div class="tcc-chat-box-clean" id="chatBoxTCC">
                             <!-- Gerado via JS -->
                         </div>
 
-                        <!-- Input de Mensagens -->
-                        <div class="chat-input">
-                            <input type="text" id="inputChatTCC" placeholder="Faça uma pergunta sobre tema, ABNT, metodologia ou escrita...">
-                            <button type="button" class="btn btn-save" onclick="enviarMensagemTCC()">Enviar ➔</button>
+                        <!-- Barra de Envio -->
+                        <div class="tcc-input-bar-clean">
+                            <input type="text" id="inputChatTCC" placeholder="Pergunte sobre ABNT, objetivos, metodologia ou envie um rascunho para revisão..." onkeypress="if(event.key==='Enter') enviarMensagemTCC()">
+                            <button type="button" class="btn-tcc-send" onclick="enviarMensagemTCC()">Enviar Mensagem</button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Coluna Lateral: Checklist das Etapas & Inspirações -->
-                    <div class="tcc-side-panel">
-                        <!-- Checklist das Etapas do TCC -->
-                        <div class="tcc-etapas-card">
-                            <h3>🗺️ Roteiro das Etapas do TCC</h3>
-                            <div class="tcc-etapa-item ativa">
-                                <span class="tcc-etapa-num">1</span>
-                                <div>
-                                    <strong>Escolha do Tema & Problema</strong>
-                                    <div style="font-size: 11.5px; color: var(--text-muted);">Definir área de interesse e dor a resolver</div>
-                                </div>
-                            </div>
-                            <div class="tcc-etapa-item">
-                                <span class="tcc-etapa-num">2</span>
-                                <div>
-                                    <strong>Justificativa & Objetivos</strong>
-                                    <div style="font-size: 11.5px; color: var(--text-muted);">Objetivo geral e 3 específicos</div>
-                                </div>
-                            </div>
-                            <div class="tcc-etapa-item">
-                                <span class="tcc-etapa-num">3</span>
-                                <div>
-                                    <strong>Referencial Teórico (ABNT)</strong>
-                                    <div style="font-size: 11.5px; color: var(--text-muted);">Fundamentação com livros e artigos</div>
-                                </div>
-                            </div>
-                            <div class="tcc-etapa-item">
-                                <span class="tcc-etapa-num">4</span>
-                                <div>
-                                    <strong>Metodologia & Desenvolvimento</strong>
-                                    <div style="font-size: 11.5px; color: var(--text-muted);">Pesquisa de campo, protótipo ou estudo</div>
-                                </div>
-                            </div>
-                            <div class="tcc-etapa-item">
-                                <span class="tcc-etapa-num">5</span>
-                                <div>
-                                    <strong>Resultados & Conclusão</strong>
-                                    <div style="font-size: 11.5px; color: var(--text-muted);">Análise do impacto e considerações finais</div>
-                                </div>
+                <!-- Painel 2: Roteiro Metodológico das 5 Etapas -->
+                <div id="tccPainelEtapas" class="tcc-tab-panel hidden">
+                    <div class="tcc-etapas-clean-grid">
+                        <div class="etapa-card-clean">
+                            <div class="etapa-step-badge">Etapa 01</div>
+                            <h4>Escolha do Tema & Problema</h4>
+                            <p>Defina uma área de interesse clara, identifique uma dor real ou oportunidade na sociedade e formule uma pergunta de pesquisa objetiva.</p>
+                            <div class="etapa-action">
+                                <button type="button" class="btn-etapa-prompt" onclick="aplicarPromptRapidoTCC('Me ajude a delimitar um tema e formular um problema de pesquisa.')">Perguntar à IA ➔</button>
                             </div>
                         </div>
 
-                        <!-- Inspirações de Projetos de Ex-Alunos -->
-                        <div class="tcc-inspiracoes-card">
-                            <h3>💡 Projetos e Inspirações</h3>
-                            <!-- Filtros por Área -->
-                            <div class="tcc-filtros-ideias">
-                                <button type="button" class="tcc-filtro-btn active" onclick="filtrarIdeiasTCC('todos', this)">Todos</button>
-                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('ds', this)">Tecnologia / DS</button>
-                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('jur', this)">Direito / Jurídico</button>
-                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('adm', this)">Administração</button>
-                                <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('agro', this)">Agro & Vet</button>
+                        <div class="etapa-card-clean">
+                            <div class="etapa-step-badge">Etapa 02</div>
+                            <h4>Justificativa & Objetivos</h4>
+                            <p>Explique por que seu projeto é relevante (social, técnica ou academicamente). Defina 1 objetivo geral e 3 objetivos específicos claros.</p>
+                            <div class="etapa-action">
+                                <button type="button" class="btn-etapa-prompt" onclick="aplicarPromptRapidoTCC('Como estruturar os objetivos geral e específicos para meu TCC?')">Perguntar à IA ➔</button>
                             </div>
+                        </div>
 
-                            <div class="tcc-grid-ideias-moderna" id="tccIdeiasContainer">
-                                <div class="ideia-card-moderno" data-area="ds" onclick="abrirDetalheTCC('ds_1')">
-                                    <div class="ideia-card-info">
-                                        <h4>💻 App de Mobilidade Escolar</h4>
-                                        <span>Desenvolvimento de Sistemas • Acessibilidade</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="ds" onclick="abrirDetalheTCC('ds_2')">
-                                    <div class="ideia-card-info">
-                                        <h4>💻 IA para Triagem de Currículos</h4>
-                                        <span>Desenvolvimento de Sistemas • Processamento de Linguagem</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="jur" onclick="abrirDetalheTCC('jur_1')">
-                                    <div class="ideia-card-info">
-                                        <h4>⚖️ Cartilha do Consumidor Jovem</h4>
-                                        <span>Serviços Jurídicos • Direitos Digitais</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="jur" onclick="abrirDetalheTCC('jur_2')">
-                                    <div class="ideia-card-info">
-                                        <h4>⚖️ Impactos da LGPD nas Escolas</h4>
-                                        <span>Serviços Jurídicos • Privacidade Escolar</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="adm" onclick="abrirDetalheTCC('adm_1')">
-                                    <div class="ideia-card-info">
-                                        <h4>📊 Plano p/ Brechó Online Sustentável</h4>
-                                        <span>Administração • E-commerce & Economia Circular</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="adm" onclick="abrirDetalheTCC('log_1')">
-                                    <div class="ideia-card-info">
-                                        <h4>📦 Otimização de Rotas Escolares</h4>
-                                        <span>Logística • Algoritmos de Roteamento</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="agro" onclick="abrirDetalheTCC('agro_1')">
-                                    <div class="ideia-card-info">
-                                        <h4>🚜 Horta Hidropônica Automatizada</h4>
-                                        <span>Agropecuária • IoT & Sustentabilidade</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
-                                <div class="ideia-card-moderno" data-area="agro" onclick="abrirDetalheTCC('vet_1')">
-                                    <div class="ideia-card-info">
-                                        <h4>🐕 App para Adoção de Animais</h4>
-                                        <span>Veterinária • Saúde Animal & Políticas Públicas</span>
-                                    </div>
-                                    <span style="color: var(--accent-color); font-size: 18px;">➔</span>
-                                </div>
+                        <div class="etapa-card-clean">
+                            <div class="etapa-step-badge">Etapa 03</div>
+                            <h4>Referencial Teórico (ABNT)</h4>
+                            <p>Levantamento de livros, artigos científicos (SciELO/Google Acadêmico) e autores que sustentam as teorias e conceitos do trabalho.</p>
+                            <div class="etapa-action">
+                                <button type="button" class="btn-etapa-prompt" onclick="aplicarPromptRapidoTCC('Quais palavras-chave e autores posso buscar para o referencial teórico do meu TCC?')">Perguntar à IA ➔</button>
+                            </div>
+                        </div>
+
+                        <div class="etapa-card-clean">
+                            <div class="etapa-step-badge">Etapa 04</div>
+                            <h4>Metodologia & Desenvolvimento</h4>
+                            <p>Explique o caminho prático: pesquisa de campo, questionários, estudo de caso, desenvolvimento de software ou protótipo funcional.</p>
+                            <div class="etapa-action">
+                                <button type="button" class="btn-etapa-prompt" onclick="aplicarPromptRapidoTCC('Quais são os passos recomendados para a metodologia do meu TCC?')">Perguntar à IA ➔</button>
+                            </div>
+                        </div>
+
+                        <div class="etapa-card-clean">
+                            <div class="etapa-step-badge">Etapa 05</div>
+                            <h4>Resultados & Considerações Finais</h4>
+                            <p>Apresentação e análise crítica dos dados obtidos, limitações do estudo, contribuições alcançadas e sugestões para trabalhos futuros.</p>
+                            <div class="etapa-action">
+                                <button type="button" class="btn-etapa-prompt" onclick="aplicarPromptRapidoTCC('Como organizar a apresentação de resultados e considerações finais?')">Perguntar à IA ➔</button>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Painel 3: Inspirações e Projetos de Ex-Alunos -->
+                <div id="tccPainelProjetos" class="tcc-tab-panel hidden">
+                    <div class="tcc-projetos-clean-container">
+                        <!-- Filtros por Área -->
+                        <div class="tcc-filtros-ideias-clean">
+                            <button type="button" class="tcc-filtro-btn active" onclick="filtrarIdeiasTCC('todos', this)">Todos os Cursos</button>
+                            <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('ds', this)">Tecnologia & Sistemas</button>
+                            <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('jur', this)">Serviços Jurídicos</button>
+                            <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('adm', this)">Administração & Logística</button>
+                            <button type="button" class="tcc-filtro-btn" onclick="filtrarIdeiasTCC('agro', this)">Agropecuária & Veterinária</button>
+                        </div>
+
+                        <!-- Grid de Projetos -->
+                        <div class="tcc-grid-projetos-clean" id="tccIdeiasContainer">
+                            <div class="ideia-card-clean" data-area="ds" onclick="abrirDetalheTCC('ds_1')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Desenvolvimento de Sistemas</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>App de Mobilidade Escolar</h4>
+                                <p>Roteamento acessível e mapeamento colaborativo para estudantes da rede pública.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="ds" onclick="abrirDetalheTCC('ds_2')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Desenvolvimento de Sistemas</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>IA para Triagem de Currículos</h4>
+                                <p>Processamento de linguagem natural focado em jovens aprendizes e estágio.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="jur" onclick="abrirDetalheTCC('jur_1')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Serviços Jurídicos</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>Cartilha do Consumidor Jovem</h4>
+                                <p>Direitos fundamentais nas compras digitais e combate a golpes virtuais.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="jur" onclick="abrirDetalheTCC('jur_2')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Serviços Jurídicos</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>Impactos da LGPD nas Escolas</h4>
+                                <p>Tratamento de dados pessoais de estudantes e conformidade legal institucional.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="adm" onclick="abrirDetalheTCC('adm_1')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Administração</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>Plano p/ Brechó Online Sustentável</h4>
+                                <p>Modelo de negócios focado em economia circular e logística reversa regional.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="adm" onclick="abrirDetalheTCC('log_1')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Logística</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>Otimização de Rotas Escolares</h4>
+                                <p>Redução do tempo de trânsito e economia de combustível no transporte de estudantes.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="agro" onclick="abrirDetalheTCC('agro_1')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Agropecuária</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>Horta Hidropônica Automatizada</h4>
+                                <p>Controle de nutrientes com IoT e sensores de baixo custo para pequenos produtores.</p>
+                            </div>
+
+                            <div class="ideia-card-clean" data-area="agro" onclick="abrirDetalheTCC('vet_1')">
+                                <div class="ideia-card-top">
+                                    <span class="ideia-curso-tag">Veterinária</span>
+                                    <span class="ideia-arrow">➔</span>
+                                </div>
+                                <h4>App para Adoção de Animais</h4>
+                                <p>Plataforma para abrigos municipais com rastreamento vacinal e posse responsável.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
@@ -623,31 +621,61 @@
                 <h3 id="modal-perfil-nome">Nome do Aluno</h3>
                 <span class="modal-perfil-role" id="modal-perfil-role">Aluno</span>
             </div>
-            <div class="modal-body">
-                <div class="modal-info-item">
-                    <span class="info-icon">📍</span>
-                    <div class="info-text">
-                        <strong>Cidade</strong>
-                        <span id="modal-perfil-cidade">São Paulo</span>
+            <div class="modal-body" style="padding: 16px 20px 20px; gap: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">📍</span>
+                        <div class="info-text">
+                            <strong>Cidade</strong>
+                            <span id="modal-perfil-cidade" style="font-size: 13px;">São Paulo</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">🎂</span>
+                        <div class="info-text">
+                            <strong>Idade</strong>
+                            <span id="modal-perfil-idade" style="font-size: 13px;">-</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="info-icon">⭐</span>
-                    <div class="info-text">
-                        <strong>Pontuação</strong>
-                        <span id="modal-perfil-pontos">150 pts</span>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">⭐</span>
+                        <div class="info-text">
+                            <strong>Pontuação</strong>
+                            <span id="modal-perfil-pontos" style="font-size: 13px;">0.0 pts</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px;">
+                        <span class="info-icon" style="font-size: 18px;">🔥</span>
+                        <div class="info-text">
+                            <strong>Ofensiva</strong>
+                            <span id="modal-perfil-ofensiva" style="font-size: 13px;">0 Dias</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="info-icon">🔥</span>
-                    <div class="info-text">
-                        <strong>Ofensiva</strong>
-                        <span id="modal-perfil-ofensiva">5 Dias</span>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px; background: rgba(76, 175, 80, 0.08); border-color: rgba(76, 175, 80, 0.3);">
+                        <span class="info-icon" style="font-size: 18px;">✅</span>
+                        <div class="info-text">
+                            <strong style="color: #4CAF50;">Acertos</strong>
+                            <span id="modal-perfil-acertos" style="color: #4CAF50; font-size: 13px;">0</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-item" style="padding: 8px 12px; gap: 10px; background: rgba(244, 67, 54, 0.08); border-color: rgba(244, 67, 54, 0.3);">
+                        <span class="info-icon" style="font-size: 18px;">❌</span>
+                        <div class="info-text">
+                            <strong style="color: #F44336;">Erros</strong>
+                            <span id="modal-perfil-erros" style="color: #F44336; font-size: 13px;">0</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-bio">
+
+                <div class="modal-bio" style="margin-top: 2px; padding: 10px 12px;">
                     <strong>📝 Biografia:</strong>
-                    <p id="modal-perfil-bio">Lorem ipsum dolor sit amet...</p>
+                    <p id="modal-perfil-bio" style="margin: 0; font-size: 12px; max-height: 48px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">Lorem ipsum dolor sit amet...</p>
                 </div>
             </div>
         </div>
@@ -818,41 +846,178 @@
 
     <!-- Modal Pomodoro Informações (Como surgiu e Multiplicadores) -->
     <div id="modal-pomodoro-info" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 600px; padding: 26px; border: 1px solid var(--primary-color);">
+        <div class="modal-content" style="max-width: 440px; padding: 20px 22px; border: 1px solid var(--primary-color); border-radius: 14px;">
             <button class="modal-close" onclick="fecharModalPomodoroInfo()">&times;</button>
-            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
-                <span style="font-size: 36px;">🍅</span>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <span style="font-size: 26px;">🍅</span>
                 <div>
-                    <h3 style="color: var(--primary-color); margin: 0; font-size: 22px;">O Método Pomodoro & Multiplicadores</h3>
-                    <span style="font-size: 13px; color: var(--text-muted);">Como funciona e como turbinar seus pontos</span>
+                    <h3 style="color: var(--primary-color); margin: 0; font-size: 18px;">Pomodoro & Multiplicador</h3>
+                    <span style="font-size: 12px; color: var(--text-muted);">Como funciona e como turbinar seus pontos</span>
                 </div>
             </div>
-            <div class="pomodoro-info-body">
-                <div class="info-block">
-                    <h4>📜 Como surgiu o Método Pomodoro?</h4>
-                    <p>O método foi desenvolvido no final da década de 1980 pelo universitário italiano <strong>Francesco Cirillo</strong>. Para vencer a procrastinação e aumentar seu foco, ele utilizou um cronômetro de cozinha em formato de tomate (<em>pomodoro</em> em italiano) para cronometrar 25 minutos de estudo concentrado sem nenhuma interrupção.</p>
+            <div class="pomodoro-info-body" style="gap: 10px; margin-top: 10px;">
+                <div class="info-block" style="padding: 12px;">
+                    <p style="font-size: 13px; line-height: 1.5; margin-bottom: 8px;"><strong>Origem:</strong> Criada no final dos anos 1980 pelo italiano <strong>Francesco Cirillo</strong> durante seus estudos universitários, a técnica recebeu o nome <em>Pomodoro</em> ("tomate" em italiano) por conta de um timer de cozinha mecânico em formato de tomate que ele utilizava para gerenciar suas sessões de leitura concentrada.</p>
+                    <p style="font-size: 13px; line-height: 1.5; margin: 0;">O <strong>Método Pomodoro</strong> alterna <strong>25 min de foco total</strong> com <strong>5 min de pausa</strong> para recarregar o cérebro, prevenir a fadiga mental e eliminar a procrastinação.</p>
                 </div>
-                <div class="info-block">
-                    <h4>⏱️ Como a técnica funciona na prática?</h4>
-                    <ul>
-                        <li><strong>Bloco de 25 minutos (Foco Total):</strong> Desligue distrações, notificações e dedique-se exclusivamente ao conteúdo.</li>
-                        <li><strong>5 minutos de Pausa Curta:</strong> Levante-se, beba água e relaxe os olhos.</li>
-                        <li><strong>Pausa Longa (15 a 30 min):</strong> Realizada após completar 4 blocos de foco consecutivos.</li>
-                    </ul>
-                </div>
-                <div class="info-block highlight">
-                    <h4>🚀 Sistema de Multiplicadores do StudySP</h4>
-                    <p>No StudySP, seu tempo de estudo focado é recompensado diretamente em pontos:</p>
-                    <div class="multiplicador-tabela">
-                        <div class="mult-item"><span class="mult-tag">1.2x</span><span><strong>Ativado imediatamente</strong> ao iniciar o Pomodoro na plataforma!</span></div>
-                        <div class="mult-item"><span class="mult-tag">1.3x</span><span>Acumulando <strong>30 minutos</strong> de estudo focado</span></div>
-                        <div class="mult-item"><span class="mult-tag">1.4x</span><span>Acumulando <strong>60 minutos (1 hora)</strong> de estudo</span></div>
-                        <div class="mult-item"><span class="mult-tag">1.5x</span><span>Acumulando <strong>120 minutos (2 horas)</strong> de estudo diário</span></div>
+                <div class="info-block highlight" style="padding: 12px;">
+                    <h4 style="font-size: 14px; margin-bottom: 6px;">🚀 Multiplicador de Pontos</h4>
+                    <p style="font-size: 12.5px; line-height: 1.4; color: var(--text-main); margin-bottom: 6px;">
+                        Ao estudar ativamente com o cronômetro, você ganha <strong>1.2x</strong> de bônus! Em descanso ou pausado, retorna a <strong>1.0x</strong>.
+                    </p>
+                    <div style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px;">
+                        <div>⏱️ <strong>30 min</strong> estudados ➔ <strong>1.3x</strong></div>
+                        <div>⏱️ <strong>60 min</strong> estudados ➔ <strong>1.4x</strong></div>
+                        <div>⏱️ <strong>120 min</strong> estudados ➔ <strong>1.5x</strong></div>
                     </div>
-                    <p style="margin-top: 10px; font-size: 13px; color: var(--accent-color);">⭐ <em>Esse multiplicador potencializa a pontuação obtida em todos os simulados do Provão Paulista e atividades da plataforma!</em></p>
                 </div>
             </div>
-            <button type="button" class="btn btn-save" style="width: 100%; margin-top: 18px; padding: 12px; font-size: 15px;" onclick="fecharModalPomodoroInfo()">Entendido, vamos estudar!</button>
+            <button type="button" class="btn btn-save" style="width: 100%; margin-top: 14px; padding: 10px; font-size: 14px;" onclick="fecharModalPomodoroInfo()">Entendido!</button>
+        </div>
+    </div>
+
+    <!-- Modal Professor: Publicar Conteúdo de Aula -->
+    <div id="modal-publicar-conteudo" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 620px; width: 92%; max-height: 90vh; overflow-y: auto; padding: 25px; border: 1.5px solid var(--primary-color);">
+            <button class="modal-close" onclick="fecharModalPublicarConteudo()">&times;</button>
+            <h3 id="tituloModalPublicarConteudo" style="color: var(--primary-color); margin-bottom: 6px; font-size: 20px;">👨‍🏫 Publicar Nova Aula</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Disponibilize resumos, links, vídeos do YouTube e arquivos de apoio para seus alunos.</p>
+
+            <form id="formPublicarConteudo" onsubmit="salvarConteudo(event)" style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="hidden" id="profEditandoId" value="">
+                <div>
+                    <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Disciplina / Matéria *</label>
+                    <select id="profMateria" class="prof-field" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);" required>
+                        <option value="Português">Português</option>
+                        <option value="Inglês">Inglês</option>
+                        <option value="Matemática">Matemática</option>
+                        <option value="Física">Física</option>
+                        <option value="Química">Química</option>
+                        <option value="Biologia">Biologia</option>
+                        <option value="História">História</option>
+                        <option value="Geografia">Geografia</option>
+                        <option value="Filosofia">Filosofia</option>
+                        <option value="Sociologia">Sociologia</option>
+                        <option value="Redação">Redação</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Título do Conteúdo *</label>
+                    <input type="text" id="profTitulo" class="prof-field" placeholder="Ex: Funções Trigonométricas no Provão" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                </div>
+
+                <div>
+                    <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Texto Explicativo / Resumo *</label>
+                    <textarea id="profTexto" class="prof-field" rows="4" placeholder="Escreva o resumo, dicas essenciais e orientações de estudo..." required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); resize: vertical;"></textarea>
+                </div>
+
+                <!-- Seção de Múltiplos Vídeos -->
+                <div class="campo-agrupado-prof" style="background: rgba(0, 123, 255, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                            <span>🎬 Vídeos do YouTube</span>
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Permite adicionar 2 ou mais vídeos)</span>
+                        </label>
+                        <button type="button" class="btn-prof-add-item" onclick="adicionarLinhaVideo()" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; background: rgba(0, 123, 255, 0.15); border: 1px solid var(--primary-color); color: var(--primary-color); cursor: pointer; font-weight: 600;">+ Adicionar Vídeo</button>
+                    </div>
+                    <div id="containerProfVideos" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Inserido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Seção de Múltiplos Arquivos Anexos -->
+                <div class="campo-agrupado-prof" style="background: rgba(76, 175, 80, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                            <span>📎 Arquivos de Apoio (PDFs, Imagens, Documentos)</span>
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Permite anexar vários arquivos)</span>
+                        </label>
+                        <button type="button" class="btn-prof-add-item" onclick="document.getElementById('profArquivoInputMultiplo').click()" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; cursor: pointer; font-weight: 600;">+ Anexar Arquivo</button>
+                    </div>
+                    <input type="file" id="profArquivoInputMultiplo" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style="display: none;" onchange="lidarSelecaoMultiplosArquivos(event)">
+                    <div id="listaProfArquivos" style="display: flex; flex-direction: column; gap: 6px;">
+                        <!-- Lista de arquivos anexados -->
+                    </div>
+                </div>
+
+                <!-- Seção de Múltiplos Links Externos -->
+                <div class="campo-agrupado-prof" style="background: rgba(255, 152, 0, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                            <span>🔗 Links Externos Complementares</span>
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Opcional)</span>
+                        </label>
+                        <button type="button" class="btn-prof-add-item" onclick="adicionarLinhaLink()" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; color: #ff9800; cursor: pointer; font-weight: 600;">+ Adicionar Link</button>
+                    </div>
+                    <div id="containerProfLinks" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Inserido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" id="btnSalvarConteudo" class="btn btn-save" style="flex: 1; padding: 12px; font-size: 14px;">Salvar Conteúdo</button>
+                    <button type="button" id="btnCancelarEdicao" class="btn-acao-pub" onclick="fecharModalPublicarConteudo()" style="padding: 12px 16px; border-radius: 8px;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Professor: Criar Novo Simulado Completo -->
+    <div id="modal-criar-simulado" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 780px; width: 94%; max-height: 90vh; overflow-y: auto; padding: 25px; border: 1.5px solid var(--primary-color);">
+            <button class="modal-close" onclick="fecharModalCriarSimulado()">&times;</button>
+            <div style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <h3 id="tituloModalSimulado" style="color: var(--primary-color); margin: 0; font-size: 21px;">📝 Criar Novo Simulado Completo</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Monte avaliações com múltiplas questões, pontuação personalizada e série de destino.</p>
+            </div>
+
+            <form id="formCriarSimuladoCompleto" onsubmit="salvarSimuladoCompleto(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="profSimuladoEditandoId" value="">
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px;">
+                    <div>
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Título do Simulado *</label>
+                        <input type="text" id="profSimuladoNome" class="prof-field" placeholder="Ex: Simulado Especial de Termodinâmica" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                    </div>
+                    <div>
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Série Destinada *</label>
+                        <select id="profSimuladoSerie" class="prof-field" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                            <option value="1º Ano">1º Ano do Ensino Médio</option>
+                            <option value="2º Ano">2º Ano do Ensino Médio</option>
+                            <option value="3º Ano">3º Ano do Ensino Médio</option>
+                            <option value="Todas as Séries">Todas as Séries</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Nome do Professor *</label>
+                        <input type="text" id="profSimuladoAutor" class="prof-field" placeholder="Seu Nome / Disciplina" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                    <h4 style="color: var(--primary-color); margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                        <span>❓ Questões do Simulado</span>
+                        <span id="badgeContadorQuestoes" style="background: rgba(0, 123, 255, 0.15); color: var(--primary-color); font-size: 12px; padding: 2px 8px; border-radius: 12px;">0 questões</span>
+                    </h4>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn" onclick="adicionarBlocoQuestao()" style="padding: 6px 12px; font-size: 12.5px; background: var(--primary-color); color: #fff; border-radius: 6px; font-weight: 600;">+ Adicionar Questão</button>
+                        <button type="button" class="btn" onclick="gerarQuestoesPorQuantidade()" style="padding: 6px 12px; font-size: 12.5px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">Definir Quantidade...</button>
+                    </div>
+                </div>
+
+                <!-- Container dinâmico com os formulários de cada questão -->
+                <div id="containerQuestoesDinamicas" style="display: flex; flex-direction: column; gap: 14px; max-height: 480px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Inserido dinamicamente via JS -->
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" id="btnSalvarSimuladoCompleto" style="flex: 1; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px;">
+                        💾 Publicar Simulado Completo
+                    </button>
+                    <button type="button" id="btnCancelarEdicaoSimulado" class="btn-acao-pub" onclick="fecharModalCriarSimulado()" style="padding: 12px 18px; border-radius: 8px;">Cancelar</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -876,6 +1041,15 @@
         </div>
     </div>
 
+    <!-- Modal Zoom / Pré-visualização de Imagens Ampliadas -->
+    <div id="modal-zoom-imagem" class="modal-overlay hidden" onclick="fecharModalZoomImagem(event)">
+        <div class="modal-content modal-zoom-content" style="max-width: 90vw; max-height: 90vh; padding: 16px; background: rgba(13, 23, 38, 0.96); border: 1.5px solid var(--primary-color); border-radius: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <button class="modal-close" onclick="fecharModalZoomImagem()" style="top: 10px; right: 10px; z-index: 100;">&times;</button>
+            <img id="imgZoomVisualizacao" src="" alt="Imagem Ampliada" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--border-color);">
+            <p id="legendaZoomImagem" style="margin: 12px 0 0; font-size: 13.5px; color: var(--text-main); font-weight: 600;"></p>
+        </div>
+    </div>
+
     <!-- Canvas de Confetes em Tela Cheia -->
     <canvas id="confettiCanvas"></canvas>
 
@@ -892,8 +1066,9 @@
         </div>
     </div>
 
-    <script src="api.js"></script>
-    <script src="aluno.js"></script>
+    <script src="gemini-config.js"></script>
+    <script src="api.js?v=20261018d"></script>
+    <script src="aluno.js?v=20261018d"></script>
 </body>
 
 </html>

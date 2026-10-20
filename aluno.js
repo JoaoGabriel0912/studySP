@@ -27,6 +27,9 @@ if (!usuarioLogado) {
     if(document.getElementById('sidebarUserRole')) {
         document.getElementById('sidebarUserRole').textContent = (usuarioLogado.perfil === 'Professor') ? 'Professor' : 'Estudante';
     }
+
+    // Aplica a foto de perfil imediatamente na inicialização (sem atraso no celular ou computador)
+    aplicarFotoPerfilNaInterface(usuarioLogado.foto);
     
     // 3. Garante que as variáveis existem para não dar erro
     if (!usuarioLogado.pontos) usuarioLogado.pontos = 0;
@@ -408,41 +411,128 @@ function salvarPerfil() {
     fecharModalMeuPerfil();
 }
 
-function carregarDadosPerfil() {
-    if(usuarioLogado.endereco) document.getElementById('perfilEndereco').value = usuarioLogado.endereco;
-    if(usuarioLogado.cidade) document.getElementById('perfilCidade').value = usuarioLogado.cidade;
-    if(usuarioLogado.telefone) document.getElementById('perfilTelefone').value = usuarioLogado.telefone;
-    if(usuarioLogado.idade) document.getElementById('perfilIdade').value = usuarioLogado.idade;
-    if(usuarioLogado.bio) document.getElementById('perfilBio').value = usuarioLogado.bio;
-    if(usuarioLogado.foto) {
-        document.getElementById('userAvatarDisplay').style.backgroundImage = `url(${usuarioLogado.foto})`;
-        document.getElementById('userAvatarDisplay').innerText = '';
-        const sidebarAvatar = document.getElementById('sidebarAvatar');
-        if (sidebarAvatar) {
-            sidebarAvatar.style.backgroundImage = `url(${usuarioLogado.foto})`;
+// ==========================================
+// GERENCIAMENTO DA FOTO DE PERFIL E COMPRESSÃO
+// ==========================================
+function aplicarFotoPerfilNaInterface(fotoUrl) {
+    const display = document.getElementById('userAvatarDisplay');
+    if (display) {
+        if (fotoUrl) {
+            display.style.backgroundImage = `url(${fotoUrl})`;
+            display.style.backgroundSize = 'cover';
+            display.style.backgroundPosition = 'center';
+            display.style.color = 'transparent';
+            display.innerText = '';
+        } else {
+            display.style.backgroundImage = 'none';
+            display.style.color = '#ffffff';
+            display.innerText = '👤';
+        }
+    }
+
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    if (sidebarAvatar) {
+        if (fotoUrl) {
+            sidebarAvatar.style.backgroundImage = `url(${fotoUrl})`;
             sidebarAvatar.style.backgroundSize = 'cover';
             sidebarAvatar.style.backgroundPosition = 'center';
+            sidebarAvatar.style.color = 'transparent';
             sidebarAvatar.innerText = '';
+        } else {
+            sidebarAvatar.style.backgroundImage = 'none';
+            sidebarAvatar.style.color = '#ffffff';
+            sidebarAvatar.innerText = '👤';
+        }
+    }
+
+    const modalAvatar = document.getElementById('meuPerfilAvatarModal');
+    if (modalAvatar) {
+        if (fotoUrl) {
+            modalAvatar.style.backgroundImage = `url(${fotoUrl})`;
+            modalAvatar.style.backgroundSize = 'cover';
+            modalAvatar.style.backgroundPosition = 'center';
+            modalAvatar.style.color = 'transparent';
+            modalAvatar.innerText = '';
+        } else {
+            modalAvatar.style.backgroundImage = 'none';
+            modalAvatar.style.color = '#ffffff';
+            modalAvatar.innerText = '👤';
         }
     }
 }
 
-document.getElementById('inputFoto').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
+// Compressão inteligente de imagens via Canvas no cliente (evita estouro de cota do LocalStorage no celular)
+function comprimirImagemBase64(file, maxDim = 800, qualidade = 0.85) {
+    return new Promise((resolve, reject) => {
+        if (!file) return resolve(null);
+        if (!file.type || !file.type.startsWith('image/')) {
+            const r = new FileReader();
+            r.onload = e => resolve(e.target.result);
+            r.onerror = reject;
+            r.readAsDataURL(file);
+            return;
+        }
+
         const reader = new FileReader();
-        reader.onload = function(event) {
-            usuarioLogado.foto = event.target.result; 
-            atualizarBanco(usuarioLogado); 
-            document.getElementById('userAvatarDisplay').style.backgroundImage = `url(${usuarioLogado.foto})`;
-            document.getElementById('userAvatarDisplay').innerText = '';
-            const sidebarAvatar = document.getElementById('sidebarAvatar');
-            if (sidebarAvatar) {
-                sidebarAvatar.style.backgroundImage = `url(${usuarioLogado.foto})`;
-                sidebarAvatar.style.backgroundSize = 'cover';
-                sidebarAvatar.style.backgroundPosition = 'center';
-                sidebarAvatar.innerText = '';
-            }
+        reader.onload = function(evt) {
+            const img = new Image();
+            img.onload = function() {
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                resolve(canvas.toDataURL(mime, qualidade));
+            };
+            img.onerror = () => resolve(evt.target.result);
+            img.src = evt.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function carregarDadosPerfil() {
+    if (!usuarioLogado) return;
+    const endEl = document.getElementById('perfilEndereco');
+    if (endEl && usuarioLogado.endereco) endEl.value = usuarioLogado.endereco;
+    const cidEl = document.getElementById('perfilCidade');
+    if (cidEl && usuarioLogado.cidade) cidEl.value = usuarioLogado.cidade;
+    const telEl = document.getElementById('perfilTelefone');
+    if (telEl && usuarioLogado.telefone) telEl.value = usuarioLogado.telefone;
+    const idEl = document.getElementById('perfilIdade');
+    if (idEl && usuarioLogado.idade) idEl.value = usuarioLogado.idade;
+    const bioEl = document.getElementById('perfilBio');
+    if (bioEl && usuarioLogado.bio) bioEl.value = usuarioLogado.bio;
+
+    aplicarFotoPerfilNaInterface(usuarioLogado.foto);
+}
+
+const inputFotoEl = document.getElementById('inputFoto');
+if (inputFotoEl) {
+    inputFotoEl.addEventListener('change', async function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        try {
+            mostrarToastCanto('Processando Imagem', 'Otimizando sua foto de perfil...', 'info', 2000);
+            // Comprime a foto para no máximo 320px (perfeita para avatar e ultraleve, ~35KB)
+            const base64Otimizada = await comprimirImagemBase64(file, 320, 0.85);
+            usuarioLogado.foto = base64Otimizada;
+            atualizarBanco(usuarioLogado);
+            aplicarFotoPerfilNaInterface(usuarioLogado.foto);
 
             // Se for Professor, atualiza a foto em todas as matérias que ele já publicou
             if (usuarioLogado.perfil === 'Professor') {
@@ -469,10 +559,12 @@ document.getElementById('inputFoto').addEventListener('change', function(e) {
 
             carregarRank(); 
             mostrarToastCanto('Foto Atualizada', 'Sua foto de perfil foi atualizada com sucesso!', 'success');
-        };
-        reader.readAsDataURL(file);
-    }
-});
+        } catch (err) {
+            console.error('Erro ao atualizar foto de perfil:', err);
+            mostrarToastCanto('Erro', 'Não foi possível carregar a imagem selecionada.', 'error');
+        }
+    });
+}
 
 function sairDaConta() { localStorage.removeItem('usuarioLogado'); window.location.href = 'login.html'; }
 
@@ -799,23 +891,46 @@ function renderizarConteudosNaTela(filtrados, materiaNome) {
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
         `;
 
-        if (item.link) {
-            htmlCard += `<a href="${escapeHtml(item.link)}" target="_blank" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">🔗 Acessar Link Externo</a>`;
-        }
+        // Links (suporta múltiplos links ou link único legado)
+        const listaLinks = (item.links && Array.isArray(item.links)) ? item.links : (item.link ? [item.link] : []);
+        listaLinks.forEach((lnk, i) => {
+            const url = typeof lnk === 'object' ? lnk.url : lnk;
+            const rotulo = (typeof lnk === 'object' && lnk.texto) ? lnk.texto : (listaLinks.length > 1 ? `🔗 Acessar Link #${i + 1}` : '🔗 Acessar Link Externo');
+            if (url && String(url).trim()) {
+                htmlCard += `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">${escapeHtml(rotulo)}</a>`;
+            }
+        });
 
-        if (item.arquivo) {
-            htmlCard += `<a href="${item.arquivo}" download="${escapeHtml(item.nomeArquivo || 'arquivo')}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">📎 Baixar ${escapeHtml(item.nomeArquivo || 'arquivo')}</a>`;
-        }
+        // Arquivos anexos (suporta múltiplos arquivos ou arquivo único legado)
+        const listaArquivos = (item.arquivos && Array.isArray(item.arquivos)) ? item.arquivos : (item.arquivo ? [{ arquivo: item.arquivo, nomeArquivo: item.nomeArquivo }] : []);
+        listaArquivos.forEach((arq, i) => {
+            if (arq && arq.arquivo) {
+                const nomeArq = arq.nomeArquivo || `arquivo_${i + 1}`;
+                const ehImagem = arq.arquivo.startsWith('data:image/') || String(nomeArq).match(/\.(png|jpe?g|webp|gif)$/i);
+                const icone = ehImagem ? '🖼️' : (String(nomeArq).endsWith('.pdf') ? '📄' : '📎');
+                htmlCard += `<a href="${arq.arquivo}" download="${escapeHtml(nomeArq)}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.12); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">${icone} Baixar ${escapeHtml(nomeArq)}</a>`;
+            }
+        });
         
         htmlCard += `</div>`; 
 
-        const videoId = extrairYoutubeId(item.video);
-        if (videoId) {
-            htmlCard += `
-                <div style="margin:20px auto 0 auto; width: 60%; position:relative; padding-bottom:33.75%; height:0; overflow:hidden; border-radius:10px; border: 1px solid var(--border-color);">
-                    <iframe src="https://www.youtube.com/embed/${escapeHtml(videoId)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                </div>
-            `;
+        // Vídeos do YouTube (suporta múltiplos vídeos ou vídeo único legado)
+        const listaVideos = (item.videos && Array.isArray(item.videos)) ? item.videos : (item.video ? [item.video] : []);
+        const videosValidos = listaVideos.map(v => extrairYoutubeId(v)).filter(Boolean);
+        
+        if (videosValidos.length > 0) {
+            const isSingle = videosValidos.length === 1;
+            htmlCard += `<div class="grid-videos-conteudo ${isSingle ? 'single-video' : ''}">`;
+            videosValidos.forEach((vId, vIdx) => {
+                const badgeLabel = videosValidos.length > 1 ? `<span class="video-badge-num">Vídeo ${vIdx + 1} de ${videosValidos.length}</span>` : '';
+                htmlCard += `
+                    <div class="video-wrapper-conteudo">
+                        ${badgeLabel}
+                        <iframe src="https://www.youtube.com/embed/${escapeHtml(vId)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+                    </div>
+                `;
+            });
+            htmlCard += `</div>`;
         }
 
         htmlCard += `</div>`; 
@@ -857,11 +972,29 @@ async function carregarMateria(materiaNome) {
 function toggleChatIA() { document.getElementById('chatIAModal').classList.toggle('hidden'); }
 
 // --- REDIMENSIONAMENTO DO CHAT DA IA DE ESTUDOS ---
+function toggleExpandirChatIA() {
+    const modal = document.getElementById('chatIAModal');
+    const btn = document.getElementById('btnExpandirChatIA');
+    if (!modal) return;
+    const expandido = modal.classList.toggle('chat-ia-expanded');
+    if (btn) {
+        btn.textContent = expandido ? '🗗' : '⛶';
+        btn.title = expandido ? 'Restaurar tamanho normal' : 'Aumentar / Expandir janela';
+    }
+    const messagesContainer = document.getElementById('chatMessagesIA');
+    if (messagesContainer) {
+        setTimeout(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 120);
+    }
+}
+window.toggleExpandirChatIA = toggleExpandirChatIA;
+
+// --- REDIMENSIONAMENTO DO CHAT DA IA DE ESTUDOS (DESKTOP E DISPOSITIVOS MÓVEIS) ---
 (function initChatIaResize() {
-    window.addEventListener('DOMContentLoaded', () => {
+    function setupResize() {
         const handle = document.getElementById('chatIaResizeHandle');
+        const dragBar = document.getElementById('chatMobileDragBar');
         const modal = document.getElementById('chatIAModal');
-        if (!handle || !modal) return;
+        if (!modal) return;
 
         let isResizing = false;
         let startX = 0;
@@ -869,38 +1002,81 @@ function toggleChatIA() { document.getElementById('chatIAModal').classList.toggl
         let startW = 0;
         let startH = 0;
 
-        handle.addEventListener('mousedown', (e) => {
+        function startDrag(clientX, clientY, e) {
             isResizing = true;
-            startX = e.clientX;
-            startY = e.clientY;
+            startX = clientX;
+            startY = clientY;
             startW = modal.offsetWidth;
             startH = modal.offsetHeight;
+            modal.classList.add('chat-ia-resizing');
             document.body.style.userSelect = 'none';
             document.body.style.cursor = 'nwse-resize';
-            e.preventDefault();
-        });
+            if (e && e.cancelable && e.type !== 'touchstart') e.preventDefault();
+        }
 
-        window.addEventListener('mousemove', (e) => {
+        function onMove(clientX, clientY) {
             if (!isResizing) return;
-            // Como o modal está fixado em bottom e right, arrastar para cima aumenta a altura e para a esquerda aumenta a largura
-            const deltaX = startX - e.clientX;
-            const deltaY = startY - e.clientY;
+            const deltaX = startX - clientX;
+            const deltaY = startY - clientY;
 
-            const newW = Math.max(300, Math.min(800, startW + deltaX));
-            const newH = Math.max(350, Math.min(window.innerHeight * 0.85, startH + deltaY));
+            const isMobile = window.innerWidth <= 768;
+            const newH = Math.max(280, Math.min(window.innerHeight * 0.92, startH + deltaY));
 
-            modal.style.width = `${newW}px`;
-            modal.style.height = `${newH}px`;
-        });
+            if (isMobile) {
+                modal.style.height = `${newH}px`;
+            } else {
+                const newW = Math.max(300, Math.min(850, startW + deltaX));
+                modal.style.width = `${newW}px`;
+                modal.style.height = `${newH}px`;
+            }
+        }
 
-        window.addEventListener('mouseup', () => {
+        function endDrag() {
             if (isResizing) {
                 isResizing = false;
+                modal.classList.remove('chat-ia-resizing');
                 document.body.style.userSelect = '';
                 document.body.style.cursor = '';
             }
-        });
-    });
+        }
+
+        // Eventos no mouse (Desktop)
+        if (handle) {
+            handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+            handle.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    startDrag(e.touches[0].clientX, e.touches[0].clientY, e);
+                }
+            }, { passive: true });
+        }
+
+        // Barra de arraste no celular (Mobile)
+        if (dragBar) {
+            dragBar.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    startDrag(e.touches[0].clientX, e.touches[0].clientY, e);
+                }
+            }, { passive: true });
+            dragBar.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+        }
+
+        window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+        window.addEventListener('touchmove', (e) => {
+            if (isResizing && e.touches.length === 1) {
+                onMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
+        window.addEventListener('touchcancel', endDrag);
+    }
+
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', setupResize);
+    } else {
+        setupResize();
+    }
 })();
 
 // ==========================================
@@ -2114,12 +2290,43 @@ function voltarParaListaProvas() {
 }
 window.voltarParaListaProvas = voltarParaListaProvas;
 
+// --- MODAL DE ZOOM / AMPLIAÇÃO DE IMAGENS ---
+function abrirModalZoomImagem(src, legenda = '') {
+    const modal = document.getElementById('modal-zoom-imagem');
+    const img = document.getElementById('imgZoomVisualizacao');
+    const leg = document.getElementById('legendaZoomImagem');
+    if (!modal || !img) return;
+    img.src = src;
+    if (leg) leg.textContent = legenda;
+    modal.classList.remove('hidden');
+}
+window.abrirModalZoomImagem = abrirModalZoomImagem;
+
+function fecharModalZoomImagem(e) {
+    const modal = document.getElementById('modal-zoom-imagem');
+    if (!modal) return;
+    if (!e || e.target === modal || (e.target && e.target.classList && e.target.classList.contains('modal-close'))) {
+        modal.classList.add('hidden');
+    }
+}
+window.fecharModalZoomImagem = fecharModalZoomImagem;
+
 function carregarQuestaoNoEcra() {
     let questao = dadosProvaSimulada[indiceQuestaoAtual];
     let pontosQuestao = (questao.pontos !== undefined && questao.pontos !== null) ? Number(questao.pontos) : 2;
     let badgePontosHtml = `<span style="display: inline-block; margin-left: 10px; background: rgba(255, 193, 7, 0.18); color: #ffb300; font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">⭐ Vale ${pontosQuestao} ${pontosQuestao === 1 ? 'pt' : 'pts'}</span>`;
 
-    document.getElementById('texto-questao').innerHTML = `<strong>${indiceQuestaoAtual + 1}.</strong> ${escapeHtml(questao.pergunta)} ${badgePontosHtml}`;
+    let imagemHtml = '';
+    if (questao.imagem) {
+        imagemHtml = `
+            <div class="questao-img-container">
+                <img src="${questao.imagem}" alt="Ilustração da Questão" class="questao-img-display" onclick="abrirModalZoomImagem(this.src, 'Ilustração da Questão #${indiceQuestaoAtual + 1}')" title="Clique ou toque para ampliar a imagem">
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 5px;">🔍 Toque ou clique na foto para ampliar</div>
+            </div>
+        `;
+    }
+
+    document.getElementById('texto-questao').innerHTML = `<strong>${indiceQuestaoAtual + 1}.</strong> ${escapeHtml(questao.pergunta)} ${badgePontosHtml}${imagemHtml}`;
     document.getElementById('progresso-simulado').textContent = `Questão ${indiceQuestaoAtual + 1} de ${dadosProvaSimulada.length}`;
     let opcoesContainer = document.getElementById('opcoes-questao');
     opcoesContainer.innerHTML = '';
@@ -2216,7 +2423,8 @@ function finalizarSimulado() {
     dadosProvaSimulada.forEach((q, i) => {
         let acertou = respostasUsuario[i] === q.correta;
         let ptQ = (q.pontos !== undefined && q.pontos !== null) ? Number(q.pontos) : 2;
-        htmlGabarito += `<div class="gabarito-item" style="border-left: 4px solid ${acertou ? '#4CAF50' : '#F44336'}; margin-bottom: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px;"><strong>Questão ${i + 1}</strong> (${ptQ} pts): ${acertou ? '✅ Acertou' : '❌ Errou'} <br><span style="font-size: 14px;">Sua resposta: ${escapeHtml(q.opcoes[respostasUsuario[i]])}</span><br><span style="font-size: 14px; color: var(--primary-color);">Gabarito Oficial: <strong>${escapeHtml(q.opcoes[q.correta])}</strong></span></div>`;
+        let imgThumb = q.imagem ? `<div style="margin-top: 8px;"><img src="${q.imagem}" alt="Ilustração da questão" style="max-height: 85px; max-width: 150px; border-radius: 6px; border: 1px solid var(--border-color); object-fit: contain; cursor: pointer;" onclick="abrirModalZoomImagem(this.src, 'Questão #${i + 1}')" title="Clique para ampliar"></div>` : '';
+        htmlGabarito += `<div class="gabarito-item" style="border-left: 4px solid ${acertou ? '#4CAF50' : '#F44336'}; margin-bottom: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px;"><strong>Questão ${i + 1}</strong> (${ptQ} pts): ${acertou ? '✅ Acertou' : '❌ Errou'} <br><span style="font-size: 14px;">Sua resposta: ${escapeHtml(q.opcoes[respostasUsuario[i]])}</span><br><span style="font-size: 14px; color: var(--primary-color);">Gabarito Oficial: <strong>${escapeHtml(q.opcoes[q.correta])}</strong></span>${imgThumb}</div>`;
     });
     document.getElementById('lista-gabarito').innerHTML = htmlGabarito;
     
@@ -2975,6 +3183,126 @@ function perguntarConfirmacao(titulo, mensagem, { textoOk = 'Confirmar', perigo 
     });
 }
 
+// ==========================================
+// MÚLTIPLOS CONTEÚDOS DE AULA (VÍDEOS, ARQUIVOS, LINKS)
+// ==========================================
+let profArquivosLista = []; // [{ nomeArquivo, arquivo, tamanho }]
+
+function adicionarLinhaVideo(valor = '') {
+    const container = document.getElementById('containerProfVideos');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'item-dinamico-linha';
+    div.innerHTML = `
+        <span style="font-size: 14px;">🎬</span>
+        <input type="text" class="prof-campo-video" placeholder="Link do YouTube ou ID (ex: https://youtu.be/...)" value="${escapeHtml(valor)}">
+        <button type="button" class="btn-del-linha-item" onclick="removerLinhaVideo(this)" title="Remover este vídeo">✕</button>
+    `;
+    container.appendChild(div);
+}
+window.adicionarLinhaVideo = adicionarLinhaVideo;
+
+function removerLinhaVideo(btn) {
+    const container = document.getElementById('containerProfVideos');
+    const linha = btn.closest('.item-dinamico-linha');
+    if (linha) linha.remove();
+    if (container && container.children.length === 0) {
+        adicionarLinhaVideo();
+    }
+}
+window.removerLinhaVideo = removerLinhaVideo;
+
+function adicionarLinhaLink(url = '', texto = '') {
+    const container = document.getElementById('containerProfLinks');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'item-dinamico-linha';
+    div.innerHTML = `
+        <span style="font-size: 14px;">🔗</span>
+        <input type="url" class="prof-campo-link-url" placeholder="https://..." value="${escapeHtml(url)}" style="flex: 2;">
+        <input type="text" class="prof-campo-link-texto" placeholder="Título opcional (ex: Artigo de Apoio)" value="${escapeHtml(texto)}" style="flex: 1.5; font-size: 12px; border-left: 1px solid var(--border-color); padding-left: 8px;">
+        <button type="button" class="btn-del-linha-item" onclick="removerLinhaLink(this)" title="Remover este link">✕</button>
+    `;
+    container.appendChild(div);
+}
+window.adicionarLinhaLink = adicionarLinhaLink;
+
+function removerLinhaLink(btn) {
+    const container = document.getElementById('containerProfLinks');
+    const linha = btn.closest('.item-dinamico-linha');
+    if (linha) linha.remove();
+    if (container && container.children.length === 0) {
+        adicionarLinhaLink();
+    }
+}
+window.removerLinhaLink = removerLinhaLink;
+
+async function lidarSelecaoMultiplosArquivos(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    mostrarToastCanto('Anexando arquivos...', `Processando ${files.length} arquivo(s)...`, 'info', 2000);
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+            let base64 = '';
+            if (file.type && file.type.startsWith('image/')) {
+                base64 = await comprimirImagemBase64(file, 1200, 0.85);
+            } else {
+                base64 = await new Promise((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = e => resolve(e.target.result);
+                    r.onerror = reject;
+                    r.readAsDataURL(file);
+                });
+            }
+            
+            profArquivosLista.push({
+                nomeArquivo: file.name,
+                arquivo: base64,
+                tamanho: (file.size / 1024).toFixed(1) + ' KB'
+            });
+        } catch (err) {
+            console.error('Erro ao ler arquivo:', err);
+        }
+    }
+
+    renderizarListaArquivosProf();
+    event.target.value = '';
+}
+window.lidarSelecaoMultiplosArquivos = lidarSelecaoMultiplosArquivos;
+
+function removerArquivoAnexo(idx) {
+    profArquivosLista.splice(idx, 1);
+    renderizarListaArquivosProf();
+}
+window.removerArquivoAnexo = removerArquivoAnexo;
+
+function renderizarListaArquivosProf() {
+    const container = document.getElementById('listaProfArquivos');
+    if (!container) return;
+    if (profArquivosLista.length === 0) {
+        container.innerHTML = '<span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Nenhum arquivo anexado no momento.</span>';
+        return;
+    }
+
+    container.innerHTML = profArquivosLista.map((arq, idx) => {
+        const ehImg = arq.arquivo.startsWith('data:image/') || String(arq.nomeArquivo).match(/\.(png|jpe?g|webp|gif)$/i);
+        const icon = ehImg ? '🖼️' : (String(arq.nomeArquivo).endsWith('.pdf') ? '📄' : '📎');
+        return `
+            <div class="badge-arquivo-anexo">
+                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span>${icon}</span>
+                    <strong style="font-size: 12px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(arq.nomeArquivo)}</strong>
+                    ${arq.tamanho ? `<span style="font-size: 11px; color: var(--text-muted); opacity: 0.8;">(${arq.tamanho})</span>` : ''}
+                </div>
+                <button type="button" class="btn-del-linha-item" onclick="removerArquivoAnexo(${idx})" title="Remover anexo">✕</button>
+            </div>
+        `;
+    }).join('');
+}
+
 function abrirModalPublicarConteudo() {
     const modal = document.getElementById('modal-publicar-conteudo');
     if (modal) {
@@ -2983,6 +3311,17 @@ function abrirModalPublicarConteudo() {
             const materiaBtn = document.querySelector('.materia-btn.active');
             const selectMateria = document.getElementById('profMateria');
             if (selectMateria && materiaBtn) selectMateria.value = materiaBtn.innerText;
+            
+            // Inicializa listas vazias se for novo cadastro
+            const containerVids = document.getElementById('containerProfVideos');
+            if (containerVids && containerVids.children.length === 0) {
+                adicionarLinhaVideo();
+            }
+            const containerLnks = document.getElementById('containerProfLinks');
+            if (containerLnks && containerLnks.children.length === 0) {
+                adicionarLinhaLink();
+            }
+            renderizarListaArquivosProf();
         }
     }
 }
@@ -3005,6 +3344,20 @@ function cancelarEdicaoConteudo() {
     const idCampo = document.getElementById('profEditandoId');
     if (form) form.reset();
     if (idCampo) idCampo.value = '';
+    
+    profArquivosLista = [];
+    const containerVids = document.getElementById('containerProfVideos');
+    if (containerVids) {
+        containerVids.innerHTML = '';
+        adicionarLinhaVideo();
+    }
+    const containerLnks = document.getElementById('containerProfLinks');
+    if (containerLnks) {
+        containerLnks.innerHTML = '';
+        adicionarLinhaLink();
+    }
+    renderizarListaArquivosProf();
+
     atualizarTituloPainelProfessor(false);
     const materiaBtn = document.querySelector('.materia-btn.active');
     const selectMateria = document.getElementById('profMateria');
@@ -3019,11 +3372,48 @@ function iniciarEdicaoConteudo(id) {
     document.getElementById('profMateria').value = item.materia || 'Geral';
     document.getElementById('profTitulo').value = item.titulo || '';
     document.getElementById('profTexto').value = item.texto || '';
-    document.getElementById('profLink').value = item.link || '';
-    document.getElementById('profVideo').value = item.video || '';
-    document.getElementById('profArquivo').value = '';
-    atualizarTituloPainelProfessor(true);
 
+    // Carrega vídeos
+    const containerVids = document.getElementById('containerProfVideos');
+    if (containerVids) {
+        containerVids.innerHTML = '';
+        const vids = (item.videos && Array.isArray(item.videos)) ? item.videos : (item.video ? [item.video] : []);
+        if (vids.length > 0) {
+            vids.forEach(v => adicionarLinhaVideo(v));
+        } else {
+            adicionarLinhaVideo();
+        }
+    }
+
+    // Carrega links
+    const containerLnks = document.getElementById('containerProfLinks');
+    if (containerLnks) {
+        containerLnks.innerHTML = '';
+        const lnks = (item.links && Array.isArray(item.links)) ? item.links : (item.link ? [item.link] : []);
+        if (lnks.length > 0) {
+            lnks.forEach(l => {
+                if (typeof l === 'object') adicionarLinhaLink(l.url || '', l.texto || '');
+                else adicionarLinhaLink(l);
+            });
+        } else {
+            adicionarLinhaLink();
+        }
+    }
+
+    // Carrega arquivos
+    profArquivosLista = [];
+    if (item.arquivos && Array.isArray(item.arquivos)) {
+        profArquivosLista = [...item.arquivos];
+    } else if (item.arquivo) {
+        profArquivosLista = [{
+            nomeArquivo: item.nomeArquivo || 'Arquivo Anexo',
+            arquivo: item.arquivo,
+            tamanho: ''
+        }];
+    }
+    renderizarListaArquivosProf();
+
+    atualizarTituloPainelProfessor(true);
     abrirModalPublicarConteudo();
 }
 
@@ -3108,7 +3498,6 @@ async function salvarConteudo(e) {
     const idEditando = document.getElementById('profEditandoId').value;
     const materiaAtiva = document.getElementById('profMateria').value
         || (document.querySelector('.materia-btn.active') ? document.querySelector('.materia-btn.active').innerText : 'Geral');
-    const arquivoInput = document.getElementById('profArquivo');
 
     if (idEditando) {
         const confirmado = await perguntarConfirmacao(
@@ -3119,63 +3508,93 @@ async function salvarConteudo(e) {
         if (!confirmado) return;
     }
 
-    const aplicarSalvamento = (arquivoBase64, nomeArquivo) => {
-        const conteudos = obterConteudosLocais();
-        const agora = new Date().toLocaleString();
+    // Coleta todos os vídeos adicionados
+    const videos = [];
+    document.querySelectorAll('#containerProfVideos .prof-campo-video').forEach(input => {
+        const val = input.value.trim();
+        if (val) videos.push(val);
+    });
 
-        if (idEditando) {
-            const idx = conteudos.findIndex(c => String(c.id) === String(idEditando));
-            if (idx === -1) return;
-            const atual = conteudos[idx];
-            atual.materia = materiaAtiva;
-            atual.titulo = document.getElementById('profTitulo').value;
-            atual.texto = document.getElementById('profTexto').value;
-            atual.link = document.getElementById('profLink').value;
-            atual.video = document.getElementById('profVideo').value;
-            atual.dataHora = agora;
-            atual.editado = true;
-            if (arquivoBase64) {
-                atual.arquivo = arquivoBase64;
-                atual.nomeArquivo = nomeArquivo;
-            }
-            conteudos[idx] = atual;
-            salvarConteudosLocais(conteudos);
-            persistirConteudoServidor(atual);
-            mostrarToastCanto('Conteúdo atualizado', `Alterações salvas em ${materiaAtiva}.`, 'success');
-        } else {
-            const novoConteudo = {
-                id: Date.now(),
-                ordem: Date.now(),
-                materia: materiaAtiva,
-                titulo: document.getElementById('profTitulo').value,
-                texto: document.getElementById('profTexto').value,
-                link: document.getElementById('profLink').value,
-                video: document.getElementById('profVideo').value,
-                arquivo: arquivoBase64,
-                nomeArquivo: nomeArquivo,
-                dataHora: agora,
-                editado: false,
-                profNome: usuarioLogado.nome,
-                profFoto: usuarioLogado.foto || null,
-                profRM: usuarioLogado.rm || null
-            };
-            conteudos.push(novoConteudo);
-            salvarConteudosLocais(conteudos);
-            persistirConteudoServidor(novoConteudo);
-            mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
+    // Coleta todos os links adicionados
+    const links = [];
+    document.querySelectorAll('#containerProfLinks .item-dinamico-linha').forEach(row => {
+        const urlInput = row.querySelector('.prof-campo-link-url');
+        const txtInput = row.querySelector('.prof-campo-link-texto');
+        const url = urlInput ? urlInput.value.trim() : '';
+        const texto = txtInput ? txtInput.value.trim() : '';
+        if (url) {
+            links.push(texto ? { url, texto } : url);
+        }
+    });
+
+    // Lista de arquivos anexados (múltiplos)
+    const arquivos = [...profArquivosLista];
+
+    const conteudos = obterConteudosLocais();
+    const agora = new Date().toLocaleString();
+
+    if (idEditando) {
+        const idx = conteudos.findIndex(c => String(c.id) === String(idEditando));
+        if (idx === -1) return;
+        const atual = conteudos[idx];
+        atual.materia = materiaAtiva;
+        atual.titulo = document.getElementById('profTitulo').value.trim();
+        atual.texto = document.getElementById('profTexto').value.trim();
+        
+        // Múltiplos conteúdos
+        atual.videos = videos;
+        atual.arquivos = arquivos;
+        atual.links = links;
+
+        // Retrocompatibilidade com campos legados
+        atual.video = videos[0] || '';
+        atual.link = links[0] ? (typeof links[0] === 'object' ? links[0].url : links[0]) : '';
+        if (arquivos.length > 0) {
+            atual.arquivo = arquivos[0].arquivo;
+            atual.nomeArquivo = arquivos[0].nomeArquivo;
         }
 
-        cancelarEdicaoConteudo();
-        carregarMateria(materiaAtiva);
-    };
-
-    if (arquivoInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = function(evt) { aplicarSalvamento(evt.target.result, arquivoInput.files[0].name); };
-        reader.readAsDataURL(arquivoInput.files[0]);
+        atual.dataHora = agora;
+        atual.editado = true;
+        conteudos[idx] = atual;
+        salvarConteudosLocais(conteudos);
+        persistirConteudoServidor(atual);
+        mostrarToastCanto('Conteúdo atualizado', `Alterações salvas em ${materiaAtiva}.`, 'success');
     } else {
-        aplicarSalvamento(null, null);
+        const novoConteudo = {
+            id: Date.now(),
+            ordem: Date.now(),
+            materia: materiaAtiva,
+            titulo: document.getElementById('profTitulo').value.trim(),
+            texto: document.getElementById('profTexto').value.trim(),
+            
+            // Múltiplos conteúdos
+            videos: videos,
+            arquivos: arquivos,
+            links: links,
+
+            // Retrocompatibilidade
+            video: videos[0] || '',
+            link: links[0] ? (typeof links[0] === 'object' ? links[0].url : links[0]) : '';
+            arquivo: arquivos[0] ? arquivos[0].arquivo : null,
+            nomeArquivo: arquivos[0] ? arquivos[0].nomeArquivo : null,
+
+            dataHora: agora,
+            editado: false,
+            profNome: usuarioLogado.nome,
+            profFoto: usuarioLogado.foto || null,
+            profRM: usuarioLogado.rm || null
+        };
+        conteudos.push(novoConteudo);
+        salvarConteudosLocais(conteudos);
+        persistirConteudoServidor(novoConteudo);
+        mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
     }
+
+    cancelarEdicaoConteudo();
+    const modal = document.getElementById('modal-publicar-conteudo');
+    if (modal) modal.classList.add('hidden');
+    carregarMateria(materiaAtiva);
 }
 
 // ==========================================
@@ -3231,6 +3650,7 @@ function adicionarBlocoQuestao(dados = null) {
     const pontos = dados && dados.pontos !== undefined ? dados.pontos : 2;
     const opcoes = (dados && Array.isArray(dados.opcoes)) ? dados.opcoes : ['', '', '', ''];
     const correta = dados && dados.correta !== undefined ? dados.correta : 0;
+    const imagem = (dados && dados.imagem) ? dados.imagem : '';
 
     bloco.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
@@ -3244,6 +3664,31 @@ function adicionarBlocoQuestao(dados = null) {
             </div>
         </div>
         <textarea class="prof-field prof-q-pergunta" rows="2" placeholder="Enunciado da questão..." required style="width:100%; font-size: 13px;">${pergunta}</textarea>
+        
+        <!-- Seção de Foto/Ilustração da Questão -->
+        <div class="questao-imagem-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                    🖼️ Foto / Ilustração da Questão (Opcional)
+                </label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <label class="btn" style="padding: 4px 10px; font-size: 11.5px; background: rgba(0, 123, 255, 0.15); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 6px; cursor: pointer; font-weight: 600; margin: 0; display: inline-flex; align-items: center; gap: 4px;">
+                        📷 Inserir Foto
+                        <input type="file" class="prof-q-img-file" accept="image/*" onchange="lidarUploadImagemQuestao(event, this)" style="display: none;">
+                    </label>
+                    <button type="button" class="btn-del-q-img" onclick="removerImagemQuestao(this)" style="display: ${imagem ? 'inline-flex' : 'none'}; background: rgba(244, 67, 54, 0.12); border: 1px solid #f44336; color: #f44336; border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;">✕ Remover Foto</button>
+                </div>
+            </div>
+            <input type="hidden" class="prof-q-img-data" value="${imagem}">
+            <div class="prof-q-img-preview-container" style="display: ${imagem ? 'flex' : 'none'};">
+                <img src="${imagem}" class="prof-q-img-preview" alt="Prévia da imagem da questão" onclick="abrirModalZoomImagem(this.src, 'Prévia da Ilustração da Questão')" title="Toque para ampliar">
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                    <span style="color: #4CAF50; font-weight: 700;">✓ Foto vinculada à questão</span><br>
+                    Esta ilustração aparecerá na resolução e no gabarito do simulado.
+                </div>
+            </div>
+        </div>
+
         <input type="text" class="prof-field prof-q-tema" placeholder="Tema Específico (ex: Matemática: Geometria Espacial)" value="${tema}" required style="width:100%; font-size: 12.5px;">
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -3268,6 +3713,52 @@ function adicionarBlocoQuestao(dados = null) {
 
     container.appendChild(bloco);
     atualizarContadorQuestoes();
+}
+
+async function lidarUploadImagemQuestao(event, inputEl) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const bloco = inputEl.closest('.bloco-questao-editor');
+    if (!bloco) return;
+
+    try {
+        mostrarToastCanto('Processando Imagem', 'Comprimindo e otimizando imagem da questão...', 'info', 2000);
+        // Otimiza para no máximo 1000px mantendo excelente qualidade visual e baixo uso de memória
+        const base64Otimizada = await comprimirImagemBase64(file, 1000, 0.82);
+        
+        const inputData = bloco.querySelector('.prof-q-img-data');
+        const previewContainer = bloco.querySelector('.prof-q-img-preview-container');
+        const previewImg = bloco.querySelector('.prof-q-img-preview');
+        const btnDel = bloco.querySelector('.btn-del-q-img');
+
+        if (inputData) inputData.value = base64Otimizada;
+        if (previewImg) previewImg.src = base64Otimizada;
+        if (previewContainer) previewContainer.style.display = 'flex';
+        if (btnDel) btnDel.style.display = 'inline-flex';
+
+        mostrarToastCanto('Imagem Carregada', 'A ilustração foi vinculada a esta questão com sucesso!', 'success');
+    } catch (err) {
+        console.error('[StudySP] Erro ao carregar foto da questão:', err);
+        mostrarToastCanto('Erro na Imagem', 'Não foi possível carregar a imagem selecionada: ' + err.message, 'error');
+    }
+}
+
+function removerImagemQuestao(btn) {
+    const bloco = btn.closest('.bloco-questao-editor');
+    if (!bloco) return;
+
+    const inputData = bloco.querySelector('.prof-q-img-data');
+    const previewContainer = bloco.querySelector('.prof-q-img-preview-container');
+    const previewImg = bloco.querySelector('.prof-q-img-preview');
+    const inputFile = bloco.querySelector('.prof-q-img-file');
+
+    if (inputData) inputData.value = '';
+    if (previewImg) previewImg.src = '';
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (inputFile) inputFile.value = '';
+    btn.style.display = 'none';
+    mostrarToastCanto('Foto Removida', 'A ilustração da questão foi removida.', 'info');
 }
 
 function removerBlocoQuestao(btn) {
@@ -3420,6 +3911,7 @@ function salvarSimuladoCompleto(e) {
         const alt2 = b.querySelector('.prof-q-alt2').value.trim();
         const alt3 = b.querySelector('.prof-q-alt3').value.trim();
         const correta = parseInt(b.querySelector('.prof-q-correta').value);
+        const imagem = b.querySelector('.prof-q-img-data')?.value || null;
 
         if (!pergunta || !tema || !alt0 || !alt1 || !alt2 || !alt3) {
             mostrarToastCanto('Campos Incompletos', `Preencha todas as alternativas da Questão #${i + 1}.`, 'warning');
@@ -3433,7 +3925,8 @@ function salvarSimuladoCompleto(e) {
             tema,
             pontos,
             opcoes: [alt0, alt1, alt2, alt3],
-            correta
+            correta,
+            imagem
         });
     }
 
@@ -3512,6 +4005,8 @@ function renderizarSimuladosProfessoresNaTela() {
         const serieTexto = sim.serie ? sim.serie.toUpperCase() : 'GERAL';
         const dataPublicacao = sim.dataHora || 'Recentemente';
         const idSeguro = String(sim.id);
+        const temImagens = (sim.questoes && Array.isArray(sim.questoes)) ? sim.questoes.some(q => !!q.imagem) : false;
+        const badgeImg = temImagens ? `<span class="badge-contem-imagem" title="Este simulado contém questões com fotos e ilustrações">📷 Ilustrado</span>` : '';
 
         let acoesProf = '';
         if (isProfessor) {
@@ -3534,6 +4029,7 @@ function renderizarSimuladosProfessoresNaTela() {
                 <div class="prova-prof-meta">
                     <span class="prova-prof-badge-pontos">⭐ ${totalPontos} Pontos Totais</span>
                     <span>📝 ${qtdQuestoes} ${qtdQuestoes === 1 ? 'questão' : 'questões'}</span>
+                    ${badgeImg}
                 </div>
 
                 <p class="prova-card-desc" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
@@ -3792,9 +4288,16 @@ async function sincronizarComServidor() {
         if (window.API && typeof window.API.buscarUsuario === 'function') {
             const remoto = await window.API.buscarUsuario(usuarioLogado.rm);
             if (remoto && remoto.rm) {
+                // Preserva a foto se o usuário já tiver localmente e o servidor retornar nulo/vazio
+                if (!remoto.foto && usuarioLogado.foto) {
+                    remoto.foto = usuarioLogado.foto;
+                }
                 // Atualiza dados locais com a versão mais recente do banco de dados
                 Object.assign(usuarioLogado, remoto);
                 localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+                if (usuarioLogado.foto) {
+                    aplicarFotoPerfilNaInterface(usuarioLogado.foto);
+                }
                 carregarDadosPerfil();
                 carregarRank();
                 if (typeof atualizarDesempenho === 'function') atualizarDesempenho();

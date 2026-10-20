@@ -222,8 +222,16 @@
             <button class="btn-floating-chat" id="btnChatIA" onclick="toggleChatIA()">💬</button>
             <div class="chat-ia-modal hidden" id="chatIAModal">
                 <div class="chat-resize-handle" id="chatIaResizeHandle" title="Clique e arraste para redimensionar o chat">⤡</div>
+                <div class="chat-mobile-drag-bar" id="chatMobileDragBar" title="Arraste para aumentar ou diminuir no celular"></div>
                 <div class="chat-header">
-                    <h4>Assistente de Estudos</h4><button onclick="toggleChatIA()">X</button>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 17px;">🤖</span>
+                        <h4 style="margin: 0; font-size: 14.5px; font-weight: 700;">Assistente de Estudos</h4>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" id="btnExpandirChatIA" class="btn-chat-header-action" onclick="toggleExpandirChatIA()" title="Aumentar / Expandir janela">⛶</button>
+                        <button type="button" class="btn-chat-header-action" onclick="toggleChatIA()" title="Fechar">✕</button>
+                    </div>
                 </div>
                 <div class="chat-messages" id="chatMessagesIA">
                     <div class="msg ia">Olá! Estou aqui para tirar dúvidas teóricas.</div>
@@ -904,20 +912,47 @@
                     <textarea id="profTexto" class="prof-field" rows="4" placeholder="Escreva o resumo, dicas essenciais e orientações de estudo..." required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); resize: vertical;"></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Link Externo (Opcional)</label>
-                        <input type="url" id="profLink" class="prof-field" placeholder="https://..." style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 12.5px;">
+                <!-- Seção de Múltiplos Vídeos -->
+                <div class="campo-agrupado-prof" style="background: rgba(0, 123, 255, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                            <span>🎬 Vídeos do YouTube</span>
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Permite adicionar 2 ou mais vídeos)</span>
+                        </label>
+                        <button type="button" class="btn-prof-add-item" onclick="adicionarLinhaVideo()" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; background: rgba(0, 123, 255, 0.15); border: 1px solid var(--primary-color); color: var(--primary-color); cursor: pointer; font-weight: 600;">+ Adicionar Vídeo</button>
                     </div>
-                    <div>
-                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Vídeo YouTube (Link ou ID)</label>
-                        <input type="text" id="profVideo" class="prof-field" placeholder="URL ou ID do vídeo" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 12.5px;">
+                    <div id="containerProfVideos" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Inserido dinamicamente via JS -->
                     </div>
                 </div>
 
-                <div>
-                    <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block;">Anexar Arquivo (PDF ou Imagem):</label>
-                    <input type="file" id="profArquivo" class="prof-field" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 12px;">
+                <!-- Seção de Múltiplos Arquivos Anexos -->
+                <div class="campo-agrupado-prof" style="background: rgba(76, 175, 80, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                            <span>📎 Arquivos de Apoio (PDFs, Imagens, Documentos)</span>
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Permite anexar vários arquivos)</span>
+                        </label>
+                        <button type="button" class="btn-prof-add-item" onclick="document.getElementById('profArquivoInputMultiplo').click()" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; cursor: pointer; font-weight: 600;">+ Anexar Arquivo</button>
+                    </div>
+                    <input type="file" id="profArquivoInputMultiplo" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style="display: none;" onchange="lidarSelecaoMultiplosArquivos(event)">
+                    <div id="listaProfArquivos" style="display: flex; flex-direction: column; gap: 6px;">
+                        <!-- Lista de arquivos anexados -->
+                    </div>
+                </div>
+
+                <!-- Seção de Múltiplos Links Externos -->
+                <div class="campo-agrupado-prof" style="background: rgba(255, 152, 0, 0.04); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                            <span>🔗 Links Externos Complementares</span>
+                            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Opcional)</span>
+                        </label>
+                        <button type="button" class="btn-prof-add-item" onclick="adicionarLinhaLink()" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px; background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; color: #ff9800; cursor: pointer; font-weight: 600;">+ Adicionar Link</button>
+                    </div>
+                    <div id="containerProfLinks" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Inserido dinamicamente via JS -->
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -1003,6 +1038,15 @@
                 </div>
                 <button type="button" class="btn btn-save" style="margin-top: 10px; padding: 12px;" onclick="salvarConfigTcc()">Salvar e Atualizar IA</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Zoom / Pré-visualização de Imagens Ampliadas -->
+    <div id="modal-zoom-imagem" class="modal-overlay hidden" onclick="fecharModalZoomImagem(event)">
+        <div class="modal-content modal-zoom-content" style="max-width: 90vw; max-height: 90vh; padding: 16px; background: rgba(13, 23, 38, 0.96); border: 1.5px solid var(--primary-color); border-radius: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <button class="modal-close" onclick="fecharModalZoomImagem()" style="top: 10px; right: 10px; z-index: 100;">&times;</button>
+            <img id="imgZoomVisualizacao" src="" alt="Imagem Ampliada" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--border-color);">
+            <p id="legendaZoomImagem" style="margin: 12px 0 0; font-size: 13.5px; color: var(--text-main); font-weight: 600;"></p>
         </div>
     </div>
 

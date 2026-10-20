@@ -6,12 +6,12 @@ const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
 if (!usuarioLogado) {
     window.location.href = 'login.html';
 } else {
-    // 1. Libera os painéis secretos se for Professor
+    // 1. Libera os botões de criação se for Professor
     if (usuarioLogado.perfil === 'Professor') {
-        const pConteudo = document.getElementById('painelProfessorConteudo');
-        const pSimulado = document.getElementById('painelProfessorSimulado');
-        if(pConteudo) pConteudo.style.display = 'block';
-        if(pSimulado) pSimulado.style.display = 'block';
+        const btnConteudo = document.getElementById('btnAbrirModalConteudo');
+        const btnSimulado = document.getElementById('btnAbrirModalSimulado');
+        if(btnConteudo) { btnConteudo.style.display = 'inline-flex'; }
+        if(btnSimulado) { btnSimulado.style.display = 'inline-flex'; }
     }
 
     // 2. Coloca o nome e email na tela (Isso que estava faltando!)
@@ -27,6 +27,9 @@ if (!usuarioLogado) {
     if(document.getElementById('sidebarUserRole')) {
         document.getElementById('sidebarUserRole').textContent = (usuarioLogado.perfil === 'Professor') ? 'Professor' : 'Estudante';
     }
+
+    // Aplica a foto de perfil imediatamente na inicialização (sem atraso no celular ou computador)
+    aplicarFotoPerfilNaInterface(usuarioLogado.foto);
     
     // 3. Garante que as variáveis existem para não dar erro
     if (!usuarioLogado.pontos) usuarioLogado.pontos = 0;
@@ -76,9 +79,9 @@ if (!usuarioLogado) {
     }
     // ------------------------------------------
     
-    // 4. Atualiza os textos de pontos na tela
+    // 4. Atualiza os textos de pontos na tela (com 1 casa decimal sem arredondamento desnecessário)
     if(document.getElementById('pontosDisplay')) {
-        document.getElementById('pontosDisplay').textContent = `${Math.floor(usuarioLogado.pontos)} pts`;
+        document.getElementById('pontosDisplay').textContent = `${Number(usuarioLogado.pontos || 0).toFixed(1)} pts`;
     }
     if(document.getElementById('userStreak')) {
         document.getElementById('userStreak').textContent = `${usuarioLogado.sequencia} Dias de Ofensiva`;
@@ -408,41 +411,128 @@ function salvarPerfil() {
     fecharModalMeuPerfil();
 }
 
-function carregarDadosPerfil() {
-    if(usuarioLogado.endereco) document.getElementById('perfilEndereco').value = usuarioLogado.endereco;
-    if(usuarioLogado.cidade) document.getElementById('perfilCidade').value = usuarioLogado.cidade;
-    if(usuarioLogado.telefone) document.getElementById('perfilTelefone').value = usuarioLogado.telefone;
-    if(usuarioLogado.idade) document.getElementById('perfilIdade').value = usuarioLogado.idade;
-    if(usuarioLogado.bio) document.getElementById('perfilBio').value = usuarioLogado.bio;
-    if(usuarioLogado.foto) {
-        document.getElementById('userAvatarDisplay').style.backgroundImage = `url(${usuarioLogado.foto})`;
-        document.getElementById('userAvatarDisplay').innerText = '';
-        const sidebarAvatar = document.getElementById('sidebarAvatar');
-        if (sidebarAvatar) {
-            sidebarAvatar.style.backgroundImage = `url(${usuarioLogado.foto})`;
+// ==========================================
+// GERENCIAMENTO DA FOTO DE PERFIL E COMPRESSÃO
+// ==========================================
+function aplicarFotoPerfilNaInterface(fotoUrl) {
+    const display = document.getElementById('userAvatarDisplay');
+    if (display) {
+        if (fotoUrl) {
+            display.style.backgroundImage = `url(${fotoUrl})`;
+            display.style.backgroundSize = 'cover';
+            display.style.backgroundPosition = 'center';
+            display.style.color = 'transparent';
+            display.innerText = '';
+        } else {
+            display.style.backgroundImage = 'none';
+            display.style.color = '#ffffff';
+            display.innerText = '👤';
+        }
+    }
+
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    if (sidebarAvatar) {
+        if (fotoUrl) {
+            sidebarAvatar.style.backgroundImage = `url(${fotoUrl})`;
             sidebarAvatar.style.backgroundSize = 'cover';
             sidebarAvatar.style.backgroundPosition = 'center';
+            sidebarAvatar.style.color = 'transparent';
             sidebarAvatar.innerText = '';
+        } else {
+            sidebarAvatar.style.backgroundImage = 'none';
+            sidebarAvatar.style.color = '#ffffff';
+            sidebarAvatar.innerText = '👤';
+        }
+    }
+
+    const modalAvatar = document.getElementById('meuPerfilAvatarModal');
+    if (modalAvatar) {
+        if (fotoUrl) {
+            modalAvatar.style.backgroundImage = `url(${fotoUrl})`;
+            modalAvatar.style.backgroundSize = 'cover';
+            modalAvatar.style.backgroundPosition = 'center';
+            modalAvatar.style.color = 'transparent';
+            modalAvatar.innerText = '';
+        } else {
+            modalAvatar.style.backgroundImage = 'none';
+            modalAvatar.style.color = '#ffffff';
+            modalAvatar.innerText = '👤';
         }
     }
 }
 
-document.getElementById('inputFoto').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
+// Compressão inteligente de imagens via Canvas no cliente (evita estouro de cota do LocalStorage no celular)
+function comprimirImagemBase64(file, maxDim = 800, qualidade = 0.85) {
+    return new Promise((resolve, reject) => {
+        if (!file) return resolve(null);
+        if (!file.type || !file.type.startsWith('image/')) {
+            const r = new FileReader();
+            r.onload = e => resolve(e.target.result);
+            r.onerror = reject;
+            r.readAsDataURL(file);
+            return;
+        }
+
         const reader = new FileReader();
-        reader.onload = function(event) {
-            usuarioLogado.foto = event.target.result; 
-            atualizarBanco(usuarioLogado); 
-            document.getElementById('userAvatarDisplay').style.backgroundImage = `url(${usuarioLogado.foto})`;
-            document.getElementById('userAvatarDisplay').innerText = '';
-            const sidebarAvatar = document.getElementById('sidebarAvatar');
-            if (sidebarAvatar) {
-                sidebarAvatar.style.backgroundImage = `url(${usuarioLogado.foto})`;
-                sidebarAvatar.style.backgroundSize = 'cover';
-                sidebarAvatar.style.backgroundPosition = 'center';
-                sidebarAvatar.innerText = '';
-            }
+        reader.onload = function(evt) {
+            const img = new Image();
+            img.onload = function() {
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                resolve(canvas.toDataURL(mime, qualidade));
+            };
+            img.onerror = () => resolve(evt.target.result);
+            img.src = evt.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function carregarDadosPerfil() {
+    if (!usuarioLogado) return;
+    const endEl = document.getElementById('perfilEndereco');
+    if (endEl && usuarioLogado.endereco) endEl.value = usuarioLogado.endereco;
+    const cidEl = document.getElementById('perfilCidade');
+    if (cidEl && usuarioLogado.cidade) cidEl.value = usuarioLogado.cidade;
+    const telEl = document.getElementById('perfilTelefone');
+    if (telEl && usuarioLogado.telefone) telEl.value = usuarioLogado.telefone;
+    const idEl = document.getElementById('perfilIdade');
+    if (idEl && usuarioLogado.idade) idEl.value = usuarioLogado.idade;
+    const bioEl = document.getElementById('perfilBio');
+    if (bioEl && usuarioLogado.bio) bioEl.value = usuarioLogado.bio;
+
+    aplicarFotoPerfilNaInterface(usuarioLogado.foto);
+}
+
+const inputFotoEl = document.getElementById('inputFoto');
+if (inputFotoEl) {
+    inputFotoEl.addEventListener('change', async function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        try {
+            mostrarToastCanto('Processando Imagem', 'Otimizando sua foto de perfil...', 'info', 2000);
+            // Comprime a foto para no máximo 320px (perfeita para avatar e ultraleve, ~35KB)
+            const base64Otimizada = await comprimirImagemBase64(file, 320, 0.85);
+            usuarioLogado.foto = base64Otimizada;
+            atualizarBanco(usuarioLogado);
+            aplicarFotoPerfilNaInterface(usuarioLogado.foto);
 
             // Se for Professor, atualiza a foto em todas as matérias que ele já publicou
             if (usuarioLogado.perfil === 'Professor') {
@@ -469,10 +559,12 @@ document.getElementById('inputFoto').addEventListener('change', function(e) {
 
             carregarRank(); 
             mostrarToastCanto('Foto Atualizada', 'Sua foto de perfil foi atualizada com sucesso!', 'success');
-        };
-        reader.readAsDataURL(file);
-    }
-});
+        } catch (err) {
+            console.error('Erro ao atualizar foto de perfil:', err);
+            mostrarToastCanto('Erro', 'Não foi possível carregar a imagem selecionada.', 'error');
+        }
+    });
+}
 
 function sairDaConta() { localStorage.removeItem('usuarioLogado'); window.location.href = 'login.html'; }
 
@@ -507,7 +599,7 @@ function renderizarRankComAlunos(alunos) {
                         <div class="podio-avatar" style="${avatarStyle}">👤</div>
                         <div class="podio-posicao">${pos.rank}º</div>
                         <div class="podio-nome">${pos.aluno.nome.split(' ')[0]}</div>
-                        <div class="podio-pontos">${Math.floor(pos.aluno.pontos)} pts</div>
+                        <div class="podio-pontos">${Number(pos.aluno.pontos || 0).toFixed(1)} pts</div>
                         <button class="btn-ver-perfil" onclick="mostrarPerfilRank('${pos.aluno.rm}')">Ver Perfil</button>
                     </div>
                 `;
@@ -532,13 +624,14 @@ function renderizarRankComAlunos(alunos) {
             let isVoce = aluno.rm === usuarioLogado.rm ? " (Você)" : "";
             let bgStyle = isVoce ? 'background-color: rgba(0, 123, 255, 0.1); border-radius: 5px;' : '';
             let avatarStyle = aluno.foto ? `background-image: url(${aluno.foto}); color: transparent; background-size: cover; background-position: center;` : ``;
+            let pontosFormatados = Number(aluno.pontos || 0).toFixed(1);
             htmlRank += `
                 <div class="rank-item" style="${bgStyle}">
                     <span class="posicao">#${index + 1}</span>
                     <div class="avatar-circle" style="width:30px; height:30px; font-size:14px; ${avatarStyle}">👤</div>
                     <div class="rank-info">
                         <span class="rank-nome">${aluno.nome}${isVoce}</span>
-                        <span class="rank-stats">🔥 ${aluno.sequencia} Dias | ⭐ ${Math.floor(aluno.pontos)} pts</span>
+                        <span class="rank-stats">🔥 ${aluno.sequencia} Dias | ⭐ ${pontosFormatados} pts</span>
                     </div>
                     <button onclick="mostrarPerfilRank('${aluno.rm}')" style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-weight:bold;">Ver</button>
                 </div>
@@ -598,8 +691,22 @@ async function mostrarPerfilRank(rmDestino) {
         document.getElementById('modal-perfil-nome').textContent = alunoAlvo.nome;
         document.getElementById('modal-perfil-role').textContent = alunoAlvo.perfil || 'Aluno';
         document.getElementById('modal-perfil-cidade').textContent = alunoAlvo.cidade || 'Não informada';
-        document.getElementById('modal-perfil-pontos').textContent = Math.floor(alunoAlvo.pontos || 0) + ' pts';
+        if (document.getElementById('modal-perfil-idade')) {
+            document.getElementById('modal-perfil-idade').textContent = alunoAlvo.idade ? `${alunoAlvo.idade} anos` : 'Não informada';
+        }
+        document.getElementById('modal-perfil-pontos').textContent = Number(alunoAlvo.pontos || 0).toFixed(1) + ' pts';
         document.getElementById('modal-perfil-ofensiva').textContent = (alunoAlvo.sequencia || 0) + ' Dias';
+        
+        const acertos = alunoAlvo.totalAcertos || 0;
+        const totalQ = alunoAlvo.totalQuestoes || 0;
+        const erros = Math.max(0, totalQ - acertos);
+        if (document.getElementById('modal-perfil-acertos')) {
+            document.getElementById('modal-perfil-acertos').textContent = acertos;
+        }
+        if (document.getElementById('modal-perfil-erros')) {
+            document.getElementById('modal-perfil-erros').textContent = erros;
+        }
+
         document.getElementById('modal-perfil-bio').textContent = `"${alunoAlvo.bio || 'Este utilizador ainda não escreveu uma biografia.'}"`;
         
         // Lógica para mostrar a foto ou o emoji padrão
@@ -665,6 +772,17 @@ const LISTA_MATERIAS = ['Português', 'Inglês', 'Matemática', 'Física', 'Quí
 
 function ehProfessor() {
     return !!(usuarioLogado && usuarioLogado.perfil === 'Professor');
+}
+
+function extrairYoutubeId(urlOuId) {
+    if (!urlOuId) return null;
+    const str = String(urlOuId).trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(str)) {
+        return str;
+    }
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = str.match(regExp);
+    return (match && match[1]) ? match[1] : str;
 }
 
 function escapeHtml(texto) {
@@ -773,22 +891,46 @@ function renderizarConteudosNaTela(filtrados, materiaNome) {
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
         `;
 
-        if (item.link) {
-            htmlCard += `<a href="${escapeHtml(item.link)}" target="_blank" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">🔗 Acessar Link Externo</a>`;
-        }
+        // Links (suporta múltiplos links ou link único legado)
+        const listaLinks = (item.links && Array.isArray(item.links)) ? item.links : (item.link ? [item.link] : []);
+        listaLinks.forEach((lnk, i) => {
+            const url = typeof lnk === 'object' ? lnk.url : lnk;
+            const rotulo = (typeof lnk === 'object' && lnk.texto) ? lnk.texto : (listaLinks.length > 1 ? `🔗 Acessar Link #${i + 1}` : '🔗 Acessar Link Externo');
+            if (url && String(url).trim()) {
+                htmlCard += `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="padding: 8px 15px; background: rgba(0, 123, 255, 0.1); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">${escapeHtml(rotulo)}</a>`;
+            }
+        });
 
-        if (item.arquivo) {
-            htmlCard += `<a href="${item.arquivo}" download="${escapeHtml(item.nomeArquivo || 'arquivo')}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px;">📎 Baixar ${escapeHtml(item.nomeArquivo || 'arquivo')}</a>`;
-        }
+        // Arquivos anexos (suporta múltiplos arquivos ou arquivo único legado)
+        const listaArquivos = (item.arquivos && Array.isArray(item.arquivos)) ? item.arquivos : (item.arquivo ? [{ arquivo: item.arquivo, nomeArquivo: item.nomeArquivo }] : []);
+        listaArquivos.forEach((arq, i) => {
+            if (arq && arq.arquivo) {
+                const nomeArq = arq.nomeArquivo || `arquivo_${i + 1}`;
+                const ehImagem = arq.arquivo.startsWith('data:image/') || String(nomeArq).match(/\.(png|jpe?g|webp|gif)$/i);
+                const icone = ehImagem ? '🖼️' : (String(nomeArq).endsWith('.pdf') ? '📄' : '📎');
+                htmlCard += `<a href="${arq.arquivo}" download="${escapeHtml(nomeArq)}" style="padding: 8px 15px; background: rgba(76, 175, 80, 0.12); border: 1px solid #4CAF50; color: #4CAF50; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">${icone} Baixar ${escapeHtml(nomeArq)}</a>`;
+            }
+        });
         
         htmlCard += `</div>`; 
 
-        if (item.video) {
-            htmlCard += `
-                <div style="margin:20px auto 0 auto; width: 60%; position:relative; padding-bottom:33.75%; height:0; overflow:hidden; border-radius:10px; border: 1px solid var(--border-color);">
-                    <iframe src="https://www.youtube.com/embed/${escapeHtml(item.video)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
-                </div>
-            `;
+        // Vídeos do YouTube (suporta múltiplos vídeos ou vídeo único legado)
+        const listaVideos = (item.videos && Array.isArray(item.videos)) ? item.videos : (item.video ? [item.video] : []);
+        const videosValidos = listaVideos.map(v => extrairYoutubeId(v)).filter(Boolean);
+        
+        if (videosValidos.length > 0) {
+            const isSingle = videosValidos.length === 1;
+            htmlCard += `<div class="grid-videos-conteudo ${isSingle ? 'single-video' : ''}">`;
+            videosValidos.forEach((vId, vIdx) => {
+                const badgeLabel = videosValidos.length > 1 ? `<span class="video-badge-num">Vídeo ${vIdx + 1} de ${videosValidos.length}</span>` : '';
+                htmlCard += `
+                    <div class="video-wrapper-conteudo">
+                        ${badgeLabel}
+                        <iframe src="https://www.youtube.com/embed/${escapeHtml(vId)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+                    </div>
+                `;
+            });
+            htmlCard += `</div>`;
         }
 
         htmlCard += `</div>`; 
@@ -828,6 +970,114 @@ async function carregarMateria(materiaNome) {
 }
 
 function toggleChatIA() { document.getElementById('chatIAModal').classList.toggle('hidden'); }
+
+// --- REDIMENSIONAMENTO DO CHAT DA IA DE ESTUDOS ---
+function toggleExpandirChatIA() {
+    const modal = document.getElementById('chatIAModal');
+    const btn = document.getElementById('btnExpandirChatIA');
+    if (!modal) return;
+    const expandido = modal.classList.toggle('chat-ia-expanded');
+    if (btn) {
+        btn.textContent = expandido ? '🗗' : '⛶';
+        btn.title = expandido ? 'Restaurar tamanho normal' : 'Aumentar / Expandir janela';
+    }
+    const messagesContainer = document.getElementById('chatMessagesIA');
+    if (messagesContainer) {
+        setTimeout(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 120);
+    }
+}
+window.toggleExpandirChatIA = toggleExpandirChatIA;
+
+// --- REDIMENSIONAMENTO DO CHAT DA IA DE ESTUDOS (DESKTOP E DISPOSITIVOS MÓVEIS) ---
+(function initChatIaResize() {
+    function setupResize() {
+        const handle = document.getElementById('chatIaResizeHandle');
+        const dragBar = document.getElementById('chatMobileDragBar');
+        const modal = document.getElementById('chatIAModal');
+        if (!modal) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startY = 0;
+        let startW = 0;
+        let startH = 0;
+
+        function startDrag(clientX, clientY, e) {
+            isResizing = true;
+            startX = clientX;
+            startY = clientY;
+            startW = modal.offsetWidth;
+            startH = modal.offsetHeight;
+            modal.classList.add('chat-ia-resizing');
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'nwse-resize';
+            if (e && e.cancelable && e.type !== 'touchstart') e.preventDefault();
+        }
+
+        function onMove(clientX, clientY) {
+            if (!isResizing) return;
+            const deltaX = startX - clientX;
+            const deltaY = startY - clientY;
+
+            const isMobile = window.innerWidth <= 768;
+            const newH = Math.max(280, Math.min(window.innerHeight * 0.92, startH + deltaY));
+
+            if (isMobile) {
+                modal.style.height = `${newH}px`;
+            } else {
+                const newW = Math.max(300, Math.min(850, startW + deltaX));
+                modal.style.width = `${newW}px`;
+                modal.style.height = `${newH}px`;
+            }
+        }
+
+        function endDrag() {
+            if (isResizing) {
+                isResizing = false;
+                modal.classList.remove('chat-ia-resizing');
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+            }
+        }
+
+        // Eventos no mouse (Desktop)
+        if (handle) {
+            handle.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+            handle.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    startDrag(e.touches[0].clientX, e.touches[0].clientY, e);
+                }
+            }, { passive: true });
+        }
+
+        // Barra de arraste no celular (Mobile)
+        if (dragBar) {
+            dragBar.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    startDrag(e.touches[0].clientX, e.touches[0].clientY, e);
+                }
+            }, { passive: true });
+            dragBar.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY, e));
+        }
+
+        window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+        window.addEventListener('touchmove', (e) => {
+            if (isResizing && e.touches.length === 1) {
+                onMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchend', endDrag);
+        window.addEventListener('touchcancel', endDrag);
+    }
+
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', setupResize);
+    } else {
+        setupResize();
+    }
+})();
 
 // ==========================================
 // POMODORO E MULTIPLICADOR
@@ -884,14 +1134,15 @@ function calcularMultiplicador() {
     let minutosEstudados = (usuarioLogado.tempoEstudadoSegundos || 0) / 60;
     let novoMultiplicador = 1.0;
     
-    // Quando o Pomodoro é iniciado ou se o usuário já estudou na plataforma, base vai para 1.2x
-    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando) || minutosEstudados > 0) {
+    // O multiplicador extra só fica ativo quando o cronômetro Pomodoro está de fato RODANDO e em modo ESTUDO!
+    if (typeof rodando !== 'undefined' && rodando && typeof modoEstudo !== 'undefined' && modoEstudo) {
         novoMultiplicador = 1.2;
+        if (minutosEstudados >= 120) novoMultiplicador = 1.5;
+        else if (minutosEstudados >= 60) novoMultiplicador = 1.4;
+        else if (minutosEstudados >= 30) novoMultiplicador = 1.3;
+    } else {
+        novoMultiplicador = 1.0;
     }
-    
-    if (minutosEstudados >= 120) novoMultiplicador = 1.5;
-    else if (minutosEstudados >= 60) novoMultiplicador = 1.4;
-    else if (minutosEstudados >= 30) novoMultiplicador = 1.3;
 
     usuarioLogado.multiplicador = novoMultiplicador;
     atualizarBanco(usuarioLogado);
@@ -912,13 +1163,7 @@ function calcularMultiplicador() {
 function iniciarPomodoro() {
     if (rodando) return;
     
-    // Ativa imediatamente o multiplicador para 1.2x em todos os pontos da plataforma
     usuarioLogado.pomodoroIniciado = true;
-    if (!usuarioLogado.multiplicador || usuarioLogado.multiplicador < 1.2) {
-        usuarioLogado.multiplicador = 1.2;
-    }
-    calcularMultiplicador();
-    if (typeof verificarConquistas === 'function') verificarConquistas();
     
     if (tempoRestante === 0) {
         let inputId = modoEstudo ? 'tempoEstudo' : 'tempoDescanso';
@@ -935,6 +1180,9 @@ function iniciarPomodoro() {
     }
     
     rodando = true;
+    calcularMultiplicador();
+    if (typeof verificarConquistas === 'function') verificarConquistas();
+
     pomodoroTimer = setInterval(() => {
         if (tempoRestante > 0) {
             tempoRestante--;
@@ -951,6 +1199,7 @@ function iniciarPomodoro() {
             rodando = false;
             modoEstudo = !modoEstudo; 
             tempoRestante = 0;
+            calcularMultiplicador();
             // Abre a janela flutuante no lugar do alert do navegador!
             mostrarModalPomodoroTransicao(modoEstudo ? 'estudo' : 'descanso');
         }
@@ -961,6 +1210,7 @@ function pausarPomodoro() {
     clearInterval(pomodoroTimer); 
     rodando = false; 
     document.getElementById('estadoPomodoro').textContent = "Em pausa"; 
+    calcularMultiplicador();
 }
 
 function resetarPomodoro() {
@@ -972,6 +1222,7 @@ function resetarPomodoro() {
     atualizarVisorPomodoro();
     document.getElementById('estadoPomodoro').textContent = "Aguardando";
     if(document.getElementById('clockHand')) document.getElementById('clockHand').style.transform = `rotate(0deg)`;
+    calcularMultiplicador();
 }
 
 // JANELA FLUTUANTE DE TRANSIÇÃO DO POMODORO (DESCANSO E ESTUDO)
@@ -991,7 +1242,7 @@ function mostrarModalPomodoroTransicao(tipo) {
         if (icone) icone.textContent = '☕';
         if (titulo) titulo.textContent = 'Hora do Descanso!';
         if (subtitulo) subtitulo.textContent = 'Parabéns pelo ciclo de foco concluído! Descanse os olhos, beba água e relaxe por alguns minutos.';
-        if (badge) badge.innerHTML = `<span>✨ Multiplicador ativo: <strong>${mult}x</strong> • Bônus mantido</span>`;
+        if (badge) badge.innerHTML = `<span>☕ Multiplicador em descanso: <strong>1.0x</strong> (retornará para 1.2x no foco!)</span>`;
         if (btn) btn.textContent = 'Aproveitar Descanso ☕';
     } else {
         if (icone) icone.textContent = '🎯';
@@ -1984,40 +2235,98 @@ const questoesPadrao = [
 ];
 
 let dadosProvaSimulada = [...questoesPadrao];
+let simuladoAtivoObjeto = null; // null para simulados oficiais da plataforma
 let indiceQuestaoAtual = 0; let acertosProva = 0; let errosProva = []; let tempoInicioQuestao = 0; let respostasUsuario = [];
 
-function iniciarSimulado(nomeProva) {
-    // Seleciona o conjunto de questões correto para a prova escolhida
-    const questoesDaProva = bancoQuestoes[nomeProva];
-    if (questoesDaProva) {
-        dadosProvaSimulada = [...questoesDaProva, ...questoesProfessor];
+function iniciarSimulado(nomeOuId) {
+    simuladoAtivoObjeto = null;
+    let tituloDisplay = '';
+
+    // Verifica se é um simulado criado por professor
+    const simuladosProf = obterSimuladosProfessoresLocais();
+    const simuladoProf = simuladosProf.find(s => String(s.id) === String(nomeOuId));
+
+    if (simuladoProf) {
+        simuladoAtivoObjeto = simuladoProf;
+        dadosProvaSimulada = (simuladoProf.questoes && simuladoProf.questoes.length > 0)
+            ? simuladoProf.questoes
+            : [simuladoProf]; // compatibilidade com modelo antigo
+        tituloDisplay = `${simuladoProf.nome || 'Simulado do Professor'} (${simuladoProf.serie || 'Geral'})`;
     } else {
-        dadosProvaSimulada = [...questoesPadrao];
+        // Simulado oficial da plataforma
+        const questoesDaProva = bancoQuestoes[nomeOuId];
+        if (questoesDaProva) {
+            dadosProvaSimulada = [...questoesDaProva];
+        } else {
+            dadosProvaSimulada = [...questoesPadrao];
+        }
+        tituloDisplay = `Provão Paulista — ${nomeOuId}`;
     }
 
     document.getElementById('lista-provas').classList.add('hidden');
     document.getElementById('area-resultados').classList.add('hidden');
     document.getElementById('area-resolucao').classList.remove('hidden');
-    document.getElementById('titulo-prova-atual').textContent = `Provão Paulista — ${nomeProva}`;
+    document.getElementById('titulo-prova-atual').textContent = tituloDisplay;
     indiceQuestaoAtual = 0; acertosProva = 0; errosProva = []; respostasUsuario = [];
     carregarQuestaoNoEcra();
 
     // Notificação passageira no canto informando o início
     mostrarToastCanto(
         "Simulado Iniciado",
-        `Prova: ${nomeProva}. Boa sorte e administre seu tempo com calma!`,
+        `Prova: ${tituloDisplay}. Boa sorte e administre seu tempo com calma!`,
         "info",
         3500
     );
 }
+
 function cancelarSimulado() { 
     document.getElementById('area-resolucao').classList.add('hidden'); 
     document.getElementById('area-resultados').classList.add('hidden'); 
     document.getElementById('lista-provas').classList.remove('hidden'); 
 }
+
+function voltarParaListaProvas() {
+    cancelarSimulado();
+}
+window.voltarParaListaProvas = voltarParaListaProvas;
+
+// --- MODAL DE ZOOM / AMPLIAÇÃO DE IMAGENS ---
+function abrirModalZoomImagem(src, legenda = '') {
+    const modal = document.getElementById('modal-zoom-imagem');
+    const img = document.getElementById('imgZoomVisualizacao');
+    const leg = document.getElementById('legendaZoomImagem');
+    if (!modal || !img) return;
+    img.src = src;
+    if (leg) leg.textContent = legenda;
+    modal.classList.remove('hidden');
+}
+window.abrirModalZoomImagem = abrirModalZoomImagem;
+
+function fecharModalZoomImagem(e) {
+    const modal = document.getElementById('modal-zoom-imagem');
+    if (!modal) return;
+    if (!e || e.target === modal || (e.target && e.target.classList && e.target.classList.contains('modal-close'))) {
+        modal.classList.add('hidden');
+    }
+}
+window.fecharModalZoomImagem = fecharModalZoomImagem;
+
 function carregarQuestaoNoEcra() {
     let questao = dadosProvaSimulada[indiceQuestaoAtual];
-    document.getElementById('texto-questao').textContent = `${indiceQuestaoAtual + 1}. ${questao.pergunta}`;
+    let pontosQuestao = (questao.pontos !== undefined && questao.pontos !== null) ? Number(questao.pontos) : 2;
+    let badgePontosHtml = `<span style="display: inline-block; margin-left: 10px; background: rgba(255, 193, 7, 0.18); color: #ffb300; font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">⭐ Vale ${pontosQuestao} ${pontosQuestao === 1 ? 'pt' : 'pts'}</span>`;
+
+    let imagemHtml = '';
+    if (questao.imagem) {
+        imagemHtml = `
+            <div class="questao-img-container">
+                <img src="${questao.imagem}" alt="Ilustração da Questão" class="questao-img-display" onclick="abrirModalZoomImagem(this.src, 'Ilustração da Questão #${indiceQuestaoAtual + 1}')" title="Clique ou toque para ampliar a imagem">
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 5px;">🔍 Toque ou clique na foto para ampliar</div>
+            </div>
+        `;
+    }
+
+    document.getElementById('texto-questao').innerHTML = `<strong>${indiceQuestaoAtual + 1}.</strong> ${escapeHtml(questao.pergunta)} ${badgePontosHtml}${imagemHtml}`;
     document.getElementById('progresso-simulado').textContent = `Questão ${indiceQuestaoAtual + 1} de ${dadosProvaSimulada.length}`;
     let opcoesContainer = document.getElementById('opcoes-questao');
     opcoesContainer.innerHTML = '';
@@ -2029,6 +2338,7 @@ function carregarQuestaoNoEcra() {
     });
     tempoInicioQuestao = Date.now();
 }
+
 function responderQuestao(indiceSelecionado) {
     if (((Date.now() - tempoInicioQuestao) / 1000) < 60) {
         mostrarToastCanto(
@@ -2040,45 +2350,55 @@ function responderQuestao(indiceSelecionado) {
     }
     respostasUsuario.push(indiceSelecionado);
     if (indiceSelecionado === dadosProvaSimulada[indiceQuestaoAtual].correta) acertosProva++;
-    else errosProva.push(dadosProvaSimulada[indiceQuestaoAtual].tema);
+    else errosProva.push(dadosProvaSimulada[indiceQuestaoAtual].tema || 'Conhecimento Geral');
     indiceQuestaoAtual++;
     if (indiceQuestaoAtual < dadosProvaSimulada.length) carregarQuestaoNoEcra();
     else finalizarSimulado();
 }
+
 function finalizarSimulado() {
     document.getElementById('area-resolucao').classList.add('hidden');
     document.getElementById('area-resultados').classList.remove('hidden');
     
     let multiplicadorAtual = usuarioLogado.multiplicador || 1.0;
     
-    // Garante que se o aluno usou o Pomodoro, o multiplicador base vai para 1.2 no mínimo
-    if (usuarioLogado.pomodoroIniciado || (typeof rodando !== 'undefined' && rodando)) {
-        if (multiplicadorAtual < 1.2) multiplicadorAtual = 1.2;
-    }
-    
-    // BÔNUS PARA MAIS DE 7 ACERTOS: +2 pontos extras e chuva de confetes na tela
+    // Cálculo de pontuação considerando os pontos de cada questão
+    let totalPontosPossiveis = 0;
+    let pontosGanhosAcertos = 0;
+    dadosProvaSimulada.forEach((q, idx) => {
+        let val = (q.pontos !== undefined && q.pontos !== null) ? Number(q.pontos) : 2;
+        totalPontosPossiveis += val;
+        if (respostasUsuario[idx] === q.correta) {
+            pontosGanhosAcertos += val;
+        }
+    });
+
+    let taxaAcerto = dadosProvaSimulada.length > 0 ? (acertosProva / dadosProvaSimulada.length) : 0;
+    let porcentagemAcertos = Math.round(taxaAcerto * 100);
+
+    // BÔNUS PARA 70% OU MAIS DE ACERTOS: CHUVA DE CONFETES E BÔNUS DE PONTOS
     let pontosExtras = 0;
     const containerBonus = document.getElementById('bonusSimuladoContainer');
     if (containerBonus) containerBonus.innerHTML = '';
 
-    if (acertosProva > 7) {
+    if (taxaAcerto >= 0.70) {
         pontosExtras = 2;
         if (containerBonus) {
             containerBonus.innerHTML = `
-                <div class="bonus-simulado-banner">
-                    <span style="font-size: 28px;">🎉</span>
+                <div class="bonus-simulado-banner" style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(0, 123, 255, 0.2)); border: 1px solid #4CAF50; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+                    <span style="font-size: 32px;">🎉</span>
                     <div>
-                        <div style="font-size: 16px; font-weight: 800;">Desempenho Excepcional (${acertosProva} Acertos)!</div>
-                        <div style="font-size: 13.5px; color: #ffecb3;">Você acertou mais de 7 questões no simulado e faturou <strong>+2 PONTOS EXTRAS</strong> de bônus!</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #4CAF50;">Parabéns! Desempenho Excepcional (${porcentagemAcertos}% de Acertos)!</div>
+                        <div style="font-size: 13.5px; color: var(--text-main);">Você acertou 70% ou mais do simulado (${acertosProva}/${dadosProvaSimulada.length}) e conquistou <strong>+2 PONTOS EXTRAS</strong>!</div>
                     </div>
                 </div>
             `;
         }
         dispararConfetes();
-        mostrarToastCanto('Super Bônus!', `Mais de 7 acertos (${acertosProva}/10)! +2 pontos extras concedidos!`, 'success', 5000);
+        mostrarToastCanto('Excelente Desempenho! 🎉', `Você atingiu ${porcentagemAcertos}% de acertos! Chuva de confetes e bônus de pontos concedidos!`, 'success', 5000);
     }
 
-    let pontosBase = (acertosProva * 2) * multiplicadorAtual;
+    let pontosBase = pontosGanhosAcertos * multiplicadorAtual;
     let pontosFinais = parseFloat((pontosBase + pontosExtras).toFixed(1));
 
     usuarioLogado.pontos += pontosFinais;
@@ -2094,22 +2414,24 @@ function finalizarSimulado() {
     carregarRank(); 
     atualizarDesempenho(); 
 
-    document.getElementById('res-acertos').textContent = acertosProva;
+    document.getElementById('res-acertos').textContent = `${acertosProva} (${porcentagemAcertos}%)`;
     document.getElementById('res-erros').textContent = dadosProvaSimulada.length - acertosProva;
-    document.getElementById('res-pontos').textContent = pontosExtras > 0 ? `+${pontosFinais} (+2 bônus)` : `+${pontosFinais}`;
+    document.getElementById('res-pontos').textContent = pontosExtras > 0 ? `+${pontosFinais} (+2 bônus 70%)` : `+${pontosFinais}`;
     document.getElementById('res-multiplicador').textContent = `(x${multiplicadorAtual.toFixed(1)})`;
 
     let htmlGabarito = '';
     dadosProvaSimulada.forEach((q, i) => {
         let acertou = respostasUsuario[i] === q.correta;
-        htmlGabarito += `<div class="gabarito-item" style="border-left: 4px solid ${acertou ? '#4CAF50' : '#F44336'};"><strong>Questão ${i + 1}</strong>: ${acertou ? '✅' : '❌'} <br><span style="font-size: 14px;">Sua resposta: ${q.opcoes[respostasUsuario[i]]}</span><br><span style="font-size: 14px; color: var(--primary-color);">Gabarito: <strong>${q.opcoes[q.correta]}</strong></span></div>`;
+        let ptQ = (q.pontos !== undefined && q.pontos !== null) ? Number(q.pontos) : 2;
+        let imgThumb = q.imagem ? `<div style="margin-top: 8px;"><img src="${q.imagem}" alt="Ilustração da questão" style="max-height: 85px; max-width: 150px; border-radius: 6px; border: 1px solid var(--border-color); object-fit: contain; cursor: pointer;" onclick="abrirModalZoomImagem(this.src, 'Questão #${i + 1}')" title="Clique para ampliar"></div>` : '';
+        htmlGabarito += `<div class="gabarito-item" style="border-left: 4px solid ${acertou ? '#4CAF50' : '#F44336'}; margin-bottom: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px;"><strong>Questão ${i + 1}</strong> (${ptQ} pts): ${acertou ? '✅ Acertou' : '❌ Errou'} <br><span style="font-size: 14px;">Sua resposta: ${escapeHtml(q.opcoes[respostasUsuario[i]])}</span><br><span style="font-size: 14px; color: var(--primary-color);">Gabarito Oficial: <strong>${escapeHtml(q.opcoes[q.correta])}</strong></span>${imgThumb}</div>`;
     });
     document.getElementById('lista-gabarito').innerHTML = htmlGabarito;
     
     let listaTemas = document.getElementById('lista-temas-sugeridos');
     listaTemas.innerHTML = '';
     if (errosProva.length === 0) {
-        listaTemas.innerHTML = '<li>Parabéns! Nenhuma lacuna detectada.</li>';
+        listaTemas.innerHTML = '<li>Parabéns! Nenhuma lacuna detectada. Você gabaritou!</li>';
     } else {
         let temasUnicos = [...new Set(errosProva)];
         temasUnicos.forEach(tema => listaTemas.innerHTML += `<li>🔍 <strong>Estudar:</strong> ${tema}</li>`);
@@ -2189,15 +2511,68 @@ function dispararConfetes() {
 // ==========================================
 
 // --- IA DE ESTUDOS (Provão) ---
-const GEMINI_API_KEY = "AQ.Ab8RN6KRVw_lx0p9oQsFv-YhJlFnOqscPc1IQIVO5-7AqoT4lA"; // Substitua pela sua chave de API do Gemini
+// Chave gerenciada de forma segura:
+// 1º Tenta chamar o endpoint /api/gemini seguro no backend (Vercel / servidor local com GEMINI_API_KEY no .env)
+// 2º Fallback direto via gemini-config.js (caso esteja rodando estático ou offline)
+const GEMINI_API_KEY = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.apiKey) || "";
+const GEMINI_MODEL = (window.GEMINI_CONFIG && window.GEMINI_CONFIG.model) || "gemini-flash-lite-latest";
 
 // Função auxiliar: espera N milissegundos
 function esperar(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-// Função auxiliar: chama a API Gemini com retry automático
+// Monta o histórico das últimas mensagens trocadas no chat para contexto da IA
+function montarHistoricoChatIA(chatContainer, idLoading) {
+    if (!chatContainer) return '';
+    const msgs = chatContainer.querySelectorAll('.msg');
+    const historico = [];
+    msgs.forEach(msg => {
+        if (idLoading && msg.id === idLoading) return;
+        const papel = msg.classList.contains('user') ? 'Aluno' : 'Tutor IA';
+        const texto = msg.innerText || msg.textContent || '';
+        if (texto.trim()) {
+            historico.push(`${papel}: ${texto.trim()}`);
+        }
+    });
+    return historico.slice(-8).join('\n');
+}
+
 async function chamarGemini(prompt, tentativas = 3) {
+    // 1. Tenta via proxy backend (/api/gemini) se API estiver disponível
+    if (window.API && typeof window.API.gemini === 'function') {
+        try {
+            const res = await window.API.gemini(prompt);
+            if (res && res.success && res.text) {
+                return {
+                    response: { ok: true, status: 200 },
+                    data: {
+                        candidates: [
+                            { content: { parts: [{ text: res.text }] } }
+                        ]
+                    }
+                };
+            }
+            // Se o backend retornou erro específico da chave ou quota
+            if (res && res.error && !res.networkError) {
+                return {
+                    response: { ok: false, status: res.status || 500 },
+                    data: { error: { message: res.error } }
+                };
+            }
+        } catch (backendErr) {
+            console.warn('[StudySP] Falha ao consultar /api/gemini, tentando fallback direto:', backendErr);
+        }
+    }
+
+    // 2. Fallback direto caso o backend esteja offline e haja chave no gemini-config.js
+    if (!GEMINI_API_KEY) {
+        return {
+            response: { ok: false, status: 500 },
+            data: { error: { message: 'Configuração da IA não encontrada. Defina GEMINI_API_KEY no painel da Vercel (Environment Variables) ou no arquivo gemini-config.js local.' } }
+        };
+    }
+
     for (let i = 0; i < tentativas; i++) {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -2207,7 +2582,7 @@ async function chamarGemini(prompt, tentativas = 3) {
         // Erro de sobrecarga (503) → tenta de novo após espera
         if (data.error && data.error.message && data.error.message.includes("high demand")) {
             if (i < tentativas - 1) {
-                await esperar(3000 * (i + 1)); // espera 3s, 6s, 9s...
+                await esperar(3000 * (i + 1));
                 continue;
             }
         }
@@ -2229,21 +2604,39 @@ async function enviarMensagemIA() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        if (GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
-            if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatMessages.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
-            return;
-        }
+        const historico = montarHistoricoChatIA(chatMessages, idLoading);
+        const prompt = `Você é o AGENTE TUTOR PEDAGÓGICO do StudySP (Especialista no Provão Paulista e Ensino Médio/Técnico de SP).
+Sua missão: Guiar o estudante para que ele compreenda os conceitos e aprenda com autonomia, clareza e sem sobrecarga cognitiva.
 
-        const prompt = `Você é um tutor de estudos para o Provão Paulista. 
-Regra 1: Você NUNCA deve dar a resposta direta de uma questão.
-Regra 2: Você deve apenas auxiliar, dar dicas, explicar conceitos e guiar o aluno para encontrar a resposta.
-Regra 3: NÃO use emojis ou asteriscos (*) nas suas respostas. 
-Regra 4: Dê respostas curtas e diretas, mas suficientes para compreensão.
-Regra 5: No final de cada resposta, sugira um site, livro, vídeo ou filme para explicar a dúvida melhor.
-Mensagem do aluno: ${msgTexto}`;
+PERFIL E RESTRIÇÕES DO AGENTE:
+- Tom de voz: Didático, encorajador, calmo, paciente e direto ao ponto.
+- Linguagem: Português claro, correto e acessível. 
+- Formatação: NÃO use emojis exagerados, NÃO use caracteres desnecessários. Use listas numeradas ou tópicos curtos quando houver etapas.
+- Limite de extensão: Respostas objetivas de no máximo 5 a 8 linhas, exceto quando o aluno pedir explicitamente uma explicação aprofundada.
 
-        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando... (tentando conectar)</i>';
+MODOS DE OPERAÇÃO:
+
+1. MODO CONCEITUAL / EXPLICATIVO (Quando o aluno pede conceitos, fórmulas, resumos, biografias, fatos históricos ou explicações):
+- Explique o núcleo do assunto de forma cristalina em 1 parágrafo ou até 4 tópicos essenciais.
+- Relacione o conceito com o padrão cobrado nas provas do Provão Paulista / VUNESP.
+- Finalize com 1 pergunta reflexiva leve de fixação (ex.: "Quer ver um exemplo prático desse conceito em uma questão?").
+- NUNCA despeje textos enciclopédicos longos.
+
+2. MODO SOCRÁTICO (Quando o aluno traz uma questão de prova, exercício ou pede a alternativa correta):
+- REGRA DE OURO: NUNCA forneça a resposta final ou a alternativa correta de imediato.
+- Passo 1: Isole os dados e o comando principal da questão.
+- Passo 2: Faça uma pergunta direcionada para o aluno identificar a fórmula, regra ou conceito que se aplica.
+- Passo 3: Se o aluno errar, aponte onde o raciocínio divergiu sem julgamento e sugira um caminho alternativo.
+- Passo 4: Se o aluno insistir pela resposta, demonstre a resolução de um exemplo com números ou contexto diferentes, e peça para ele aplicar o mesmo método na questão dele.
+
+HISTÓRICO DA CONVERSA:
+${historico || '(início da conversa)'}
+
+MENSAGEM DO ALUNO: ${msgTexto}
+
+Responda agora estritamente como o Agente Tutor Pedagógico:`;
+
+        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando...</i>';
         const resultado = await chamarGemini(prompt);
         const { response, data } = resultado;
 
@@ -2397,32 +2790,78 @@ const conquistasConfig = [
 ];
 
 // --- IA DE TCC (WORKSTATION ELEGANTE) ---
+function tccValorInvalido(valor) {
+    if (!valor) return true;
+    const limpo = String(valor).trim().toLowerCase();
+    return (
+        limpo === '' ||
+        limpo === 'não definido' ||
+        limpo === 'nao definido' ||
+        limpo === 'não sei' ||
+        limpo === 'nao sei' ||
+        limpo === 'indefinido' ||
+        limpo === 'projeto em definição' ||
+        limpo === 'nenhum'
+    );
+}
+
 function iniciarChatTCC() {
     if (document.getElementById('msgHojeTCC')) {
         document.getElementById('msgHojeTCC').textContent = usuarioLogado.mensagensTCCHoje || 0;
     }
-    if (document.getElementById('tccBadgeCurso')) {
-        document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso || 'Não definido';
+    const badgeCurso = document.getElementById('tccBadgeCurso');
+    const badgeTema = document.getElementById('tccBadgeTema');
+    
+    if (badgeCurso) {
+        badgeCurso.textContent = tccValorInvalido(usuarioLogado.curso) ? 'Não definido' : usuarioLogado.curso;
     }
-    if (document.getElementById('tccBadgeTema')) {
-        document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC || 'Não definido';
+    if (badgeTema) {
+        badgeTema.textContent = tccValorInvalido(usuarioLogado.temaTCC) ? 'Não definido' : usuarioLogado.temaTCC;
     }
 
     const chatBox = document.getElementById('chatBoxTCC');
     if (!chatBox) return;
 
     if (chatBox.innerHTML.trim() === '') {
-        if (!usuarioLogado.curso) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Para personalizarmos suas orientações, qual é o seu curso técnico ou área de estudo?</div>`;
-        } else if (!usuarioLogado.temaTCC) {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Já vi que você cursa ${usuarioLogado.curso}. Qual ideia ou problema você gostaria de investigar no seu projeto?</div>`;
+        const cursoDefinido = !tccValorInvalido(usuarioLogado.curso);
+        const temaDefinido = !tccValorInvalido(usuarioLogado.temaTCC);
+
+        if (cursoDefinido && temaDefinido) {
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Estou pronta para auxiliar com metodologia, normas ABNT, objetivos e escrita para seu TCC em <strong>${escapeHtml(usuarioLogado.curso)}</strong> sobre "<em>${escapeHtml(usuarioLogado.temaTCC)}</em>". O que você gostaria de estruturar hoje?</div>`;
         } else {
-            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua IA orientadora de TCC. Estou pronta para auxiliar com metodologia, normas ABNT, objetivos e escrita para seu TCC em <strong>${usuarioLogado.curso}</strong> sobre "<em>${usuarioLogado.temaTCC}</em>". Como posso te ajudar hoje?</div>`;
+            chatBox.innerHTML += `<div class="msg ia">Olá! Sou sua orientadora acadêmica de TCC. Envie sua primeira mensagem, dúvida ou ideia para começarmos!</div>`;
         }
     }
 }
 
+function trocarAbaTCC(abaId, btn) {
+    document.querySelectorAll('.tcc-nav-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const painelChat = document.getElementById('tccPainelChat');
+    const painelEtapas = document.getElementById('tccPainelEtapas');
+    const painelProjetos = document.getElementById('tccPainelProjetos');
+
+    if (painelChat) painelChat.classList.add('hidden');
+    if (painelEtapas) painelEtapas.classList.add('hidden');
+    if (painelProjetos) painelProjetos.classList.add('hidden');
+
+    if (abaId === 'chat' && painelChat) {
+        painelChat.classList.remove('hidden');
+    } else if (abaId === 'etapas' && painelEtapas) {
+        painelEtapas.classList.remove('hidden');
+    } else if (abaId === 'projetos' && painelProjetos) {
+        painelProjetos.classList.remove('hidden');
+    }
+}
+
 function aplicarPromptRapidoTCC(texto) {
+    // Muda para a aba do chat se estiver em etapas ou projetos
+    const tabChatBtn = document.querySelector('.tcc-nav-tab');
+    if (tabChatBtn && !tabChatBtn.classList.contains('active')) {
+        trocarAbaTCC('chat', tabChatBtn);
+    }
+
     const input = document.getElementById('inputChatTCC');
     if (input) {
         input.value = texto;
@@ -2435,8 +2874,8 @@ function abrirModalTccConfig() {
     if (!modal) return;
     const inputCurso = document.getElementById('inputTccConfigCurso');
     const inputTema = document.getElementById('inputTccConfigTema');
-    if (inputCurso) inputCurso.value = usuarioLogado.curso || '';
-    if (inputTema) inputTema.value = usuarioLogado.temaTCC || '';
+    if (inputCurso) inputCurso.value = tccValorInvalido(usuarioLogado.curso) ? '' : usuarioLogado.curso;
+    if (inputTema) inputTema.value = tccValorInvalido(usuarioLogado.temaTCC) ? '' : usuarioLogado.temaTCC;
     modal.classList.remove('hidden');
 }
 
@@ -2460,6 +2899,7 @@ function salvarConfigTcc() {
 
     usuarioLogado.curso = curso;
     usuarioLogado.temaTCC = tema || 'Projeto em definição';
+    usuarioLogado.esperandoDefinicaoTCC = false;
     atualizarBanco(usuarioLogado);
 
     if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
@@ -2467,7 +2907,7 @@ function salvarConfigTcc() {
 
     const chatBox = document.getElementById('chatBoxTCC');
     if (chatBox) {
-        chatBox.innerHTML += `<div class="msg ia">✅ Dados atualizados com sucesso! Anotei que seu curso é <strong>${usuarioLogado.curso}</strong> e seu tema foco é "<strong>${usuarioLogado.temaTCC}</strong>". O que você gostaria de estruturar agora?</div>`;
+        chatBox.innerHTML += `<div class="msg ia">✅ Dados atualizados com sucesso! Anotei que seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong> e seu tema foco é "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>". O que você gostaria de estruturar agora?</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
@@ -2481,7 +2921,7 @@ function filtrarIdeiasTCC(area, btn) {
     botoes.forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
-    const cards = document.querySelectorAll('.ideia-card-moderno');
+    const cards = document.querySelectorAll('.ideia-card-clean, .ideia-card-moderno');
     cards.forEach(card => {
         const cardArea = card.getAttribute('data-area');
         if (area === 'todos' || cardArea === area) {
@@ -2499,8 +2939,8 @@ async function enviarMensagemTCC() {
     
     if (!msgTexto) return;
 
-    if ((usuarioLogado.mensagensTCCHoje || 0) >= 10) {
-        mostrarToastCanto("Limite Atingido", "Você atingiu o limite de 10 mensagens de TCC por hoje. Volte amanhã para continuar!", "warning", 4500);
+    if ((usuarioLogado.mensagensTCCHoje || 0) >= 25) {
+        mostrarToastCanto("Limite Atingido", "Você atingiu o limite de 25 mensagens de TCC por hoje. Volte amanhã para continuar!", "warning", 4500);
         return;
     }
 
@@ -2508,48 +2948,73 @@ async function enviarMensagemTCC() {
     input.value = ''; 
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Etapa 1: Perguntar o curso se não tiver
-    if (!usuarioLogado.curso) {
-        usuarioLogado.curso = msgTexto;
+    const precisaDefinir = tccValorInvalido(usuarioLogado.curso) || tccValorInvalido(usuarioLogado.temaTCC);
+
+    // Se estiver aguardando resposta sobre o curso e projeto:
+    if (usuarioLogado.esperandoDefinicaoTCC) {
+        const partes = msgTexto.split(/ - | e | e o tema: |;|,/i);
+        let novoCurso = msgTexto;
+        let novoTema = 'Projeto em definição';
+        if (partes.length >= 2 && partes[0].trim() && partes[1].trim()) {
+            novoCurso = partes[0].trim();
+            novoTema = partes.slice(1).join(' - ').trim();
+        }
+        usuarioLogado.curso = novoCurso;
+        usuarioLogado.temaTCC = novoTema;
+        usuarioLogado.esperandoDefinicaoTCC = false;
         atualizarBanco(usuarioLogado);
+
         if (document.getElementById('tccBadgeCurso')) document.getElementById('tccBadgeCurso').textContent = usuarioLogado.curso;
-        chatBox.innerHTML += `<div class="msg ia">Perfeito, anotado que seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong>! E o que você planeja fazer para o seu TCC? (Pode ser uma ideia geral)</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
+
+        chatBox.innerHTML += `<div class="msg ia">Excelente! Atualizei suas informações lá em cima no painel: seu curso é <strong>${escapeHtml(usuarioLogado.curso)}</strong> e seu projeto é "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>". A partir de agora nossas orientações serão totalmente personalizadas. Como posso te orientar hoje?</div>`;
         concluirEnvioTCC();
         return;
     }
 
-    // Etapa 2: Perguntar o tema do TCC se não tiver
-    if (!usuarioLogado.temaTCC) {
-        usuarioLogado.temaTCC = msgTexto;
+    // Se o usuário ainda não definiu curso e projeto: espera a 1ª mensagem e pergunta
+    if (precisaDefinir) {
+        usuarioLogado.esperandoDefinicaoTCC = true;
         atualizarBanco(usuarioLogado);
-        if (document.getElementById('tccBadgeTema')) document.getElementById('tccBadgeTema').textContent = usuarioLogado.temaTCC;
-        chatBox.innerHTML += `<div class="msg ia">Excelente! Agora que sei que você faz <strong>${escapeHtml(usuarioLogado.curso)}</strong> e quer focar em "<strong>${escapeHtml(usuarioLogado.temaTCC)}</strong>", como posso te ajudar com o seu projeto hoje?</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.innerHTML += `<div class="msg ia">Olá! Para que eu possa te fornecer orientações precisas, normas ABNT e metodologias ideais: <strong>qual é o seu curso e qual é a ideia ou tema do seu projeto de TCC?</strong><br><small style="opacity:0.8;">(Você pode responder aqui ou clicar em '✏️ Editar Tema' no painel acima)</small></div>`;
         concluirEnvioTCC();
         return;
     }
 
     const idLoading = "loadTCC-" + Date.now();
-    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Analisando e buscando orientações acadêmicas...</i></div>`;
+    chatBox.innerHTML += `<div id="${idLoading}" class="msg ia"><i>Pensando...</i></div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        if (typeof GEMINI_API_KEY === 'undefined' || GEMINI_API_KEY === "SUA_API_KEY_AQUI") {
-            if(document.getElementById(idLoading)) document.getElementById(idLoading).remove();
-            chatBox.innerHTML += `<div class="msg ia">Por favor, configure sua API Key do Gemini no código para usar a IA.</div>`;
-            return;
-        }
+        const historico = montarHistoricoChatIA(chatBox, idLoading);
+        const prompt = `Você é o AGENTE CO-ORIENTADOR METODOLÓGICO DE TCC do StudySP.
+Sua missão: Auxiliar o estudante do ensino técnico/médio a desenvolver rigor científico, delimitação temática e raciocínio investigativo próprio no TCC.
 
-        const prompt = `Você é um orientador de TCC do Ensino Técnico / Médio de São Paulo.
-Regra 1: Você NUNCA deve fazer o trabalho pelo aluno (nada de escrever os textos do TCC para ele), apenas orientar, dar dicas e tirar dúvidas.
-Regra 2: Você deve apenas auxiliar nos estudos.
-Regra 3: O curso do aluno é: ${usuarioLogado.curso}
-Regra 4: O aluno planeja fazer o TCC sobre: ${usuarioLogado.temaTCC}
-Regra 5: Use as informações do curso e a ideia do TCC como referência para responder e dar exemplos, sempre focando em ajudar com o TCC.
-Mensagem do aluno: ${msgTexto}`;
+DADOS DO ALUNO:
+- Curso: ${usuarioLogado.curso || 'Não especificado'}
+- Tema/Ideia do TCC: ${usuarioLogado.temaTCC || 'Em definição'}
 
-        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Analisando... (tentando conectar)</i>';
+DIRETRIZES DE ATUAÇÃO E RESTRIÇÕES ESTRITAS:
+1. NUNCA REDIJA PELO ALUNO (Anti-Ghostwriting):
+   - É terminantemente proibido escrever parágrafos prontos, introduções, justificativas ou capítulos inteiros para o aluno copiar e colar.
+   - Em vez disso, forneça "Estruturas-Guia" (esqueletos) com perguntas reflexivas que o aluno deve responder por escrito.
+2. DELIMITAÇÃO E FORMULAÇÃO:
+   - Se o tema for amplo demais, ajude o aluno a recortar indicando: Problema central, Hipótese, Relevância Social e Metodologia aplicável.
+3. REVISÃO CRÍTICA ESTRUTURADA:
+   - Se o aluno enviar um parágrafo que ele mesmo escreveu: analise clareza, coesão, tom acadêmico e normas ABNT. Indique 1 sugestão pontual e devolva para ele reescrever o restante.
+4. FONTES E PESQUISA:
+   - Nunca invente citações fictícias ou dados não checados. Recomende termos de busca para bases acadêmicas confiáveis (como SciELO, Google Acadêmico e Periódicos CAPES).
+5. FORMATO DE RESPOSTA:
+   - Estrutura limpa em tópicos práticos, sem rodeios e sem excesso de texto. Limite-se a no máximo 10 a 14 linhas por intervenção para não sobrecarregar o aluno.
+
+HISTÓRICO DA CONVERSA:
+${historico || '(início da conversa)'}
+
+MENSAGEM DO ALUNO: ${msgTexto}
+
+Responda agora estritamente como o Agente Co-orientador Metodológico:`;
+
+        if(document.getElementById(idLoading)) document.getElementById(idLoading).innerHTML = '<i>Pensando...</i>';
         const resultado = await chamarGemini(prompt);
         const { response, data } = resultado;
 
@@ -2718,13 +3183,160 @@ function perguntarConfirmacao(titulo, mensagem, { textoOk = 'Confirmar', perigo 
     });
 }
 
+// ==========================================
+// MÚLTIPLOS CONTEÚDOS DE AULA (VÍDEOS, ARQUIVOS, LINKS)
+// ==========================================
+let profArquivosLista = []; // [{ nomeArquivo, arquivo, tamanho }]
+
+function adicionarLinhaVideo(valor = '') {
+    const container = document.getElementById('containerProfVideos');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'item-dinamico-linha';
+    div.innerHTML = `
+        <span style="font-size: 14px;">🎬</span>
+        <input type="text" class="prof-campo-video" placeholder="Link do YouTube ou ID (ex: https://youtu.be/...)" value="${escapeHtml(valor)}">
+        <button type="button" class="btn-del-linha-item" onclick="removerLinhaVideo(this)" title="Remover este vídeo">✕</button>
+    `;
+    container.appendChild(div);
+}
+window.adicionarLinhaVideo = adicionarLinhaVideo;
+
+function removerLinhaVideo(btn) {
+    const container = document.getElementById('containerProfVideos');
+    const linha = btn.closest('.item-dinamico-linha');
+    if (linha) linha.remove();
+    if (container && container.children.length === 0) {
+        adicionarLinhaVideo();
+    }
+}
+window.removerLinhaVideo = removerLinhaVideo;
+
+function adicionarLinhaLink(url = '', texto = '') {
+    const container = document.getElementById('containerProfLinks');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'item-dinamico-linha';
+    div.innerHTML = `
+        <span style="font-size: 14px;">🔗</span>
+        <input type="url" class="prof-campo-link-url" placeholder="https://..." value="${escapeHtml(url)}" style="flex: 2;">
+        <input type="text" class="prof-campo-link-texto" placeholder="Título opcional (ex: Artigo de Apoio)" value="${escapeHtml(texto)}" style="flex: 1.5; font-size: 12px; border-left: 1px solid var(--border-color); padding-left: 8px;">
+        <button type="button" class="btn-del-linha-item" onclick="removerLinhaLink(this)" title="Remover este link">✕</button>
+    `;
+    container.appendChild(div);
+}
+window.adicionarLinhaLink = adicionarLinhaLink;
+
+function removerLinhaLink(btn) {
+    const container = document.getElementById('containerProfLinks');
+    const linha = btn.closest('.item-dinamico-linha');
+    if (linha) linha.remove();
+    if (container && container.children.length === 0) {
+        adicionarLinhaLink();
+    }
+}
+window.removerLinhaLink = removerLinhaLink;
+
+async function lidarSelecaoMultiplosArquivos(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    mostrarToastCanto('Anexando arquivos...', `Processando ${files.length} arquivo(s)...`, 'info', 2000);
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+            let base64 = '';
+            if (file.type && file.type.startsWith('image/')) {
+                base64 = await comprimirImagemBase64(file, 1200, 0.85);
+            } else {
+                base64 = await new Promise((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = e => resolve(e.target.result);
+                    r.onerror = reject;
+                    r.readAsDataURL(file);
+                });
+            }
+            
+            profArquivosLista.push({
+                nomeArquivo: file.name,
+                arquivo: base64,
+                tamanho: (file.size / 1024).toFixed(1) + ' KB'
+            });
+        } catch (err) {
+            console.error('Erro ao ler arquivo:', err);
+        }
+    }
+
+    renderizarListaArquivosProf();
+    event.target.value = '';
+}
+window.lidarSelecaoMultiplosArquivos = lidarSelecaoMultiplosArquivos;
+
+function removerArquivoAnexo(idx) {
+    profArquivosLista.splice(idx, 1);
+    renderizarListaArquivosProf();
+}
+window.removerArquivoAnexo = removerArquivoAnexo;
+
+function renderizarListaArquivosProf() {
+    const container = document.getElementById('listaProfArquivos');
+    if (!container) return;
+    if (profArquivosLista.length === 0) {
+        container.innerHTML = '<span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Nenhum arquivo anexado no momento.</span>';
+        return;
+    }
+
+    container.innerHTML = profArquivosLista.map((arq, idx) => {
+        const ehImg = arq.arquivo.startsWith('data:image/') || String(arq.nomeArquivo).match(/\.(png|jpe?g|webp|gif)$/i);
+        const icon = ehImg ? '🖼️' : (String(arq.nomeArquivo).endsWith('.pdf') ? '📄' : '📎');
+        return `
+            <div class="badge-arquivo-anexo">
+                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span>${icon}</span>
+                    <strong style="font-size: 12px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(arq.nomeArquivo)}</strong>
+                    ${arq.tamanho ? `<span style="font-size: 11px; color: var(--text-muted); opacity: 0.8;">(${arq.tamanho})</span>` : ''}
+                </div>
+                <button type="button" class="btn-del-linha-item" onclick="removerArquivoAnexo(${idx})" title="Remover anexo">✕</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function abrirModalPublicarConteudo() {
+    const modal = document.getElementById('modal-publicar-conteudo');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (!document.getElementById('profEditandoId')?.value) {
+            const materiaBtn = document.querySelector('.materia-btn.active');
+            const selectMateria = document.getElementById('profMateria');
+            if (selectMateria && materiaBtn) selectMateria.value = materiaBtn.innerText;
+            
+            // Inicializa listas vazias se for novo cadastro
+            const containerVids = document.getElementById('containerProfVideos');
+            if (containerVids && containerVids.children.length === 0) {
+                adicionarLinhaVideo();
+            }
+            const containerLnks = document.getElementById('containerProfLinks');
+            if (containerLnks && containerLnks.children.length === 0) {
+                adicionarLinhaLink();
+            }
+            renderizarListaArquivosProf();
+        }
+    }
+}
+
+function fecharModalPublicarConteudo() {
+    const modal = document.getElementById('modal-publicar-conteudo');
+    if (modal) modal.classList.add('hidden');
+    cancelarEdicaoConteudo();
+}
+
 function atualizarTituloPainelProfessor(editando) {
-    const titulo = document.getElementById('tituloPainelProfessor');
+    const titulo = document.getElementById('tituloModalPublicarConteudo') || document.getElementById('tituloPainelProfessor');
     const btnSalvar = document.getElementById('btnSalvarConteudo');
-    const btnCancelar = document.getElementById('btnCancelarEdicao');
-    if (titulo) titulo.textContent = editando ? '✏️ Editar publicação' : '👨‍🏫 Publicar Nova Aula';
-    if (btnSalvar) btnSalvar.textContent = editando ? 'Salvar alterações' : 'Salvar Conteúdo';
-    if (btnCancelar) btnCancelar.style.display = editando ? 'inline-flex' : 'none';
+    if (titulo) titulo.textContent = editando ? '✏️ Editar Publicação' : '👨‍🏫 Publicar Nova Aula';
+    if (btnSalvar) btnSalvar.textContent = editando ? 'Salvar Alterações' : 'Salvar Conteúdo';
 }
 
 function cancelarEdicaoConteudo() {
@@ -2732,6 +3344,20 @@ function cancelarEdicaoConteudo() {
     const idCampo = document.getElementById('profEditandoId');
     if (form) form.reset();
     if (idCampo) idCampo.value = '';
+    
+    profArquivosLista = [];
+    const containerVids = document.getElementById('containerProfVideos');
+    if (containerVids) {
+        containerVids.innerHTML = '';
+        adicionarLinhaVideo();
+    }
+    const containerLnks = document.getElementById('containerProfLinks');
+    if (containerLnks) {
+        containerLnks.innerHTML = '';
+        adicionarLinhaLink();
+    }
+    renderizarListaArquivosProf();
+
     atualizarTituloPainelProfessor(false);
     const materiaBtn = document.querySelector('.materia-btn.active');
     const selectMateria = document.getElementById('profMateria');
@@ -2746,13 +3372,49 @@ function iniciarEdicaoConteudo(id) {
     document.getElementById('profMateria').value = item.materia || 'Geral';
     document.getElementById('profTitulo').value = item.titulo || '';
     document.getElementById('profTexto').value = item.texto || '';
-    document.getElementById('profLink').value = item.link || '';
-    document.getElementById('profVideo').value = item.video || '';
-    document.getElementById('profArquivo').value = '';
-    atualizarTituloPainelProfessor(true);
 
-    const painel = document.getElementById('painelProfessorConteudo');
-    if (painel) painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Carrega vídeos
+    const containerVids = document.getElementById('containerProfVideos');
+    if (containerVids) {
+        containerVids.innerHTML = '';
+        const vids = (item.videos && Array.isArray(item.videos)) ? item.videos : (item.video ? [item.video] : []);
+        if (vids.length > 0) {
+            vids.forEach(v => adicionarLinhaVideo(v));
+        } else {
+            adicionarLinhaVideo();
+        }
+    }
+
+    // Carrega links
+    const containerLnks = document.getElementById('containerProfLinks');
+    if (containerLnks) {
+        containerLnks.innerHTML = '';
+        const lnks = (item.links && Array.isArray(item.links)) ? item.links : (item.link ? [item.link] : []);
+        if (lnks.length > 0) {
+            lnks.forEach(l => {
+                if (typeof l === 'object') adicionarLinhaLink(l.url || '', l.texto || '');
+                else adicionarLinhaLink(l);
+            });
+        } else {
+            adicionarLinhaLink();
+        }
+    }
+
+    // Carrega arquivos
+    profArquivosLista = [];
+    if (item.arquivos && Array.isArray(item.arquivos)) {
+        profArquivosLista = [...item.arquivos];
+    } else if (item.arquivo) {
+        profArquivosLista = [{
+            nomeArquivo: item.nomeArquivo || 'Arquivo Anexo',
+            arquivo: item.arquivo,
+            tamanho: ''
+        }];
+    }
+    renderizarListaArquivosProf();
+
+    atualizarTituloPainelProfessor(true);
+    abrirModalPublicarConteudo();
 }
 
 async function pedirApagarConteudo(id) {
@@ -2836,7 +3498,6 @@ async function salvarConteudo(e) {
     const idEditando = document.getElementById('profEditandoId').value;
     const materiaAtiva = document.getElementById('profMateria').value
         || (document.querySelector('.materia-btn.active') ? document.querySelector('.materia-btn.active').innerText : 'Geral');
-    const arquivoInput = document.getElementById('profArquivo');
 
     if (idEditando) {
         const confirmado = await perguntarConfirmacao(
@@ -2847,97 +3508,539 @@ async function salvarConteudo(e) {
         if (!confirmado) return;
     }
 
-    const aplicarSalvamento = (arquivoBase64, nomeArquivo) => {
-        const conteudos = obterConteudosLocais();
-        const agora = new Date().toLocaleString();
+    // Coleta todos os vídeos adicionados
+    const videos = [];
+    document.querySelectorAll('#containerProfVideos .prof-campo-video').forEach(input => {
+        const val = input.value.trim();
+        if (val) videos.push(val);
+    });
 
-        if (idEditando) {
-            const idx = conteudos.findIndex(c => String(c.id) === String(idEditando));
-            if (idx === -1) return;
-            const atual = conteudos[idx];
-            atual.materia = materiaAtiva;
-            atual.titulo = document.getElementById('profTitulo').value;
-            atual.texto = document.getElementById('profTexto').value;
-            atual.link = document.getElementById('profLink').value;
-            atual.video = document.getElementById('profVideo').value;
-            atual.dataHora = agora;
-            atual.editado = true;
-            if (arquivoBase64) {
-                atual.arquivo = arquivoBase64;
-                atual.nomeArquivo = nomeArquivo;
-            }
-            conteudos[idx] = atual;
-            salvarConteudosLocais(conteudos);
-            persistirConteudoServidor(atual);
-            mostrarToastCanto('Conteúdo atualizado', `Alterações salvas em ${materiaAtiva}.`, 'success');
-        } else {
-            const novoConteudo = {
-                id: Date.now(),
-                ordem: Date.now(),
-                materia: materiaAtiva,
-                titulo: document.getElementById('profTitulo').value,
-                texto: document.getElementById('profTexto').value,
-                link: document.getElementById('profLink').value,
-                video: document.getElementById('profVideo').value,
-                arquivo: arquivoBase64,
-                nomeArquivo: nomeArquivo,
-                dataHora: agora,
-                editado: false,
-                profNome: usuarioLogado.nome,
-                profFoto: usuarioLogado.foto || null,
-                profRM: usuarioLogado.rm || null
-            };
-            conteudos.push(novoConteudo);
-            salvarConteudosLocais(conteudos);
-            persistirConteudoServidor(novoConteudo);
-            mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
+    // Coleta todos os links adicionados
+    const links = [];
+    document.querySelectorAll('#containerProfLinks .item-dinamico-linha').forEach(row => {
+        const urlInput = row.querySelector('.prof-campo-link-url');
+        const txtInput = row.querySelector('.prof-campo-link-texto');
+        const url = urlInput ? urlInput.value.trim() : '';
+        const texto = txtInput ? txtInput.value.trim() : '';
+        if (url) {
+            links.push(texto ? { url, texto } : url);
+        }
+    });
+
+    // Lista de arquivos anexados (múltiplos)
+    const arquivos = [...profArquivosLista];
+
+    const conteudos = obterConteudosLocais();
+    const agora = new Date().toLocaleString();
+
+    if (idEditando) {
+        const idx = conteudos.findIndex(c => String(c.id) === String(idEditando));
+        if (idx === -1) return;
+        const atual = conteudos[idx];
+        atual.materia = materiaAtiva;
+        atual.titulo = document.getElementById('profTitulo').value.trim();
+        atual.texto = document.getElementById('profTexto').value.trim();
+        
+        // Múltiplos conteúdos
+        atual.videos = videos;
+        atual.arquivos = arquivos;
+        atual.links = links;
+
+        // Retrocompatibilidade com campos legados
+        atual.video = videos[0] || '';
+        atual.link = links[0] ? (typeof links[0] === 'object' ? links[0].url : links[0]) : '';
+        if (arquivos.length > 0) {
+            atual.arquivo = arquivos[0].arquivo;
+            atual.nomeArquivo = arquivos[0].nomeArquivo;
         }
 
-        cancelarEdicaoConteudo();
-        carregarMateria(materiaAtiva);
-    };
-
-    if (arquivoInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = function(evt) { aplicarSalvamento(evt.target.result, arquivoInput.files[0].name); };
-        reader.readAsDataURL(arquivoInput.files[0]);
+        atual.dataHora = agora;
+        atual.editado = true;
+        conteudos[idx] = atual;
+        salvarConteudosLocais(conteudos);
+        persistirConteudoServidor(atual);
+        mostrarToastCanto('Conteúdo atualizado', `Alterações salvas em ${materiaAtiva}.`, 'success');
     } else {
-        aplicarSalvamento(null, null);
+        const novoConteudo = {
+            id: Date.now(),
+            ordem: Date.now(),
+            materia: materiaAtiva,
+            titulo: document.getElementById('profTitulo').value.trim(),
+            texto: document.getElementById('profTexto').value.trim(),
+            
+            // Múltiplos conteúdos
+            videos: videos,
+            arquivos: arquivos,
+            links: links,
+
+            // Retrocompatibilidade
+            video: videos[0] || '',
+            link: links[0] ? (typeof links[0] === 'object' ? links[0].url : links[0]) : '';
+            arquivo: arquivos[0] ? arquivos[0].arquivo : null,
+            nomeArquivo: arquivos[0] ? arquivos[0].nomeArquivo : null,
+
+            dataHora: agora,
+            editado: false,
+            profNome: usuarioLogado.nome,
+            profFoto: usuarioLogado.foto || null,
+            profRM: usuarioLogado.rm || null
+        };
+        conteudos.push(novoConteudo);
+        salvarConteudosLocais(conteudos);
+        persistirConteudoServidor(novoConteudo);
+        mostrarToastCanto('Conteúdo Publicado', `Conteúdo publicado com sucesso em ${materiaAtiva}!`, 'success');
+    }
+
+    cancelarEdicaoConteudo();
+    const modal = document.getElementById('modal-publicar-conteudo');
+    if (modal) modal.classList.add('hidden');
+    carregarMateria(materiaAtiva);
+}
+
+// ==========================================
+// SIMULADOS CRIADOS PELO PROFESSOR (SIMULADOS COMPLETOS)
+// ==========================================
+function obterSimuladosProfessoresLocais() {
+    try {
+        const raw = localStorage.getItem('bd_simulados_professores') || localStorage.getItem('bd_simulados');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            // Normaliza caso haja questões legadas salvas diretamente
+            return parsed.map(item => {
+                if (item.questoes && Array.isArray(item.questoes)) return item;
+                // Converte questão única legada em formato de simulado
+                return {
+                    id: item.id || Date.now(),
+                    nome: item.tema ? `Simulado: ${item.tema}` : 'Simulado Especial',
+                    autor: item.autor || 'Professor(a)',
+                    serie: item.serie || 'Todas as Séries',
+                    dataHora: item.dataHora || 'Recentemente',
+                    questoes: [{
+                        pergunta: item.pergunta,
+                        tema: item.tema || 'Geral',
+                        pontos: 2,
+                        opcoes: item.opcoes || [],
+                        correta: item.correta !== undefined ? item.correta : 0
+                    }]
+                };
+            });
+        }
+    } catch (e) {
+        console.warn('Erro ao ler bd_simulados_professores:', e);
+    }
+    return [];
+}
+
+function salvarSimuladosProfessoresLocais(lista) {
+    localStorage.setItem('bd_simulados_professores', JSON.stringify(lista));
+    localStorage.setItem('bd_simulados', JSON.stringify(lista));
+}
+
+function adicionarBlocoQuestao(dados = null) {
+    const container = document.getElementById('containerQuestoesDinamicas');
+    if (!container) return;
+
+    const num = container.children.length + 1;
+    const bloco = document.createElement('div');
+    bloco.className = 'bloco-questao-editor';
+    bloco.dataset.index = num;
+
+    const pergunta = dados ? escapeHtml(dados.pergunta || '') : '';
+    const tema = dados ? escapeHtml(dados.tema || '') : '';
+    const pontos = dados && dados.pontos !== undefined ? dados.pontos : 2;
+    const opcoes = (dados && Array.isArray(dados.opcoes)) ? dados.opcoes : ['', '', '', ''];
+    const correta = dados && dados.correta !== undefined ? dados.correta : 0;
+    const imagem = (dados && dados.imagem) ? dados.imagem : '';
+
+    bloco.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+            <span style="font-weight: 700; color: var(--primary-color); font-size: 13.5px;">Questão #${num}</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                    ⭐ Pontos:
+                    <input type="number" class="prof-q-pontos prof-field" value="${pontos}" min="1" max="10" step="0.5" style="width: 58px; padding: 4px 6px; font-size: 12px; text-align: center;" required>
+                </label>
+                <button type="button" onclick="removerBlocoQuestao(this)" style="background: rgba(244, 67, 54, 0.12); border: 1px solid #f44336; color: #f44336; border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer;">✕ Remover</button>
+            </div>
+        </div>
+        <textarea class="prof-field prof-q-pergunta" rows="2" placeholder="Enunciado da questão..." required style="width:100%; font-size: 13px;">${pergunta}</textarea>
+        
+        <!-- Seção de Foto/Ilustração da Questão -->
+        <div class="questao-imagem-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+                    🖼️ Foto / Ilustração da Questão (Opcional)
+                </label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <label class="btn" style="padding: 4px 10px; font-size: 11.5px; background: rgba(0, 123, 255, 0.15); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 6px; cursor: pointer; font-weight: 600; margin: 0; display: inline-flex; align-items: center; gap: 4px;">
+                        📷 Inserir Foto
+                        <input type="file" class="prof-q-img-file" accept="image/*" onchange="lidarUploadImagemQuestao(event, this)" style="display: none;">
+                    </label>
+                    <button type="button" class="btn-del-q-img" onclick="removerImagemQuestao(this)" style="display: ${imagem ? 'inline-flex' : 'none'}; background: rgba(244, 67, 54, 0.12); border: 1px solid #f44336; color: #f44336; border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;">✕ Remover Foto</button>
+                </div>
+            </div>
+            <input type="hidden" class="prof-q-img-data" value="${imagem}">
+            <div class="prof-q-img-preview-container" style="display: ${imagem ? 'flex' : 'none'};">
+                <img src="${imagem}" class="prof-q-img-preview" alt="Prévia da imagem da questão" onclick="abrirModalZoomImagem(this.src, 'Prévia da Ilustração da Questão')" title="Toque para ampliar">
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                    <span style="color: #4CAF50; font-weight: 700;">✓ Foto vinculada à questão</span><br>
+                    Esta ilustração aparecerá na resolução e no gabarito do simulado.
+                </div>
+            </div>
+        </div>
+
+        <input type="text" class="prof-field prof-q-tema" placeholder="Tema Específico (ex: Matemática: Geometria Espacial)" value="${tema}" required style="width:100%; font-size: 12.5px;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input type="text" class="prof-field prof-q-alt0" placeholder="Alternativa A" value="${escapeHtml(opcoes[0] || '')}" required style="font-size: 12.5px;">
+            <input type="text" class="prof-field prof-q-alt1" placeholder="Alternativa B" value="${escapeHtml(opcoes[1] || '')}" required style="font-size: 12.5px;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input type="text" class="prof-field prof-q-alt2" placeholder="Alternativa C" value="${escapeHtml(opcoes[2] || '')}" required style="font-size: 12.5px;">
+            <input type="text" class="prof-field prof-q-alt3" placeholder="Alternativa D" value="${escapeHtml(opcoes[3] || '')}" required style="font-size: 12.5px;">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-main);">Gabarito Correto:</label>
+            <select class="prof-field prof-q-correta" style="padding: 4px 10px; font-size: 12px;" required>
+                <option value="0" ${correta === 0 ? 'selected' : ''}>Alternativa A</option>
+                <option value="1" ${correta === 1 ? 'selected' : ''}>Alternativa B</option>
+                <option value="2" ${correta === 2 ? 'selected' : ''}>Alternativa C</option>
+                <option value="3" ${correta === 3 ? 'selected' : ''}>Alternativa D</option>
+            </select>
+        </div>
+    `;
+
+    container.appendChild(bloco);
+    atualizarContadorQuestoes();
+}
+
+async function lidarUploadImagemQuestao(event, inputEl) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const bloco = inputEl.closest('.bloco-questao-editor');
+    if (!bloco) return;
+
+    try {
+        mostrarToastCanto('Processando Imagem', 'Comprimindo e otimizando imagem da questão...', 'info', 2000);
+        // Otimiza para no máximo 1000px mantendo excelente qualidade visual e baixo uso de memória
+        const base64Otimizada = await comprimirImagemBase64(file, 1000, 0.82);
+        
+        const inputData = bloco.querySelector('.prof-q-img-data');
+        const previewContainer = bloco.querySelector('.prof-q-img-preview-container');
+        const previewImg = bloco.querySelector('.prof-q-img-preview');
+        const btnDel = bloco.querySelector('.btn-del-q-img');
+
+        if (inputData) inputData.value = base64Otimizada;
+        if (previewImg) previewImg.src = base64Otimizada;
+        if (previewContainer) previewContainer.style.display = 'flex';
+        if (btnDel) btnDel.style.display = 'inline-flex';
+
+        mostrarToastCanto('Imagem Carregada', 'A ilustração foi vinculada a esta questão com sucesso!', 'success');
+    } catch (err) {
+        console.error('[StudySP] Erro ao carregar foto da questão:', err);
+        mostrarToastCanto('Erro na Imagem', 'Não foi possível carregar a imagem selecionada: ' + err.message, 'error');
     }
 }
 
-function salvarQuestao(e) {
-    e.preventDefault();
-    let novaQuestao = {
-        id: Date.now(),
-        pergunta: document.getElementById('profPergunta').value,
-        tema: document.getElementById('profTema').value,
-        opcoes: [
-            document.getElementById('profAlt0').value,
-            document.getElementById('profAlt1').value,
-            document.getElementById('profAlt2').value,
-            document.getElementById('profAlt3').value
-        ],
-        correta: parseInt(document.getElementById('profCorreta').value)
-    };
+function removerImagemQuestao(btn) {
+    const bloco = btn.closest('.bloco-questao-editor');
+    if (!bloco) return;
 
-    let simulados = JSON.parse(localStorage.getItem('bd_simulados')) || [];
-    simulados.push(novaQuestao);
-    localStorage.setItem('bd_simulados', JSON.stringify(simulados));
-    
-    // Injeta a nova questão na variável da prova atual
-    questoesProfessor.push(novaQuestao);
-    dadosProvaSimulada.push(novaQuestao);
+    const inputData = bloco.querySelector('.prof-q-img-data');
+    const previewContainer = bloco.querySelector('.prof-q-img-preview-container');
+    const previewImg = bloco.querySelector('.prof-q-img-preview');
+    const inputFile = bloco.querySelector('.prof-q-img-file');
 
-    // Envia para o servidor para persistir para todos os alunos em qualquer navegador
-    if (window.API && typeof window.API.salvarSimulado === 'function') {
-        window.API.salvarSimulado(novaQuestao).catch(err => {
-            console.warn('[StudySP] Falha ao enviar simulado para o servidor:', err);
+    if (inputData) inputData.value = '';
+    if (previewImg) previewImg.src = '';
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (inputFile) inputFile.value = '';
+    btn.style.display = 'none';
+    mostrarToastCanto('Foto Removida', 'A ilustração da questão foi removida.', 'info');
+}
+
+function removerBlocoQuestao(btn) {
+    const bloco = btn.closest('.bloco-questao-editor');
+    if (bloco) {
+        bloco.remove();
+        atualizarContadorQuestoes();
+    }
+}
+
+function atualizarContadorQuestoes() {
+    const container = document.getElementById('containerQuestoesDinamicas');
+    const badge = document.getElementById('badgeContadorQuestoes');
+    if (container && badge) {
+        const qtd = container.children.length;
+        badge.textContent = `${qtd} ${qtd === 1 ? 'questão' : 'questões'}`;
+        // Re-numera os blocos visuais
+        Array.from(container.children).forEach((b, idx) => {
+            const span = b.querySelector('span');
+            if (span) span.textContent = `Questão #${idx + 1}`;
         });
     }
+}
+
+async function gerarQuestoesPorQuantidade() {
+    const resp = await promptPersonalizado("Quantas questões deseja que este simulado tenha?", "Ex: 5", "5");
+    if (!resp) return;
+    const qtd = parseInt(resp);
+    if (isNaN(qtd) || qtd < 1 || qtd > 50) {
+        mostrarToastCanto('Atenção', 'Por favor, informe um número de questões entre 1 e 50.', 'warning');
+        return;
+    }
+    const container = document.getElementById('containerQuestoesDinamicas');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 0; i < qtd; i++) {
+        adicionarBlocoQuestao();
+    }
+}
+
+function abrirModalCriarSimulado() {
+    const modal = document.getElementById('modal-criar-simulado');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (!document.getElementById('profSimuladoEditandoId')?.value) {
+            cancelarEdicaoSimulado();
+        }
+    }
+}
+
+function fecharModalCriarSimulado() {
+    const modal = document.getElementById('modal-criar-simulado');
+    if (modal) modal.classList.add('hidden');
+    cancelarEdicaoSimulado();
+}
+
+function cancelarEdicaoSimulado() {
+    const idEl = document.getElementById('profSimuladoEditandoId');
+    if (idEl) idEl.value = '';
+    const nomeEl = document.getElementById('profSimuladoNome');
+    if (nomeEl) nomeEl.value = '';
+    const serieEl = document.getElementById('profSimuladoSerie');
+    if (serieEl) serieEl.value = '1º Ano';
+    const autorEl = document.getElementById('profSimuladoAutor');
+    if (autorEl && usuarioLogado) autorEl.value = usuarioLogado.nome || '';
+    const container = document.getElementById('containerQuestoesDinamicas');
+    if (container) {
+        container.innerHTML = '';
+        adicionarBlocoQuestao();
+    }
+    const titulo = document.getElementById('tituloModalSimulado') || document.getElementById('tituloPainelSimulado');
+    if (titulo) titulo.textContent = '📝 Criar Novo Simulado Completo';
+    const btnSalvar = document.getElementById('btnSalvarSimuladoCompleto');
+    if (btnSalvar) btnSalvar.textContent = '💾 Publicar Simulado Completo';
+}
+
+function iniciarEdicaoSimulado(id) {
+    const simulados = obterSimuladosProfessoresLocais();
+    const sim = simulados.find(s => String(s.id) === String(id));
+    if (!sim) return;
+
+    document.getElementById('profSimuladoEditandoId').value = sim.id;
+    document.getElementById('profSimuladoNome').value = sim.nome || '';
+    document.getElementById('profSimuladoSerie').value = sim.serie || '1º Ano';
+    document.getElementById('profSimuladoAutor').value = sim.autor || (usuarioLogado ? usuarioLogado.nome : '');
     
-    mostrarToastCanto('Questão Cadastrada', 'Questão adicionada ao banco de Simulados com sucesso!', 'success');
-    e.target.reset();
+    const titulo = document.getElementById('tituloModalSimulado') || document.getElementById('tituloPainelSimulado');
+    if (titulo) titulo.textContent = '✏️ Editar Simulado';
+    const btnSalvar = document.getElementById('btnSalvarSimuladoCompleto');
+    if (btnSalvar) btnSalvar.textContent = '💾 Salvar Alterações no Simulado';
+
+    const container = document.getElementById('containerQuestoesDinamicas');
+    container.innerHTML = '';
+    if (Array.isArray(sim.questoes) && sim.questoes.length > 0) {
+        sim.questoes.forEach(q => adicionarBlocoQuestao(q));
+    } else {
+        adicionarBlocoQuestao();
+    }
+
+    abrirModalCriarSimulado();
+}
+
+async function pedirExcluirSimulado(id) {
+    const confirmado = await perguntarConfirmacao(
+        'Excluir Simulado?',
+        'Tem certeza de que deseja excluir este simulado? Os alunos não poderão mais realizá-lo.',
+        { textoOk: 'Excluir', perigo: true }
+    );
+    if (!confirmado) return;
+
+    const restantes = obterSimuladosProfessoresLocais().filter(s => String(s.id) !== String(id));
+    salvarSimuladosProfessoresLocais(restantes);
+
+    if (window.API && typeof window.API.excluirSimulado === 'function') {
+        window.API.excluirSimulado(id).catch(err => {
+            console.warn('[StudySP] Falha ao excluir simulado no servidor:', err);
+        });
+    }
+
+    renderizarSimuladosProfessoresNaTela();
+    mostrarToastCanto('Simulado Excluído', 'O simulado foi removido com sucesso.', 'info');
+}
+
+function salvarSimuladoCompleto(e) {
+    e.preventDefault();
+
+    const idEditando = document.getElementById('profSimuladoEditandoId').value;
+    const nome = document.getElementById('profSimuladoNome').value.trim();
+    const serie = document.getElementById('profSimuladoSerie').value;
+    const autor = document.getElementById('profSimuladoAutor').value.trim();
+
+    const container = document.getElementById('containerQuestoesDinamicas');
+    const blocos = container.querySelectorAll('.bloco-questao-editor');
+
+    if (blocos.length === 0) {
+        mostrarToastCanto('Atenção', 'Adicione pelo menos 1 questão ao simulado.', 'warning');
+        return;
+    }
+
+    const questoes = [];
+    let pontuacaoTotal = 0;
+
+    for (let i = 0; i < blocos.length; i++) {
+        const b = blocos[i];
+        const pergunta = b.querySelector('.prof-q-pergunta').value.trim();
+        const tema = b.querySelector('.prof-q-tema').value.trim();
+        const pontos = parseFloat(b.querySelector('.prof-q-pontos').value) || 2;
+        const alt0 = b.querySelector('.prof-q-alt0').value.trim();
+        const alt1 = b.querySelector('.prof-q-alt1').value.trim();
+        const alt2 = b.querySelector('.prof-q-alt2').value.trim();
+        const alt3 = b.querySelector('.prof-q-alt3').value.trim();
+        const correta = parseInt(b.querySelector('.prof-q-correta').value);
+        const imagem = b.querySelector('.prof-q-img-data')?.value || null;
+
+        if (!pergunta || !tema || !alt0 || !alt1 || !alt2 || !alt3) {
+            mostrarToastCanto('Campos Incompletos', `Preencha todas as alternativas da Questão #${i + 1}.`, 'warning');
+            return;
+        }
+
+        pontuacaoTotal += pontos;
+        questoes.push({
+            id: Date.now() + i,
+            pergunta,
+            tema,
+            pontos,
+            opcoes: [alt0, alt1, alt2, alt3],
+            correta,
+            imagem
+        });
+    }
+
+    const agora = new Date().toLocaleString();
+    const simulados = obterSimuladosProfessoresLocais();
+
+    if (idEditando) {
+        const idx = simulados.findIndex(s => String(s.id) === String(idEditando));
+        if (idx !== -1) {
+            simulados[idx].nome = nome;
+            simulados[idx].serie = serie;
+            simulados[idx].autor = autor;
+            simulados[idx].questoes = questoes;
+            simulados[idx].pontuacaoTotal = pontuacaoTotal;
+            simulados[idx].dataHora = `Editado em ${agora}`;
+            simulados[idx].editado = true;
+            salvarSimuladosProfessoresLocais(simulados);
+
+            if (window.API && typeof window.API.salvarSimulado === 'function') {
+                window.API.salvarSimulado(simulados[idx]).catch(err => {
+                    console.warn('[StudySP] Erro ao sincronizar simulado:', err);
+                });
+            }
+            mostrarToastCanto('Simulado Atualizado', 'As alterações foram salvas com sucesso!', 'success');
+        }
+    } else {
+        const novoSimulado = {
+            id: Date.now(),
+            nome,
+            serie,
+            autor,
+            questoes,
+            pontuacaoTotal,
+            dataHora: agora,
+            editado: false,
+            profRM: (usuarioLogado && usuarioLogado.rm) ? usuarioLogado.rm : null
+        };
+        simulados.push(novoSimulado);
+        salvarSimuladosProfessoresLocais(simulados);
+
+        if (window.API && typeof window.API.salvarSimulado === 'function') {
+            window.API.salvarSimulado(novoSimulado).catch(err => {
+                console.warn('[StudySP] Erro ao salvar simulado no servidor:', err);
+            });
+        }
+        mostrarToastCanto('Simulado Criado!', `Simulado com ${questoes.length} questões publicado com sucesso!`, 'success');
+    }
+
+    cancelarEdicaoSimulado();
+    renderizarSimuladosProfessoresNaTela();
+}
+
+function renderizarSimuladosProfessoresNaTela() {
+    const grid = document.getElementById('gridSimuladosProfessores');
+    if (!grid) return;
+
+    const simulados = obterSimuladosProfessoresLocais();
+    const isProfessor = usuarioLogado && usuarioLogado.perfil === 'Professor';
+
+    if (simulados.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 25px; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);">
+                <span style="font-size: 32px; display: block; margin-bottom: 8px;">👨‍🏫</span>
+                <strong style="color: var(--text-main); font-size: 15px;">Nenhum simulado de professor cadastrado no momento.</strong>
+                <p style="font-size: 13px; margin-top: 4px;">${isProfessor ? 'Utilize o painel acima para criar e publicar novos simulados com questões personalizadas!' : 'Assim que os professores publicarem novos simulados, eles aparecerão aqui para você treinar.'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = simulados.map(sim => {
+        const qtdQuestoes = (sim.questoes && Array.isArray(sim.questoes)) ? sim.questoes.length : 1;
+        const totalPontos = (sim.questoes && Array.isArray(sim.questoes))
+            ? sim.questoes.reduce((acc, q) => acc + (q.pontos !== undefined ? Number(q.pontos) : 2), 0)
+            : (sim.pontuacaoTotal || (qtdQuestoes * 2));
+        const serieTexto = sim.serie ? sim.serie.toUpperCase() : 'GERAL';
+        const dataPublicacao = sim.dataHora || 'Recentemente';
+        const idSeguro = String(sim.id);
+        const temImagens = (sim.questoes && Array.isArray(sim.questoes)) ? sim.questoes.some(q => !!q.imagem) : false;
+        const badgeImg = temImagens ? `<span class="badge-contem-imagem" title="Este simulado contém questões com fotos e ilustrações">📷 Ilustrado</span>` : '';
+
+        let acoesProf = '';
+        if (isProfessor) {
+            acoesProf = `
+                <div class="prova-prof-acoes" onclick="event.stopPropagation()">
+                    <button type="button" class="btn-prof-simulado-acao" onclick="iniciarEdicaoSimulado('${idSeguro}')">✏️ Editar</button>
+                    <button type="button" class="btn-prof-simulado-acao btn-del" onclick="pedirExcluirSimulado('${idSeguro}')">🗑️ Excluir</button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="prova-card prova-card-prof" onclick="iniciarSimulado('${idSeguro}')">
+                <div class="prova-card-badge" style="background: rgba(255, 152, 0, 0.15); color: #ff9800; border-color: rgba(255, 152, 0, 0.3);">
+                    👨‍🏫 ${escapeHtml(sim.autor || 'Professor')}
+                </div>
+                <div class="prova-card-ano">${escapeHtml(serieTexto)}</div>
+                <h3>${escapeHtml(sim.nome || 'Simulado Especial')}</h3>
+                
+                <div class="prova-prof-meta">
+                    <span class="prova-prof-badge-pontos">⭐ ${totalPontos} Pontos Totais</span>
+                    <span>📝 ${qtdQuestoes} ${qtdQuestoes === 1 ? 'questão' : 'questões'}</span>
+                    ${badgeImg}
+                </div>
+
+                <p class="prova-card-desc" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                    🕒 Publicado em: <strong>${escapeHtml(dataPublicacao)}</strong>
+                </p>
+
+                <span class="btn-iniciar-prova">Iniciar Simulado do Professor →</span>
+                ${acoesProf}
+            </div>
+        `;
+    }).join('');
 }
 
 // ==========================================
@@ -3166,6 +4269,14 @@ window.addEventListener('click', function(e) {
     if (modalTccConfig && e.target === modalTccConfig) {
         modalTccConfig.classList.add('hidden');
     }
+    const modalPubConteudo = document.getElementById('modal-publicar-conteudo');
+    if (modalPubConteudo && e.target === modalPubConteudo) {
+        modalPubConteudo.classList.add('hidden');
+    }
+    const modalCriarSim = document.getElementById('modal-criar-simulado');
+    if (modalCriarSim && e.target === modalCriarSim) {
+        modalCriarSim.classList.add('hidden');
+    }
 });
 
 // ==========================================
@@ -3177,9 +4288,16 @@ async function sincronizarComServidor() {
         if (window.API && typeof window.API.buscarUsuario === 'function') {
             const remoto = await window.API.buscarUsuario(usuarioLogado.rm);
             if (remoto && remoto.rm) {
+                // Preserva a foto se o usuário já tiver localmente e o servidor retornar nulo/vazio
+                if (!remoto.foto && usuarioLogado.foto) {
+                    remoto.foto = usuarioLogado.foto;
+                }
                 // Atualiza dados locais com a versão mais recente do banco de dados
                 Object.assign(usuarioLogado, remoto);
                 localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+                if (usuarioLogado.foto) {
+                    aplicarFotoPerfilNaInterface(usuarioLogado.foto);
+                }
                 carregarDadosPerfil();
                 carregarRank();
                 if (typeof atualizarDesempenho === 'function') atualizarDesempenho();
@@ -3194,10 +4312,10 @@ async function sincronizarComServidor() {
 async function carregarQuestoesDoServidor() {
     try {
         if (window.API && typeof window.API.buscarSimulados === 'function') {
-            const questoesServidor = await window.API.buscarSimulados();
-            if (Array.isArray(questoesServidor) && questoesServidor.length > 0) {
-                questoesProfessor = questoesServidor;
-                localStorage.setItem('bd_simulados', JSON.stringify(questoesServidor));
+            const simuladosServidor = await window.API.buscarSimulados();
+            if (Array.isArray(simuladosServidor) && simuladosServidor.length > 0) {
+                salvarSimuladosProfessoresLocais(simuladosServidor);
+                renderizarSimuladosProfessoresNaTela();
             }
         }
     } catch (err) {
@@ -3212,5 +4330,9 @@ calcularMultiplicador();
 atualizarDesempenho(); 
 renderizarConquistas();
 tornarMiniTimerArrastavel();
+renderizarSimuladosProfessoresNaTela();
+if (document.getElementById('containerQuestoesDinamicas') && document.getElementById('containerQuestoesDinamicas').children.length === 0) {
+    adicionarBlocoQuestao();
+}
 sincronizarComServidor();
 carregarQuestoesDoServidor();
